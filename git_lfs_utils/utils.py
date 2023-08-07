@@ -11,7 +11,7 @@ def update_package_list():
 
 class GitRepo(git.Repo):
     def __init__(self, repository_path=None, *args, **kwargs):
-        if repository_path is None:
+        if repository_path is None or repository_path == ".":
             starting_path = os.getcwd()
             path = starting_path
         else:
