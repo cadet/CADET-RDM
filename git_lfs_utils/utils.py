@@ -10,6 +10,26 @@ def update_package_list():
 
 
 class GitRepo(git.Repo):
+    def __init__(self, repository_path=None, *args, **kwargs):
+        if repository_path is None:
+            starting_path = os.getcwd()
+            path = starting_path
+        else:
+            starting_path = repository_path
+            path = repository_path
+        repository_found = False
+        while repository_found is False:
+            # step upwards in path until a git repo is found or root is reached
+            try:
+                super().__init__(path, *args, **kwargs)
+                repository_found = True
+            except git.exc.InvalidGitRepositoryError:
+                # Step upwards in the path once
+                path, directory = os.path.split(path)
+                if len(directory) == 0:
+                    # This means that root was reached without finding a git repo.
+                    raise ValueError(f"Path {starting_path} does not contain a git repository.")
+
     def add_all_files(self):
         if len(self.untracked_files) > 0:
             untracked_files = "\n".join(["- " + file for file in self.untracked_files])
@@ -43,19 +63,3 @@ class GitRepo(git.Repo):
 
     def print_status(self):
         print(self.git.status())
-
-
-def get_git_repo():
-    cwd = os.getcwd()
-    path = cwd
-    repository = None
-    while repository is None:
-        # step upwards in path until a git repo is found or root is reached
-        try:
-            repository = GitRepo(path)
-        except git.exc.InvalidGitRepositoryError:
-            base, directory = os.path.split(path)
-            if len(directory) == 0:
-                raise ValueError(f"Path {cwd} does not contain a git repository.")
-            path = base
-    return repository
