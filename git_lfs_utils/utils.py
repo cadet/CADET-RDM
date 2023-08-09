@@ -30,16 +30,24 @@ class GitRepo(git.Repo):
                     # This means that root was reached without finding a git repo.
                     raise ValueError(f"Path {starting_path} does not contain a git repository.")
 
-    def add_all_files(self):
+    def add_all_files(self, automatically_add_new_files=True):
         if len(self.untracked_files) > 0:
             untracked_files = "\n".join(["- " + file for file in self.untracked_files])
-            proceed = input(f'Found untracked files. Adding the following untracked files to git: \n{untracked_files}\n'
-                            f'Proceed? Y/n \n')
+
+        if automatically_add_new_files:
+            for f in self.untracked_files:
+                self.git.add(f)
+        else:
+            proceed = input(
+                f'Found untracked files. Adding the following untracked files to git: \n{untracked_files}\n'
+                f'Proceed? Y/n \n'
+            )
             if proceed.lower() == "y" or proceed == "":
                 for f in self.untracked_files:
                     self.git.add(f)
             else:
                 raise KeyboardInterrupt
+
         changed_files = self.git.diff(None, name_only=True).split('\n')
         if "" in changed_files:
             changed_files.remove("")
