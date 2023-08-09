@@ -11,24 +11,18 @@ def update_package_list():
 
 class GitRepo(git.Repo):
     def __init__(self, repository_path=None, *args, **kwargs):
+
+        """
+        :param search_parent_directories:
+            if True, all parent directories will be searched for a valid repo as well.
+
+            Please note that this was the default behaviour in older versions of GitPython,
+            which is considered a bug though.
+        """
+
         if repository_path is None or repository_path == ".":
-            starting_path = os.getcwd()
-            path = starting_path
-        else:
-            starting_path = repository_path
-            path = repository_path
-        repository_found = False
-        while repository_found is False:
-            # step upwards in path until a git repo is found or root is reached
-            try:
-                super().__init__(path, *args, **kwargs)
-                repository_found = True
-            except git.exc.InvalidGitRepositoryError:
-                # Step upwards in the path once
-                path, directory = os.path.split(path)
-                if len(directory) == 0:
-                    # This means that root was reached without finding a git repo.
-                    raise ValueError(f"Path {starting_path} does not contain a git repository.")
+            repository_path = os.getcwd()
+        super().__init__(repository_path, *args, **kwargs)
 
     def add_all_files(self, automatically_add_new_files=True):
         if len(self.untracked_files) > 0:
