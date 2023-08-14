@@ -1,9 +1,7 @@
 import os
 import json
-
-import matplotlib.pyplot as plt
-import numpy as np
 from datetime import datetime
+import random
 
 try:
     import git
@@ -258,6 +256,9 @@ def initialize_git_repo(path_to_repo, output_repo_name="output", gitignore: list
 
 
 def example_generate_results_data(seed=None):
+    import matplotlib.pyplot as plt
+    import numpy as np
+
     if seed is not None:
         np.random.seed(seed)
 
@@ -282,7 +283,7 @@ def example_usage():
     project_repo = GitRepo(".")
 
     # Add changes to the project code
-    random_number = np.random.randint(256)
+    random_number = random.randint(0, 265)
     with open("random_number.txt", "a") as file:
         file.write(str(random_number))
 
@@ -303,4 +304,3 @@ def example_usage():
 
     # Go back to data
     project_repo.reload_recent_results()
-
