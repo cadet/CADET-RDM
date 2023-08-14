@@ -1,1 +1,1 @@
-from git_lfs_utils.git_lfs_utils.utils import GitRepo
+from .utils import *
