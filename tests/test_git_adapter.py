@@ -7,7 +7,7 @@ import pytest
 import git
 import numpy as np
 
-from modsimdata import initialize_git_repo, ProjectRepo
+from cadetrdm import initialize_git_repo, ProjectRepo
 
 
 @pytest.fixture(scope="module")
