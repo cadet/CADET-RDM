@@ -12,7 +12,7 @@ except ImportError:
     raise ImportError("No module named git, please install the gitpython package")
 
 
-class BaseRepo(git.Repo):
+class BaseRepo:
     def __init__(self, repository_path=None, search_parent_directories=False, *args, **kwargs):
         """
         from git.Repo:
@@ -25,17 +25,37 @@ class BaseRepo(git.Repo):
 
         if repository_path is None or repository_path == ".":
             repository_path = os.getcwd()
-        super().__init__(repository_path, search_parent_directories=search_parent_directories, *args, **kwargs)
+        self.git_repo = git.Repo(repository_path, search_parent_directories=search_parent_directories, *args, **kwargs)
+        self.git = self.git_repo.git
 
         self._most_recent_branch = self.active_branch.name
         self._earliest_commit = None
 
     @property
+    def active_branch(self):
+        return self.git_repo.active_branch
+
+    @property
+    def untracked_files(self):
+        return self.git_repo.untracked_files
+
+    @property
+    def working_dir(self):
+        return self.git_repo.working_dir
+
+    @property
+    def head(self):
+        return self.git_repo.head
+
+    @property
+    def remotes(self):
+        return self.git_repo.remotes
+
+    @property
     def earliest_commit(self):
         if self._earliest_commit is None:
-            *_, earliest_commit = self.iter_commits()
+            *_, earliest_commit = self.git_repo.iter_commits()
             self._earliest_commit = earliest_commit
-
         return self._earliest_commit
 
     def delete_active_branch(self):
@@ -90,7 +110,7 @@ class BaseRepo(git.Repo):
         print("Dumping pip independent requirements.txt.")
         os.system(f"pip list --not-required --format freeze > {repo_path}/pip_independent_requirements.txt")
 
-    def full_commit(self, message: str, add_all=True, update_packages=True):
+    def commit(self, message: str, add_all=True, update_packages=True):
         if not self.exist_unstaged_changes:
             print(f"No changes to commit in repo {self.working_dir}")
             return
@@ -398,7 +418,7 @@ def is_tool(name):
     return which(name) is not None
 
 
-def initialize_git_repo(path_to_repo, output_repo_name: str = "output", gitignore: list = None,
+def initialize_git_repo(path_to_repo: str, output_repo_name: (str | bool) = "output", gitignore: list = None,
                         gitattributes: list = None, lfs_filetypes: list = None,
                         output_repo_kwargs: dict = None):
     if not is_tool("git-lfs"):
@@ -474,7 +494,7 @@ def example_generate_results_figures(input_array):
     plt.scatter(np.arange(0, 500), input_array[:, 1], alpha=0.5)
     plt.scatter(np.arange(0, 500), input_array[:, 2], alpha=0.5)
     plt.savefig(os.path.join("output", "fig.png"))
-    plt.savefig(os.path.join("output", "fig.jpg"), dpi=5000)
+    plt.savefig(os.path.join("output", "fig.jpg"), dpi=1000)
     plt.savefig(os.path.join("output", f"fig_{np.random.randint(265)}_{random.randint(0, 1000)}.png"))
 
 
@@ -496,7 +516,7 @@ def example_usage():
     random_number = alter_code()
 
     project_repo = ProjectRepo(".")
-    project_repo.full_commit(message="fixed super important bug", update_packages=False)
+    project_repo.commit(message="fixed super important bug", update_packages=False)
 
     with project_repo.track_results(results_commit_message="Add figures and array"):
         # Generate data
@@ -518,7 +538,7 @@ def example_write_array():
         file.write(str(random_number))
 
     project_repo = ProjectRepo(".")
-    project_repo.full_commit("add code that writes an array to file", update_packages=False)
+    project_repo.commit("add code that writes an array to file", update_packages=False)
 
     with project_repo.track_results(results_commit_message="Add array"):
         example_generate_results_array()
@@ -542,7 +562,7 @@ def example_load(branch_name):
         file.write(str(random_number))
 
     project_repo = ProjectRepo(".")
-    project_repo.full_commit("add code that creates figures based on an array", update_packages=False)
+    project_repo.commit("add code that creates figures based on an array", update_packages=False)
 
     with project_repo.track_results(results_commit_message="Add figures"):
         cached_array_path = project_repo.cache_previous_results(branch_name=branch_name,
@@ -573,7 +593,7 @@ def example_load_large(branch_name1, branch_name2):
         file.write(str(random_number))
 
     project_repo = ProjectRepo(".")
-    project_repo.full_commit("add code that creates figures based on an array", update_packages=False)
+    project_repo.commit("add code that creates figures based on an array", update_packages=False)
 
     with project_repo.track_results(results_commit_message="Add figures"):
         # cached_fig_path = project_repo.cache_previous_results(branch_name=branch_name2,
@@ -604,7 +624,6 @@ def create_example_repo():
 
 if __name__ == '__main__':
     # pass
-
-    # create_example_repo()
+    create_example_repo()
     example_usage()
     example_two_step_process()
