@@ -272,10 +272,10 @@ class ProjectRepo(BaseRepo):
         previous_branch = self.output_repo.active_branch.name
         self.output_repo.git.checkout(branch_name)
 
-        source_filepath = os.path.join(self._output_folder, file_path)
+        source_filepath = os.path.join(self.output_repo.working_dir, file_path)
 
         # target_folder = os.path.join(self._output_folder + "_cached", branch_name)
-        target_folder = os.path.join(self._output_folder, "cached", branch_name)
+        target_folder = os.path.join(self.output_repo.working_dir, "cached", branch_name)
         os.makedirs(target_folder, exist_ok=True)
 
         target_filepath = os.path.join(target_folder, file_path)
@@ -414,7 +414,6 @@ def is_tool(name):
     """Check whether `name` is on PATH and marked as executable."""
 
     from shutil import which
-
     return which(name) is not None
 
 
@@ -471,159 +470,3 @@ def initialize_git_repo(path_to_repo: str, output_repo_name: (str | bool) = "out
     repo.git.commit("-m", "initial commit")
 
     os.chdir(starting_directory)
-    return
-
-
-def example_generate_results_array(seed=None):
-    import numpy as np
-
-    if seed is not None:
-        np.random.seed(seed)
-
-    results_array = np.random.random((500, 3))
-    np.savetxt(os.path.join("output", "result.csv"), results_array, delimiter=",")
-    return results_array
-
-
-def example_generate_results_figures(input_array):
-    import matplotlib.pyplot as plt
-    import numpy as np
-
-    plt.figure()
-    plt.scatter(np.arange(0, 500), input_array[:, 0], alpha=0.5)
-    plt.scatter(np.arange(0, 500), input_array[:, 1], alpha=0.5)
-    plt.scatter(np.arange(0, 500), input_array[:, 2], alpha=0.5)
-    plt.savefig(os.path.join("output", "fig.png"))
-    plt.savefig(os.path.join("output", "fig.jpg"), dpi=1000)
-    plt.savefig(os.path.join("output", f"fig_{np.random.randint(265)}_{random.randint(0, 1000)}.png"))
-
-
-def alter_code():
-    # Add changes to the project code
-    random_number = random.randint(0, 265)
-    # random_number = 42
-    with open("random_number.txt", "a") as file:
-        file.write(str(random_number))
-    return random_number
-
-
-def example_usage():
-    """ Pretend this is a python file """
-
-    home_dir = os.path.expanduser("~")
-    os.chdir(os.path.join(home_dir, 'ModSimData'))
-
-    random_number = alter_code()
-
-    project_repo = ProjectRepo(".")
-    project_repo.commit(message="fixed super important bug", update_packages=False)
-
-    with project_repo.track_results(results_commit_message="Add figures and array"):
-        # Generate data
-        print("Generating results output")
-        results_array = example_generate_results_array(seed=random_number)
-        example_generate_results_figures(results_array)
-
-
-def example_write_array():
-    """ Pretend this is a python file """
-
-    home_dir = os.path.expanduser("~")
-    os.chdir(os.path.join(home_dir, 'ModSimData'))
-
-    # Add changes to the project code
-    random_number = random.randint(0, 265)
-    # random_number = 42
-    with open(f"random_number_{random_number}.txt", "a") as file:
-        file.write(str(random_number))
-
-    project_repo = ProjectRepo(".")
-    project_repo.commit("add code that writes an array to file", update_packages=False)
-
-    with project_repo.track_results(results_commit_message="Add array"):
-        example_generate_results_array()
-
-    branch_name = str(project_repo.output_repo.active_branch)
-    return branch_name
-
-
-def example_load(branch_name):
-    """ Pretend this is a python file """
-    import numpy as np
-    """ move into home directory """
-
-    home_dir = os.path.expanduser("~")
-    os.chdir(os.path.join(home_dir, 'ModSimData'))
-
-    # Add changes to the project code
-    random_number = random.randint(0, 265)
-    # random_number = 42
-    with open(f"random_number_{random_number}.txt", "a") as file:
-        file.write(str(random_number))
-
-    project_repo = ProjectRepo(".")
-    project_repo.commit("add code that creates figures based on an array", update_packages=False)
-
-    with project_repo.track_results(results_commit_message="Add figures"):
-        cached_array_path = project_repo.cache_previous_results(branch_name=branch_name,
-                                                                file_path="result.csv")
-        previous_array = np.loadtxt(cached_array_path, delimiter=",")
-
-        # with project_repo.load_previous_result_file(branch_name=branch_name,
-        #                                               file_path="result.csv") as file_handle:
-        #     pass
-        example_generate_results_figures(previous_array)
-
-    branch_name = str(project_repo.output_repo.active_branch)
-    return branch_name
-
-
-def example_load_large(branch_name1, branch_name2):
-    """ Pretend this is a python file """
-    import numpy as np
-    """ move into home directory """
-
-    home_dir = os.path.expanduser("~")
-    os.chdir(os.path.join(home_dir, 'ModSimData'))
-
-    # Add changes to the project code
-    random_number = random.randint(0, 265)
-    # random_number = 42
-    with open(f"random_number_{random_number}.txt", "a") as file:
-        file.write(str(random_number))
-
-    project_repo = ProjectRepo(".")
-    project_repo.commit("add code that creates figures based on an array", update_packages=False)
-
-    with project_repo.track_results(results_commit_message="Add figures"):
-        # cached_fig_path = project_repo.cache_previous_results(branch_name=branch_name2,
-        #                                                       file_path="fig.jpg")
-        cached_array_path = project_repo.cache_previous_results(branch_name=branch_name1,
-                                                                file_path="result.csv")
-        previous_array = np.loadtxt(cached_array_path, delimiter=",")
-
-        example_generate_results_figures(previous_array)
-
-    branch_name = str(project_repo.output_repo.active_branch)
-    return branch_name
-
-
-def example_two_step_process():
-    branch_name = example_write_array()
-    branch_name2 = example_load(branch_name)
-    example_load_large(branch_name, branch_name2)
-
-
-def create_example_repo():
-    os.chdir(os.path.expanduser("~"))
-
-    """ initialize Project directory """
-    if not os.path.exists("ModSimData"):
-        initialize_git_repo("ModSimData")
-
-
-if __name__ == '__main__':
-    # pass
-    create_example_repo()
-    example_usage()
-    example_two_step_process()

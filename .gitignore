@@ -3,3 +3,4 @@ build
 *.egg-info
 results
 __pycache__
+tests/test_repo
