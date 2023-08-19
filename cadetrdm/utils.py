@@ -170,6 +170,17 @@ class BaseRepo:
         """
         self.git.commit("--amend", "--no-edit")
 
+    @property
+    def status(self):
+        return self.git.status()
+
+    @property
+    def log(self):
+        return self.git.log()
+
+    def log_oneline(self):
+        return self.git.log("--oneline")
+
     def print_status(self):
         """
         prints git status
@@ -200,7 +211,6 @@ class BaseRepo:
          - resetting the HEAD of the branch to the initialization commit on the master branch.
         This thereby produces a clear, empty directory for data, while still maintaining
         .gitignore and .gitatributes
-        # ToDO: Add to feature requests: If .gitignore is changed later, each reset like this will loose those changes
         :param branch_name:
             Name of the new branch.
         """
@@ -424,7 +434,6 @@ class ProjectRepo(BaseRepo):
         """
         After running all project code, this prepares the commit of the results to the output repository. This includes
          - Ensure no uncommitted changes in the project repository
-         - ToDO: ensure commit hash of project repository is unchanged since enter_context()?
          - Stage all changes in the output repository
          - Commit all changes in the output repository with the given commit message.
          - Update the log files in the master branch of the output repository.
