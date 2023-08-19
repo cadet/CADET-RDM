@@ -128,10 +128,17 @@ def try_load_previous_result(path_to_repo, branch_name):
         assert os.path.exists(extended_array_file_path)
 
 
+def try_add_remote(path_to_repo):
+    repo = ProjectRepo(path_to_repo)
+    repo.add_remote("git@jugit.fz-juelich.de:IBG-1/ModSim/cadet/CADET-RDM.git")
+    assert "origin" in repo.git_repo.remotes
+
+
 def test_cadet_rdm(path_to_repo):
     # because these depend on one-another and there is no native support afaik for sequential tests
     # these tests are called sequentially here as try_ functions.
     try_initialize_git_repo(path_to_repo)
+    try_add_remote(path_to_repo)
     try_commit_code(path_to_repo)
     try_commit_code_without_code_changes(path_to_repo)
     results_branch_name = try_commit_results_data(path_to_repo)

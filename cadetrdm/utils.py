@@ -64,6 +64,20 @@ class BaseRepo:
             self._earliest_commit = earliest_commit
         return self._earliest_commit
 
+    def add_remote(self, remote_url, remote_name="origin"):
+        self.git_repo.create_remote(remote_name, url=remote_url)
+
+    def push(self, remote=None, local_branch=None, remote_branch=None):
+        if local_branch is None:
+            local_branch = self.active_branch
+        if remote_branch is None:
+            remote_branch = local_branch
+        if remote is None:
+            remote = list(sorted(self.git_repo.remotes.keys()))[0]
+
+        remote_interface = self.git_repo.remotes[remote]
+        remote_interface.push(refspec=f'{local_branch}:{remote_branch}')
+
     def delete_active_branch_if_branch_is_empty(self):
         """
         Delete the currently active branch and checkout the master branch
@@ -317,7 +331,7 @@ class ProjectRepo(BaseRepo):
                           "Output repo commit hash": output_repo_hash,
                           "Project repo commit hash": str(self.head.commit),
                           "Project repo folder name": os.path.split(self.working_dir)[-1],
-                          "Project repo remotes": self.remotes,
+                          "Project repo remotes": [str(remote.url) for remote in self.remotes],
                           }
         csv_header = ",".join(meta_info_dict.keys())
         csv_data = ",".join([str(x) for x in meta_info_dict.values()])
@@ -471,4 +485,3 @@ class ProjectRepo(BaseRepo):
 
 class ResultsRepo(BaseRepo):
     pass
-
