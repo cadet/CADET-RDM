@@ -46,6 +46,10 @@ class BaseRepo:
         return self.git_repo.untracked_files
 
     @property
+    def current_commit_hash(self):
+        return str(self.head.commit)
+
+    @property
     def working_dir(self):
         return self.git_repo.working_dir
 
@@ -280,6 +284,7 @@ class ProjectRepo(BaseRepo):
             self._output_folder = "output"
 
         self._output_repo = ResultsRepo(os.path.join(self.working_dir, self._output_folder))
+        self._on_context_enter_commit_hash = None
 
     @property
     def output_repo(self):
@@ -434,6 +439,7 @@ class ProjectRepo(BaseRepo):
             The name of the newly created output branch.
         """
         self.test_for_uncommitted_changes()
+        self._on_context_enter_commit_hash = self.current_commit_hash
         output_repo = self.output_repo
 
         if output_repo.exist_unstaged_changes:
@@ -456,6 +462,8 @@ class ProjectRepo(BaseRepo):
             Commit message for the output repository commit.
         """
         self.test_for_uncommitted_changes()
+        if self._on_context_enter_commit_hash != self.current_commit_hash:
+            raise RuntimeError("Code has changed since starting the context. Don't do that.")
 
         print("Completed computations, commiting results")
         self.output_repo.git.add(".")
