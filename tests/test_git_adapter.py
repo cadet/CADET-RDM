@@ -69,7 +69,7 @@ def try_initialize_git_repo(path_to_repo):
     if os.path.exists(path_to_repo):
         remove_dir(path_to_repo)
 
-    initialize_git_repo(path_to_repo=path_to_repo)
+    initialize_git_repo(path_to_repo)
 
     assert try_init_gitpython_repo(path_to_repo)
     assert try_init_gitpython_repo(os.path.join(path_to_repo, "output"))
