@@ -261,7 +261,8 @@ class BaseRepo:
 
 
 class ProjectRepo(BaseRepo):
-    def __init__(self, repository_path=None, output_folder=None, *args, **kwargs):
+    def __init__(self, repository_path=None, output_folder=None,
+                 search_parent_directories=True, *args, **kwargs):
         """
         Class for Project-Repositories. Handles interaction between the project repo and
         the output (i.e. results) repo.
@@ -270,13 +271,18 @@ class ProjectRepo(BaseRepo):
             Path to the root of the git repository.
         :param output_folder:
             Path to the root of the output repository.
+        :param search_parent_directories:
+            if True, all parent directories will be searched for a valid repo as well.
+
+            Please note that this was the default behaviour in older versions of GitPython,
+            which is considered a bug though.
         :param args:
             Additional args to be handed to BaseRepo.
         :param kwargs:
             Additional kwargs to be handed to BaseRepo.
         """
 
-        super().__init__(repository_path, *args, **kwargs)
+        super().__init__(repository_path, search_parent_directories=search_parent_directories, *args, **kwargs)
 
         if output_folder is not None:
             self._output_folder = output_folder
@@ -475,13 +481,17 @@ class ProjectRepo(BaseRepo):
         self.remove_cached_files()
 
     @contextlib.contextmanager
-    def track_results(self, results_commit_message: str):
+    def track_results(self, results_commit_message: str, debug=False):
         """
-        Context manager to be used when runnning project code that produces output that should
+        Context manager to be used when running project code that produces output that should
         be tracked in the output repository.
         :param results_commit_message:
             Commit message for the commit of the output repository.
         """
+        if debug:
+            yield "debug"
+            return
+
         new_branch_name = self.enter_context()
         try:
             yield new_branch_name

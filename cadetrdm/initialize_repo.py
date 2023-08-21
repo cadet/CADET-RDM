@@ -55,13 +55,13 @@ def is_tool(name):
 
 @click.command()
 @click.option('--output_repo_name', default="output",
-              help='Name of the folder where the tracked output should be stored.')
+              help='Name of the folder where the tracked output should be stored. Optional. Default: "output".')
 @click.option('--gitignore', default=None,
-              help='List of files to be added to the gitignore file.')
+              help='List of files to be added to the gitignore file. Optional.')
 @click.option('--gitattributes', default=None,
-              help='List of files to be added to the gitattributes file.')
+              help='List of files to be added to the gitattributes file. Optional.')
 @click.option('--lfs_filetypes', default=None,
-              help='List of filetypes to be handled by git lfs.')
+              help='List of filetypes to be handled by git lfs. Optional.')
 @click.argument('path_to_repo')
 def initialize_git_repo_cli(path_to_repo: str, output_repo_name: (str | bool) = "output", gitignore: list = None,
                             gitattributes: list = None, lfs_filetypes: list = None,
