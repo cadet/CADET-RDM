@@ -117,28 +117,7 @@ class BaseRepo:
         :return:
             List of all staged changes.
         """
-        untracked_files = ""
-        if len(self.untracked_files) > 0:
-            untracked_files = "\n".join(["- " + file for file in self.untracked_files])
-
-        if automatically_add_new_files:
-            for f in self.untracked_files:
-                self._git.add(f)
-        else:
-            proceed = input(
-                f'Found untracked files. Adding the following untracked files to git: \n{untracked_files}\n'
-                f'Proceed? Y/n \n'
-            )
-            if proceed.lower() == "y" or proceed == "":
-                for f in self.untracked_files:
-                    self._git.add(f)
-            else:
-                raise KeyboardInterrupt
-
-        changed_files = self.changed_files
-        for f in changed_files:
-            self._git.add(f)
-        return self.untracked_files + changed_files
+        self._git.add(".")
 
     def reset_hard_to_head(self):
         proceed = input(f'The output directory contains the following uncommitted changes:\n'
@@ -160,8 +139,8 @@ class BaseRepo:
         return changed_files
 
     @property
-    def exist_unstaged_changes(self):
-        return len(self.untracked_files) > 0 or len(self.changed_files) > 0
+    def exist_uncomitted_changes(self):
+        return len(self._git.status("--porcelain")) > 0
 
     def update_package_list(self):
         """
@@ -177,7 +156,7 @@ class BaseRepo:
         print("Dumping pip independent requirements.txt.")
         os.system(f"pip list --not-required --format freeze > {repo_path}/pip_independent_requirements.txt")
 
-    def commit(self, message: str, add_all=True, update_packages=True):
+    def commit(self, message: str, add_all=True, update_packages=False):
         """
         Commit current state of the repository.
 
@@ -188,7 +167,7 @@ class BaseRepo:
         :param update_packages:
             Option to automatically dump the python environment information into environment.yml files.
         """
-        if not self.exist_unstaged_changes:
+        if not self.exist_uncomitted_changes:
             print(f"No changes to commit in repo {self.working_dir}")
             return
 
@@ -196,7 +175,7 @@ class BaseRepo:
         if update_packages:
             self.update_package_list()
         if add_all:
-            self.add_all_files()
+            self._git.add(".")
         commit_return = self._git.commit("-m", message)
         print("\n" + commit_return + "\n")
 
@@ -234,7 +213,7 @@ class BaseRepo:
         Adds all untracked files to git and then stashes all changes.
         Will raise a RuntimeError if no changes are found.
         """
-        if not self.exist_unstaged_changes:
+        if not self.exist_uncomitted_changes:
             raise RuntimeError("No changes in repo to stash.")
         self._git.add(".")
         self._git.stash()
@@ -272,7 +251,7 @@ class BaseRepo:
         Raise a RuntimeError if uncommitted changes are in the repository.
         :return:
         """
-        if self.exist_unstaged_changes:
+        if self.exist_uncomitted_changes:
             raise RuntimeError(f"Found uncommitted changes in the repository {self.working_dir}.")
 
 
@@ -413,7 +392,7 @@ class ProjectRepo(BaseRepo):
         :return:
             Absolute path to the newly copied file.
         """
-        if self.output_repo.exist_unstaged_changes:
+        if self.output_repo.exist_uncomitted_changes:
             self.output_repo.stash_all_changes()
             has_stashed_changes = True
         else:
@@ -483,7 +462,7 @@ class ProjectRepo(BaseRepo):
         self._is_in_context_manager = True
         output_repo = self.output_repo
 
-        if output_repo.exist_unstaged_changes:
+        if output_repo.exist_uncomitted_changes:
             output_repo.reset_hard_to_head()
 
         output_repo.delete_active_branch_if_branch_is_empty()
