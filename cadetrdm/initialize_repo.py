@@ -138,7 +138,8 @@ def initialize_git_repo(path_to_repo: str, output_repo_name: (str | bool) = "out
         # If output_repo_name is False we are in the output_repo and should finish by committing the changes
         repo = ResultsRepo(".")
 
-    repo.git.add(".")
-    repo.git.commit("-m", "initial commit")
+    # ToDo: Why does this break tests if changed to repo.add and repo.commit??
+    repo._git.add(".")
+    repo._git.commit("-m", "initial commit")
 
     os.chdir(starting_directory)
