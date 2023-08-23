@@ -281,11 +281,11 @@ class ProjectRepo(BaseRepo):
         super().__init__(repository_path, search_parent_directories=search_parent_directories, *args, **kwargs)
 
         if output_folder is not None:
-            self._output_folder = output_folder
+            self.output_folder = output_folder
         elif output_folder is None:
-            self._output_folder = "output"
+            self.output_folder = "output"
 
-        self._output_repo = ResultsRepo(os.path.join(self.working_dir, self._output_folder))
+        self._output_repo = ResultsRepo(os.path.join(self.working_dir, self.output_folder))
         self._on_context_enter_commit_hash = None
         self._is_in_context_manager = False
 
@@ -302,7 +302,7 @@ class ProjectRepo(BaseRepo):
         """
         project_repo_hash = str(self.head.commit)
         timestamp = datetime.now().strftime("%Y-%m-%d-%H-%M-%S-%f")[:-4]
-        branch_name = "_".join([str(self.active_branch), project_repo_hash[:7], self._output_folder, timestamp])
+        branch_name = "_".join([str(self.active_branch), project_repo_hash[:7], self.output_folder, timestamp])
         return branch_name
 
     def check_results_master(self):
@@ -330,7 +330,7 @@ class ProjectRepo(BaseRepo):
 
         self._output_repo._git.checkout("master")
 
-        logs_folderpath = os.path.join(self.working_dir, self._output_folder, "logs")
+        logs_folderpath = os.path.join(self.working_dir, self.output_folder, "logs")
         if not os.path.exists(logs_folderpath):
             os.makedirs(logs_folderpath)
 
@@ -366,11 +366,27 @@ class ProjectRepo(BaseRepo):
 
         self.dump_package_list(logs_folderpath)
 
+        code_copy_folderpath = os.path.join(logs_folderpath, "code_backup")
+        if not os.path.exists(code_copy_folderpath):
+            os.makedirs(code_copy_folderpath)
+        self.copy_code(code_copy_folderpath)
+
         self._output_repo.add(".")
         self._output_repo._git.commit("-m", output_branch_name)
 
         self._output_repo._git.checkout(output_branch_name)
         self._most_recent_branch = output_branch_name
+
+    def copy_code(self, target_path):
+        for file in self._git.ls_files().split("\n"):
+            target_file_path = os.path.join(self.working_dir, target_path, file)
+            target_folder = os.path.split(target_file_path)[0]
+            if not os.path.exists(target_folder):
+                os.makedirs(target_folder)
+            shutil.copyfile(
+                os.path.join(self.working_dir, file),
+                target_file_path
+            )
 
     def load_external_repository(self, url, branch=None, commit=None, name=None, path=None, ):
         """
@@ -449,8 +465,8 @@ class ProjectRepo(BaseRepo):
         """
         Delete all previously cached results.
         """
-        if os.path.exists(self._output_folder + "_cached"):
-            shutil.rmtree(self._output_folder + "_cached")
+        if os.path.exists(self.output_folder + "_cached"):
+            shutil.rmtree(self.output_folder + "_cached")
 
     def enter_context(self, ):
         """
