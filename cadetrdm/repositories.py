@@ -144,21 +144,24 @@ class BaseRepo:
     def exist_uncomitted_changes(self):
         return len(self._git.status("--porcelain")) > 0
 
-    def update_package_list(self):
+    def dump_package_list(self, target_folder):
         """
         Use "conda env export" and "pip freeze" to create environment.yml and pip_requirements.txt files.
         """
-        repo_path = self.working_dir
+        if target_folder is not None:
+            dump_path = target_folder
+        else:
+            dump_path = self.working_dir
         print("Dumping conda environment.yml, this might take a moment.")
-        os.system(f"conda env export > {repo_path}/conda_environment.yml")
+        os.system(f"conda env export > {dump_path}/conda_environment.yml")
         print("Dumping conda independent environment.yml, this might take a moment.")
-        os.system(f"conda env export --from-history > {repo_path}/conda_independent_environment.yml")
+        os.system(f"conda env export --from-history > {dump_path}/conda_independent_environment.yml")
         print("Dumping pip requirements.txt.")
-        os.system(f"pip freeze > {repo_path}/pip_requirements.txt")
+        os.system(f"pip freeze > {dump_path}/pip_requirements.txt")
         print("Dumping pip independent requirements.txt.")
-        os.system(f"pip list --not-required --format freeze > {repo_path}/pip_independent_requirements.txt")
+        os.system(f"pip list --not-required --format freeze > {dump_path}/pip_independent_requirements.txt")
 
-    def commit(self, message: str, add_all=True, update_packages=False):
+    def commit(self, message: str, add_all=True):
         """
         Commit current state of the repository.
 
@@ -166,16 +169,12 @@ class BaseRepo:
             Commit message
         :param add_all:
             Option to add all changed and new files to git automatically.
-        :param update_packages:
-            Option to automatically dump the python environment information into environment.yml files.
         """
         if not self.exist_uncomitted_changes:
             print(f"No changes to commit in repo {self.working_dir}")
             return
 
         print(f"Commiting changes to repo {self.working_dir}")
-        if update_packages:
-            self.update_package_list()
         if add_all:
             self.add(".")
         commit_return = self._git.commit("-m", message)
@@ -331,10 +330,14 @@ class ProjectRepo(BaseRepo):
 
         self._output_repo._git.checkout("master")
 
-        json_filepath = os.path.join(self.working_dir, self._output_folder, f"{output_branch_name}.json")
+        logs_folderpath = os.path.join(self.working_dir, self._output_folder, "logs")
+        if not os.path.exists(logs_folderpath):
+            os.makedirs(logs_folderpath)
+
+        json_filepath = os.path.join(logs_folderpath, f"{output_branch_name}.json")
         # note: if filename of "log.csv" is changed,
         #  this also has to be changed in the gitattributes of the init repo func
-        csv_filepath = os.path.join(self.working_dir, self._output_folder, "log.csv")
+        csv_filepath = os.path.join(logs_folderpath, "log.csv")
 
         meta_info_dict = {"Output repo branch": output_branch_name,
                           "Output repo commit hash": output_repo_hash,
@@ -360,6 +363,8 @@ class ProjectRepo(BaseRepo):
 
         with open(csv_filepath, "a") as f:
             f.write(csv_data + "\n")
+
+        self.dump_package_list(logs_folderpath)
 
         self._output_repo.add(".")
         self._output_repo._git.commit("-m", output_branch_name)
@@ -439,28 +444,6 @@ class ProjectRepo(BaseRepo):
             self.output_repo.apply_stashed_changes()
 
         return target_filepath
-
-    @contextlib.contextmanager
-    def load_previous_result_file(self, branch_name, file_path, *args, **kwargs):
-        """
-        Context manager around load_previous_result_file that directly opens a handle to the loaded file.
-        :param branch_name:
-            Name of the branch of the output repository in which the results are stored
-        :param file_path:
-            Relative path within the output repository to the file you wish to load.
-        :param args:
-            Args to be handed to the open() function
-        :param kwargs:
-            kwargs to be handed to the open() function
-        :return:
-            Handle to the copied file.
-        """
-        cached_filepath = self.load_previous_result_file(branch_name, file_path)
-        file_handle = open(cached_filepath, *args, **kwargs)
-        try:
-            yield file_handle
-        finally:
-            file_handle.close()
 
     def remove_cached_files(self):
         """

@@ -2,7 +2,7 @@ import os
 
 import click
 
-from cadetrdm.utils import ProjectRepo, ResultsRepo
+from cadetrdm.repositories import ProjectRepo, ResultsRepo
 
 
 def add_linebreaks(input_list):
@@ -127,7 +127,7 @@ def initialize_git_repo(path_to_repo: str, output_repo_name: (str | bool) = "out
     write_lines_to_file(path=".gitignore", lines=gitignore)
 
     if output_repo_kwargs is None:
-        output_repo_kwargs = {"gitattributes": ["log.csv merge=union"]}
+        output_repo_kwargs = {"gitattributes": ["logs/log.csv merge=union"]}
 
     if output_repo_name:
         # This means we are in the project repo and should now initialize the output_repo

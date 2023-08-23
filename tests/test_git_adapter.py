@@ -80,7 +80,7 @@ def try_commit_code(path_to_repo):
     current_commit_number = count_commit_number(repo)
 
     modify_code(path_to_repo)
-    repo.commit("add code to print random number", add_all=True, update_packages=False)
+    repo.commit("add code to print random number", add_all=True)
 
     updated_commit_number = count_commit_number(repo)
     assert current_commit_number + 1 == updated_commit_number
@@ -90,6 +90,7 @@ def try_add_submodule(path_to_repo):
     repo = ProjectRepo(path_to_repo)
     submodule_path = repo.load_external_repository("https://jugit.fz-juelich.de/IBG-1/ModSim/cadet/git_lfs_data_1")
     assert os.path.exists(submodule_path)
+
 
 def try_commit_code_without_code_changes(path_to_repo):
     repo = ProjectRepo(path_to_repo)
@@ -115,7 +116,7 @@ def try_commit_results_with_uncommitted_code_changes(path_to_repo):
     with pytest.raises(Exception):
         with repo.track_results(results_commit_message="Add array"):
             example_generate_results_array(path_to_repo, output_folder=repo._output_folder)
-    repo.commit("add code to print random number", add_all=True, update_packages=False)
+    repo.commit("add code to print random number", add_all=True)
 
 
 def try_load_previous_result(path_to_repo, branch_name):
