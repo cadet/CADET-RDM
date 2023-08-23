@@ -37,6 +37,8 @@ class BaseRepo:
         self._most_recent_branch = self.active_branch.name
         self._earliest_commit = None
 
+        self.add = self._git.add
+
     @property
     def active_branch(self):
         return self._git_repo.active_branch
@@ -68,10 +70,6 @@ class BaseRepo:
             self._earliest_commit = earliest_commit
         return self._earliest_commit
 
-    # ToDo: test if functools.wraps can keep docstrings
-    def add(self, *args, **kwargs):
-        self._git.add(*args, **kwargs)
-
     def add_remote(self, remote_url, remote_name="origin"):
         """
         ToDO add documentation
@@ -83,10 +81,14 @@ class BaseRepo:
 
     def push(self, remote=None, local_branch=None, remote_branch=None):
         """
-        # ToDo extend documentation
+        Push local branch to remote.
+
         :param remote:
+            Name of the remote to push to.
         :param local_branch:
+            Name of the local branch to push.
         :param remote_branch:
+            Name of the remote branch to push to.
         :return:
         """
         if local_branch is None:
@@ -117,7 +119,7 @@ class BaseRepo:
         :return:
             List of all staged changes.
         """
-        self._git.add(".")
+        self.add(".")
 
     def reset_hard_to_head(self):
         proceed = input(f'The output directory contains the following uncommitted changes:\n'
@@ -175,7 +177,7 @@ class BaseRepo:
         if update_packages:
             self.update_package_list()
         if add_all:
-            self._git.add(".")
+            self.add(".")
         commit_return = self._git.commit("-m", message)
         print("\n" + commit_return + "\n")
 
@@ -215,7 +217,7 @@ class BaseRepo:
         """
         if not self.exist_uncomitted_changes:
             raise RuntimeError("No changes in repo to stash.")
-        self._git.add(".")
+        self.add(".")
         self._git.stash()
 
     def prepare_new_branch(self, branch_name):
@@ -359,28 +361,49 @@ class ProjectRepo(BaseRepo):
         with open(csv_filepath, "a") as f:
             f.write(csv_data + "\n")
 
-        self._output_repo._git.add(".")
+        self._output_repo.add(".")
         self._output_repo._git.commit("-m", output_branch_name)
 
         self._output_repo._git.checkout(output_branch_name)
         self._most_recent_branch = output_branch_name
 
-    def load_external_data(self, url, name=None, path=None, branch=None, commit=None):
+    def load_external_repository(self, url, branch=None, commit=None, name=None, path=None, ):
         """
-        name: str,
-        path: PathLike,
-        url: Union[str, None] = None,
-        branch: Union[str, None] = None,"""
-        if path is None:
-            repo_name = url.split("/")[-1]
-            path = os.path.join("external_repos", repo_name)
-        if name is None:
-            name = url.split("/")[-1]
+        Load an external git repository as a git submodule into this repository.
+
+        :param url:
+            URL of the git repository.
+        :param branch:
+            Branch of the external repository to check out.
+        :param commit:
+            Commit of the external repository to check out.
+        :param name:
+            Optional custom name for the repository.
+        :param path:
+            Optional custom relative path where the repository should be placed.
+        :return:
+        """
+        if path is None or name is None:
+            if "/" in url:
+                sep = "/"
+            elif "\\" in url:
+                sep = "\\"
+            else:
+                raise RuntimeError("Could not automatically extract name from URL"
+                                   " because the URL is not of a known format")
+
+            if path is None:
+                repo_name = url.split(sep)[-1]
+                path = os.path.join("external_repos", repo_name)
+            if name is None:
+                name = url.split(sep)[-1]
 
         self._git_repo.create_submodule(name=name, url=url, branch=branch, path=path)
         if commit is not None:
             submodule = BaseRepo(path)
             submodule._git.checkout(commit)
+        full_path = os.path.join(self.working_dir, path)
+        return full_path
 
     def load_previous_results(self, branch_name, file_path):
         """
@@ -486,7 +509,7 @@ class ProjectRepo(BaseRepo):
             raise RuntimeError("Code has changed since starting the context. Don't do that.")
 
         print("Completed computations, commiting results")
-        self.output_repo._git.add(".")
+        self.output_repo.add(".")
         commit_return = self.output_repo._git.commit("-m", message)
 
         print("\n" + commit_return + "\n")

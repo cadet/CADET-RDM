@@ -88,9 +88,8 @@ def try_commit_code(path_to_repo):
 
 def try_add_submodule(path_to_repo):
     repo = ProjectRepo(path_to_repo)
-    repo.load_external_data("https://jugit.fz-juelich.de/IBG-1/ModSim/cadet/git_lfs_data_1")
-    # ToDo: current WIP
-
+    submodule_path = repo.load_external_repository("https://jugit.fz-juelich.de/IBG-1/ModSim/cadet/git_lfs_data_1")
+    assert os.path.exists(submodule_path)
 
 def try_commit_code_without_code_changes(path_to_repo):
     repo = ProjectRepo(path_to_repo)
