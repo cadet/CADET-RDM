@@ -119,11 +119,11 @@ def try_commit_results_with_uncommitted_code_changes(path_to_repo):
     repo.commit("add code to print random number", add_all=True)
 
 
-def try_load_previous_result(path_to_repo, branch_name):
+def try_load_previous_output(path_to_repo, branch_name):
     repo = ProjectRepo(path_to_repo)
     with repo.track_results(results_commit_message="Load array and extend"):
-        cached_array_path = repo.load_previous_results(branch_name=branch_name,
-                                                       file_path="result.csv")
+        cached_array_path = repo.load_previous_output(branch_name=branch_name,
+                                                      file_path="result.csv")
         previous_array = np.loadtxt(cached_array_path, delimiter=",")
         extended_array = np.concatenate([previous_array, previous_array])
         extended_array_file_path = os.path.join(path_to_repo, repo.output_folder, "extended_result.csv")
@@ -152,4 +152,4 @@ def test_cadet_rdm(path_to_repo):
     try_commit_results_with_uncommitted_code_changes(path_to_repo)
 
     results_branch_name = try_commit_results_data(path_to_repo)
-    try_load_previous_result(path_to_repo, results_branch_name)
+    try_load_previous_output(path_to_repo, results_branch_name)

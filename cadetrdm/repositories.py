@@ -426,7 +426,7 @@ class ProjectRepo(BaseRepo):
         full_path = os.path.join(self.working_dir, path)
         return full_path
 
-    def load_previous_results(self, branch_name, file_path):
+    def load_previous_output(self, branch_name, file_path):
         """
         Load previously generated results to iterate upon.
         :param branch_name:
