@@ -4,3 +4,4 @@ build
 results
 __pycache__
 tests/test_repo
+.coverage
