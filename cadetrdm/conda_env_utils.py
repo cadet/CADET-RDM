@@ -15,6 +15,8 @@ def prepare_conda_env_cli(url):
 def prepare_conda_env(url: str = None):
     if url is None:
         url = 'https://raw.githubusercontent.com/modsim/bug_report_example/master/conda_base_environment.yml'
+        print("Using default environment configuration from")
+        print(url)
     with urllib.request.urlopen(url) as response:
         with tempfile.NamedTemporaryFile(delete=False, prefix="environment_", suffix=".yaml") as tmp_file:
             shutil.copyfileobj(response, tmp_file)
