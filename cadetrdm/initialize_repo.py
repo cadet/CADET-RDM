@@ -116,7 +116,7 @@ def initialize_git_repo(path_to_repo: str, output_repo_name: (str | bool) = "out
     if path_to_repo != ".":
         if os.path.exists(path_to_repo) and len(os.listdir(path_to_repo)) > 0:
             raise ValueError("Path to repository already exists and is not an empty directory.")
-        os.makedirs(path_to_repo)
+        os.makedirs(path_to_repo, exist_ok=True)
         os.chdir(path_to_repo)
 
     os.system(f"git init")
