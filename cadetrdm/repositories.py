@@ -318,7 +318,7 @@ class ProjectRepo(BaseRepo):
         """
         self._output_repo._git.checkout(self._most_recent_branch)
 
-    def update_output_master_logs(self):
+    def update_output_master_logs(self, message=None):
         """
         Dumps all the metadata information about the project repositories state and
         the commit hash and branch name of the ouput repository into the master branch of
@@ -372,7 +372,9 @@ class ProjectRepo(BaseRepo):
         self.copy_code(code_copy_folderpath)
 
         self._output_repo.add(".")
-        self._output_repo._git.commit("-m", output_branch_name)
+        if message is None:
+            message = output_branch_name
+        self._output_repo._git.commit("-m", message)
 
         self._output_repo._git.checkout(output_branch_name)
         self._most_recent_branch = output_branch_name
