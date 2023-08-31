@@ -1,8 +1,16 @@
 import os
+import json
 
 import click
 
+try:
+    import git
+except ImportError:
+    # Adding this hint to save users the confusion of trying $pip install git
+    raise ImportError("No module named git, please install the gitpython package")
+
 from cadetrdm.repositories import ProjectRepo, ResultsRepo
+from cadetrdm.utils import ssh_url_to_http_url
 
 
 def add_linebreaks(input_list):
@@ -131,13 +139,63 @@ def initialize_git_repo(path_to_repo: str, output_repo_name: (str | bool) = "out
 
     if output_repo_name:
         # This means we are in the project repo and should now initialize the output_repo
+        create_readme()
         initialize_git_repo(output_repo_name, output_repo_name=False, **output_repo_kwargs)
         # This instance of ProjectRepo is therefore the project repo
         repo = ProjectRepo(".", output_folder=output_repo_name)
     else:
+        create_output_readme()
         # If output_repo_name is False we are in the output_repo and should finish by committing the changes
         repo = ResultsRepo(".")
 
     repo.commit("initial commit")
 
     os.chdir(starting_directory)
+
+
+def create_readme():
+    readme_lines = ["# Project repo", "Your code goes in this repo.", "Please add a description here including: ",
+                    "- authors", "- project", "- things we will find interesting later", "", "",
+                    "The output repository can be found at:",
+                    "[output_repo]() (not actually set yet because no remote has been configured at this moment"]
+    write_lines_to_file("README.md", readme_lines, open_type="w")
+
+
+def create_output_readme():
+    readme_lines = ["# Output repo", "Your results will be stored here.", "Please add a description here including: ",
+                    "- authors", "- project", "- things we will find interesting later", "", "",
+                    "The project repository can be found at:",
+                    "[project_repo]() (not actually set yet because no remote has been configured at this moment"]
+    write_lines_to_file("README.md", readme_lines, open_type="w")
+
+
+@click.command()
+@click.option('--path_to_repo', default=None,
+              help='Path to folder for the repository. Optional.')
+@click.argument('project_url')
+def initialize_from_remote_cli(project_url, path_to_repo: str = None):
+    initialize_from_remote(project_url, path_to_repo)
+
+
+def initialize_from_remote(project_url, path_to_repo: str = None):
+    if path_to_repo is None:
+        path_to_repo = project_url.split("/")[-1]
+    print(f"Cloning {project_url} into {path_to_repo}")
+    git.Repo.clone_from(project_url, path_to_repo)
+
+    # Clone output repo from remotes
+    json_path = os.path.join(path_to_repo, "output_remotes.json")
+    with open(json_path, "r") as file_handle:
+        meta_dict = json.load(file_handle)
+
+    output_folder_name = os.path.join(path_to_repo, meta_dict["output_foldername"])
+    ssh_remotes = list(meta_dict["output_remotes"].values())
+    http_remotes = [ssh_url_to_http_url(url) for url in ssh_remotes]
+    for output_remote in ssh_remotes + http_remotes:
+        try:
+            print(f"Attempting to clone {output_remote} into {output_folder_name}")
+            git.Repo.clone_from(output_remote, output_folder_name)
+        except Exception as e:
+            print(e)
+        else:
+            break

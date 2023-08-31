@@ -7,7 +7,7 @@ import pytest
 import git
 import numpy as np
 
-from cadetrdm import initialize_git_repo, ProjectRepo
+from cadetrdm import initialize_git_repo, ProjectRepo, initialize_from_remote
 
 
 @pytest.fixture(scope="module")
@@ -60,12 +60,13 @@ def example_generate_results_array(path_to_repo, output_folder):
     return results_array
 
 
-def try_initialize_git_repo(path_to_repo):
-    def try_init_gitpython_repo(repo_path):
-        os.path.exists(repo_path)
-        git.Repo(repo_path)
-        return True
+def try_init_gitpython_repo(repo_path):
+    os.path.exists(repo_path)
+    git.Repo(repo_path)
+    return True
 
+
+def try_initialize_git_repo(path_to_repo):
     if os.path.exists(path_to_repo):
         remove_dir(path_to_repo)
 
@@ -140,10 +141,19 @@ def try_add_remote(path_to_repo):
     assert "origin" in repo._git_repo.remotes
 
 
+def try_initialize_from_remote():
+    if os.path.exists("test_repo_from_remote"):
+        remove_dir("test_repo_from_remote")
+    initialize_from_remote("https://jugit.fz-juelich.de/IBG-1/ModSim/cadet/rdm-examples-fraunhofer-ime-aachen",
+                           "test_repo_from_remote")
+    assert try_init_gitpython_repo("test_repo_from_remote")
+
+
 def test_cadet_rdm(path_to_repo):
     # because these depend on one-another and there is no native support afaik for sequential tests
     # these tests are called sequentially here as try_ functions.
     try_initialize_git_repo(path_to_repo)
+    try_initialize_from_remote()
 
     try_add_remote(path_to_repo)
     # try_add_submodule(path_to_repo)

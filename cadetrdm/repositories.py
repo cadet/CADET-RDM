@@ -3,13 +3,14 @@ import json
 from datetime import datetime
 import shutil
 import contextlib
-import click
 
 try:
     import git
 except ImportError:
     # Adding this hint to save users the confusion of trying $pip install git
     raise ImportError("No module named git, please install the gitpython package")
+
+from cadetrdm.utils import ssh_url_to_http_url
 
 
 class BaseRepo:
@@ -255,6 +256,32 @@ class BaseRepo:
         if self.exist_uncomitted_changes:
             raise RuntimeError(f"Found uncommitted changes in the repository {self.working_dir}.")
 
+    def add_list_of_remotes_in_readme_file(self, repo_identifier: str, remotes_url_list: list):
+        if len(remotes_url_list) > 0:
+            remotes_url_list_http = [ssh_url_to_http_url(remote)
+                                     for remote in remotes_url_list]
+            output_link_line = " and ".join(f"[{repo_identifier}]({output_repo_remote})"
+                                            for output_repo_remote in remotes_url_list_http) + "\n"
+
+            readme_filepath = os.path.join(self.working_dir, "README.md")
+            with open(readme_filepath, "r") as file_handle:
+                filelines = file_handle.readlines()
+                filelines_giving_output_repo = [i for i in range(len(filelines))
+                                                if filelines[i].startswith(f"[{repo_identifier}](")]
+                if len(filelines_giving_output_repo) == 1:
+                    line_to_be_modified = filelines_giving_output_repo[0]
+                    filelines[line_to_be_modified] = output_link_line
+                elif len(filelines_giving_output_repo) == 0:
+                    filelines.append("The output repo can be found at:\n")
+                    filelines.append(output_link_line)
+                else:
+                    raise RuntimeError(f"Multiple lines in the README.md at {readme_filepath}"
+                                       f" link to the {repo_identifier}. "
+                                       "Can't automatically update the link.")
+
+            with open(readme_filepath, "w") as file_handle:
+                file_handle.writelines(filelines)
+
 
 class ProjectRepo(BaseRepo):
     def __init__(self, repository_path=None, output_folder=None,
@@ -390,6 +417,27 @@ class ProjectRepo(BaseRepo):
                 target_file_path
             )
 
+    def commit(self, message: str, add_all=True):
+        """
+        Commit current state of the repository.
+
+        :param message:
+            Commit message
+        :param add_all:
+            Option to add all changed and new files to git automatically.
+        """
+
+        output_repo_remotes = [str(remote.url) for remote in self.output_repo.remotes]
+        self.add_list_of_remotes_in_readme_file("output_repo", output_repo_remotes)
+
+        output_json_filepath = os.path.join(self.working_dir, "output_remotes.json")
+        with open(output_json_filepath, "w") as file_handle:
+            remotes_dict = {remote.name: str(remote.url) for remote in self.output_repo.remotes}
+            json_dict = {"output_folder_name": self.output_folder, "output_remotes": remotes_dict}
+            json.dump(json_dict, file_handle, indent=2)
+
+        super().commit(message=message, add_all=add_all)
+
     def load_external_repository(self, url, branch=None, commit=None, name=None, path=None, ):
         """
         Load an external git repository as a git submodule into this repository.
@@ -492,6 +540,13 @@ class ProjectRepo(BaseRepo):
         output_repo.delete_active_branch_if_branch_is_empty()
 
         new_branch_name = self.get_new_output_branch_name()
+
+        # update urls in master branch of output_repo
+        output_repo._git.checkout("master")
+        project_repo_remotes = [str(remote.url) for remote in self.remotes]
+        output_repo.add_list_of_remotes_in_readme_file("project_repo", project_repo_remotes)
+        output_repo.commit("Update urls")
+
         output_repo.prepare_new_branch(new_branch_name)
         return new_branch_name
 
@@ -511,14 +566,17 @@ class ProjectRepo(BaseRepo):
 
         print("Completed computations, commiting results")
         self.output_repo.add(".")
-        commit_return = self.output_repo._git.commit("-m", message)
-
-        print("\n" + commit_return + "\n")
-
-        self.update_output_master_logs()
-        self.remove_cached_files()
-        self._is_in_context_manager = False
-        self._on_context_enter_commit_hash = None
+        try:
+            # This has to be from ._git.commit because this way it raises an error if no results have been written.
+            commit_return = self.output_repo._git.commit("-m", message)
+            self.update_output_master_logs()
+            print("\n" + commit_return + "\n")
+        except git.exc.GitCommandError as e:
+            raise e
+        finally:
+            self.remove_cached_files()
+            self._is_in_context_manager = False
+            self._on_context_enter_commit_hash = None
 
     @contextlib.contextmanager
     def track_results(self, results_commit_message: str, debug=False):
