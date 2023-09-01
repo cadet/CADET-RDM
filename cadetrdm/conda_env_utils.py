@@ -2,15 +2,6 @@ import urllib.request
 import shutil
 import tempfile
 
-import click
-
-
-@click.command()
-@click.option('--url', default=None,
-              help='Url to the environment.yml file.')
-def prepare_conda_env_cli(url):
-    prepare_conda_env(url)
-
 
 def prepare_conda_env(url: str = None):
     if url is None:

@@ -1,8 +1,6 @@
 import os
 import json
 
-import click
-
 try:
     import git
 except ImportError:
@@ -59,24 +57,6 @@ def is_tool(name):
 
     from shutil import which
     return which(name) is not None
-
-
-@click.command()
-@click.option('--output_repo_name', default="output",
-              help='Name of the folder where the tracked output should be stored. Optional. Default: "output".')
-@click.option('--gitignore', default=None,
-              help='List of files to be added to the gitignore file. Optional.')
-@click.option('--gitattributes', default=None,
-              help='List of files to be added to the gitattributes file. Optional.')
-@click.option('--lfs_filetypes', default=None,
-              help='List of filetypes to be handled by git lfs. Optional.')
-@click.argument('path_to_repo')
-def initialize_git_repo_cli(path_to_repo: str, output_repo_name: (str | bool) = "output", gitignore: list = None,
-                            gitattributes: list = None, lfs_filetypes: list = None,
-                            output_repo_kwargs: dict = None):
-    initialize_git_repo(path_to_repo, output_repo_name, gitignore,
-                        gitattributes, lfs_filetypes,
-                        output_repo_kwargs)
 
 
 def initialize_git_repo(path_to_repo: str, output_repo_name: (str | bool) = "output", gitignore: list = None,
@@ -167,14 +147,6 @@ def create_output_readme():
                     "The project repository can be found at:",
                     "[project_repo]() (not actually set yet because no remote has been configured at this moment"]
     write_lines_to_file("README.md", readme_lines, open_type="w")
-
-
-@click.command()
-@click.option('--path_to_repo', default=None,
-              help='Path to folder for the repository. Optional.')
-@click.argument('project_url')
-def initialize_from_remote_cli(project_url, path_to_repo: str = None):
-    initialize_from_remote(project_url, path_to_repo)
 
 
 def initialize_from_remote(project_url, path_to_repo: str = None):
