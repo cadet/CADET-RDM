@@ -133,9 +133,17 @@ def initialize_git_repo(path_to_repo: str, output_repo_name: (str | bool) = "out
     os.chdir(starting_directory)
 
 
+def create_environment_yml():
+    file_lines = ["name: rdm_example", "channels:", "  - conda-forge", "dependencies:", "  - python=3.10", "  - conda",
+                  "  - cadet", "  - pip", "  - pip:", "      - cadet-process", "      - cadetrdm"]
+
+    write_lines_to_file("environment.yml", file_lines, open_type="w")
+
+
 def create_readme():
     readme_lines = ["# Project repo", "Your code goes in this repo.", "Please add a description here including: ",
                     "- authors", "- project", "- things we will find interesting later", "", "",
+                    "Please update the environment.yml with your python environment requirements.", "", "",
                     "The output repository can be found at:",
                     "[output_repo]() (not actually set yet because no remote has been configured at this moment"]
     write_lines_to_file("README.md", readme_lines, open_type="w")
