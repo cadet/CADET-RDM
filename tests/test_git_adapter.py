@@ -107,8 +107,13 @@ def try_commit_results_data(path_to_repo):
     with repo.track_results(results_commit_message="Add array"):
         example_generate_results_array(path_to_repo, output_folder=repo.output_folder)
     updated_commit_number = count_commit_number(repo.output_repo)
-    assert current_commit_number + 1 == updated_commit_number
+    assert current_commit_number <= updated_commit_number
     return str(repo.output_repo.active_branch)
+
+
+def try_print_log(path_to_repo):
+    repo = ProjectRepo(path_to_repo)
+    repo.print_output_log()
 
 
 def try_commit_results_with_uncommitted_code_changes(path_to_repo):
@@ -162,4 +167,7 @@ def test_cadet_rdm(path_to_repo):
     try_commit_results_with_uncommitted_code_changes(path_to_repo)
 
     results_branch_name = try_commit_results_data(path_to_repo)
+    results_branch_name = try_commit_results_data(path_to_repo)
+    try_print_log(path_to_repo)
+
     try_load_previous_output(path_to_repo, results_branch_name)

@@ -1,5 +1,6 @@
 import click
 
+from .repositories import ProjectRepo
 from .initialize_repo import initialize_git_repo as initialize_git_repo_implementation
 from .initialize_repo import initialize_from_remote as initialize_from_remote_implementation
 from .conda_env_utils import prepare_conda_env as prepare_conda_env_implementation
@@ -43,3 +44,10 @@ def initialize_git_repo(path_to_repo: str, output_repo_name: (str | bool) = "out
               help='Url to the environment.yml file.')
 def prepare_conda_env(url):
     prepare_conda_env_implementation(url)
+
+
+@cli.command()
+@click.argument('path_to_repo')
+def print_output_log(path_to_repo):
+    repo = ProjectRepo(path_to_repo)
+    repo.print_output_log()

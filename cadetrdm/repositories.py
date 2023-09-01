@@ -4,6 +4,9 @@ from datetime import datetime
 import shutil
 import contextlib
 
+from tabulate import tabulate
+import pandas as pd
+
 try:
     import git
 except ImportError:
@@ -79,6 +82,10 @@ class BaseRepo:
         :return:
         """
         self._git_repo.create_remote(remote_name, url=remote_url)
+
+    def checkout(self, *args, **kwargs):
+        self._most_recent_branch = self.active_branch
+        self._git.checkout(*args, **kwargs)
 
     def push(self, remote=None, local_branch=None, remote_branch=None):
         """
@@ -345,6 +352,36 @@ class ProjectRepo(BaseRepo):
         """
         self._output_repo._git.checkout(self._most_recent_branch)
 
+    def print_output_log(self):
+        def insert_newlines(string, every=30):
+            lines = []
+            for i in range(0, len(string), every):
+                lines.append(string[i:i + every])
+            return '\n'.join(lines)
+
+        self.output_repo.checkout("master")
+
+        csv_filepath = os.path.join(self.working_dir, self.output_folder, "logs", "log.csv")
+
+        df = pd.read_csv(csv_filepath, sep=",", header=0)
+        # Clean up the headers
+        df = df.rename(columns={"Output repo commit message": 'Output commit message',
+                                "Output repo branch": "Output branch",
+                                "Output repo commit hash": "Output hash", "Project repo commit hash": "Project hash"})
+        # Shorten the commit hashes
+        df.loc[:, "Output hash"] = df.loc[:, "Output hash"].apply(lambda x: x[:8])
+        # Shorten commit messages
+        df.loc[:, "Output commit message"] = df.loc[:, "Output commit message"].apply(lambda x: x[:55])
+        df.loc[:, "Output commit message"] = df.loc[:, "Output commit message"].apply(insert_newlines)
+
+        # Select only columns of interest
+        df = df.loc[:, ["Output commit message", "Output hash", "Output branch"]]
+
+        # Print
+        print(tabulate(df, headers=df.columns, showindex=False))
+
+        self.output_repo.checkout(self.output_repo._most_recent_branch)
+
     def update_output_master_logs(self, ):
         """
         Dumps all the metadata information about the project repositories state and
@@ -355,6 +392,7 @@ class ProjectRepo(BaseRepo):
 
         output_repo_hash = str(self._output_repo.head.commit)
         output_commit_message = self._output_repo.active_branch.commit.message
+        output_commit_message = output_commit_message.replace("\n", "; ")
 
         self._output_repo._git.checkout("master")
 
