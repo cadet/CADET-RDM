@@ -183,4 +183,4 @@ def initialize_from_remote(project_url, path_to_repo: str = None):
     environment_path = os.path.join(os.getcwd(), path_to_repo, "environment.yml")
 
     print("To set up the project conda environment please run this command:\n"
-          f"conda env create -f '{environment_path}'")
+          f"conda deactivate && conda env create -f '{environment_path}'")
