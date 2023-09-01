@@ -328,8 +328,8 @@ class ProjectRepo(BaseRepo):
         :return: the new branch name
         """
         project_repo_hash = str(self.head.commit)
-        timestamp = datetime.now().strftime("%Y-%m-%d-%H-%M-%S-%f")[:-4]
-        branch_name = "_".join([str(self.active_branch), project_repo_hash[:7], self.output_folder, timestamp])
+        timestamp = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
+        branch_name = "_".join([self.output_folder, "from", str(self.active_branch), project_repo_hash[:7], timestamp])
         return branch_name
 
     def check_results_master(self):
@@ -345,7 +345,7 @@ class ProjectRepo(BaseRepo):
         """
         self._output_repo._git.checkout(self._most_recent_branch)
 
-    def update_output_master_logs(self, message=None):
+    def update_output_master_logs(self, ):
         """
         Dumps all the metadata information about the project repositories state and
         the commit hash and branch name of the ouput repository into the master branch of
@@ -354,6 +354,7 @@ class ProjectRepo(BaseRepo):
         output_branch_name = str(self._output_repo.active_branch)
 
         output_repo_hash = str(self._output_repo.head.commit)
+        output_commit_message = self._output_repo.active_branch.commit.message
 
         self._output_repo._git.checkout("master")
 
@@ -366,12 +367,14 @@ class ProjectRepo(BaseRepo):
         #  this also has to be changed in the gitattributes of the init repo func
         csv_filepath = os.path.join(logs_folderpath, "log.csv")
 
-        meta_info_dict = {"Output repo branch": output_branch_name,
-                          "Output repo commit hash": output_repo_hash,
-                          "Project repo commit hash": str(self.head.commit),
-                          "Project repo folder name": os.path.split(self.working_dir)[-1],
-                          "Project repo remotes": [str(remote.url) for remote in self.remotes],
-                          }
+        meta_info_dict = {
+            "Output repo commit message": output_commit_message,
+            "Output repo branch": output_branch_name,
+            "Output repo commit hash": output_repo_hash,
+            "Project repo commit hash": str(self.head.commit),
+            "Project repo folder name": os.path.split(self.working_dir)[-1],
+            "Project repo remotes": [str(remote.url) for remote in self.remotes],
+        }
         csv_header = ",".join(meta_info_dict.keys())
         csv_data = ",".join([str(x) for x in meta_info_dict.values()])
 
@@ -399,9 +402,8 @@ class ProjectRepo(BaseRepo):
         self.copy_code(code_copy_folderpath)
 
         self._output_repo.add(".")
-        if message is None:
-            message = output_branch_name
-        self._output_repo._git.commit("-m", message)
+        self._output_repo._git.commit("-m", f"log for '{output_commit_message}' \n"
+                                            f"of branch '{output_branch_name}'")
 
         self._output_repo._git.checkout(output_branch_name)
         self._most_recent_branch = output_branch_name

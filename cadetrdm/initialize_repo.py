@@ -169,7 +169,7 @@ def initialize_from_remote(project_url, path_to_repo: str = None):
     with open(json_path, "r") as file_handle:
         meta_dict = json.load(file_handle)
 
-    output_folder_name = os.path.join(path_to_repo, meta_dict["output_foldername"])
+    output_folder_name = os.path.join(path_to_repo, meta_dict["output_folder_name"])
     ssh_remotes = list(meta_dict["output_remotes"].values())
     http_remotes = [ssh_url_to_http_url(url) for url in ssh_remotes]
     for output_remote in ssh_remotes + http_remotes:
