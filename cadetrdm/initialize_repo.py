@@ -120,6 +120,7 @@ def initialize_git_repo(path_to_repo: str, output_repo_name: (str | bool) = "out
     if output_repo_name:
         # This means we are in the project repo and should now initialize the output_repo
         create_readme()
+        create_environment_yml()
         initialize_git_repo(output_repo_name, output_repo_name=False, **output_repo_kwargs)
         # This instance of ProjectRepo is therefore the project repo
         repo = ProjectRepo(".", output_folder=output_repo_name)
@@ -179,3 +180,7 @@ def initialize_from_remote(project_url, path_to_repo: str = None):
             print(e)
         else:
             break
+    environment_path = os.path.join(os.getcwd(), path_to_repo, "environment.yml")
+
+    print("To set up the project conda environment please run this command:\n"
+          f"conda env create -f '{environment_path}'")
