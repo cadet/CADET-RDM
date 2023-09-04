@@ -624,11 +624,12 @@ class ProjectRepo(BaseRepo):
         print("Completed computations, commiting results")
         self.output_repo.add(".")
         try:
-            # This has to be from ._git.commit because this way it raises an error if no results have been written.
+            # This has to be using ._git.commit to raise an error if no results have been written.
             commit_return = self.output_repo._git.commit("-m", message)
             self.update_output_master_logs()
             print("\n" + commit_return + "\n")
         except git.exc.GitCommandError as e:
+            self.output_repo.delete_active_branch_if_branch_is_empty()
             raise e
         finally:
             self.remove_cached_files()
@@ -651,6 +652,7 @@ class ProjectRepo(BaseRepo):
         try:
             yield new_branch_name
         except Exception as e:
+            self.output_repo.delete_active_branch_if_branch_is_empty()
             raise e
         else:
             self.exit_context(message=results_commit_message)
