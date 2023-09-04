@@ -97,7 +97,7 @@ def initialize_git_repo(path_to_repo: str, output_repo_name: (str | bool) = "out
         gitattributes = []
 
     if lfs_filetypes is None:
-        lfs_filetypes = ["*.jpg", "*.png", "*.xlsx", "*.h5", "*.ipynb", "*.pdf", ".docx"]
+        lfs_filetypes = ["*.jpg", "*.png", "*.xlsx", "*.h5", "*.ipynb", "*.pdf", "*.docx"]
 
     starting_directory = os.getcwd()
 
