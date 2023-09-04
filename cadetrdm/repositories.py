@@ -251,6 +251,11 @@ class BaseRepo:
         """
         self._git.checkout("master")
         self._git.checkout('-b', branch_name)  # equivalent to $ git checkout -b %branch_name
+        try:
+            code_backup_path = os.path.join(self.working_dir, "logs", "code_backup")
+            shutil.rmtree(code_backup_path, ignore_errors=True)
+        except Exception as e:
+            print(e)
 
     def apply_stashed_changes(self):
         """
