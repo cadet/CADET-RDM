@@ -115,7 +115,13 @@ class BaseRepo:
         :return:
         """
         previous_branch = self.active_branch.name
-        if str(self.head.commit) == self.earliest_commit:
+        if previous_branch == "master":
+            return
+
+        commit_of_current_master = str(self._git.rev_parse("master"))
+        commit_of_current_branch = str(self.head.commit)
+        if commit_of_current_branch == commit_of_current_master:
+            print("Removing empty branch", previous_branch)
             self._git.checkout("master")
             self._git.branch("-d", previous_branch)
 
