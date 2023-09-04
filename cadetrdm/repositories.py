@@ -104,6 +104,8 @@ class BaseRepo:
         if remote_branch is None:
             remote_branch = local_branch
         if remote is None:
+            if len(self._git_repo.remotes) == 0:
+                raise RuntimeError("No remote has been set for this repository yet.")
             remote = [str(remote.name) for remote in self._git_repo.remotes][0]
 
         remote_interface = self._git_repo.remotes[remote]
@@ -113,7 +115,8 @@ class BaseRepo:
         else:
             push_results = remote_interface.push(refspec=f'{local_branch}:{remote_branch}')
 
-        print(push_results)
+        for push_res in push_results:
+            print(push_res.summary)
 
     def delete_active_branch_if_branch_is_empty(self):
         """
