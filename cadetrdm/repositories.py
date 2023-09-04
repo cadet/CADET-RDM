@@ -87,7 +87,7 @@ class BaseRepo:
         self._most_recent_branch = self.active_branch
         self._git.checkout(*args, **kwargs)
 
-    def push(self, remote=None, local_branch=None, remote_branch=None):
+    def push(self, remote=None, local_branch=None, remote_branch=None, push_all=False):
         """
         Push local branch to remote.
 
@@ -104,10 +104,16 @@ class BaseRepo:
         if remote_branch is None:
             remote_branch = local_branch
         if remote is None:
-            remote = list(sorted(self._git_repo.remotes.keys()))[0]
+            remote = [str(remote.name) for remote in self._git_repo.remotes][0]
 
         remote_interface = self._git_repo.remotes[remote]
-        remote_interface.push(refspec=f'{local_branch}:{remote_branch}')
+
+        if push_all:
+            push_results = remote_interface.push(all=True)
+        else:
+            push_results = remote_interface.push(refspec=f'{local_branch}:{remote_branch}')
+
+        print(push_results)
 
     def delete_active_branch_if_branch_is_empty(self):
         """
