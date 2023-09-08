@@ -136,7 +136,7 @@ def initialize_git_repo(path_to_repo: str, output_repo_name: (str | bool) = "out
 
 def create_environment_yml():
     file_lines = ["name: rdm_example", "channels:", "  - conda-forge", "dependencies:", "  - python=3.10", "  - conda",
-                  "  - cadet", "  - pip", "  - pip:", "      - cadet-process", "      - cadetrdm"]
+                  "  - cadet", "  - pip", "  - pip:", "      - cadet-process", "      - cadet-rdm"]
 
     write_lines_to_file("environment.yml", file_lines, open_type="w")
 
