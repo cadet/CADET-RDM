@@ -1,8 +1,11 @@
 import os
 import json
+import sys
 from datetime import datetime
 import shutil
 import contextlib
+import glob
+from stat import S_IREAD, S_IWRITE
 
 from tabulate import tabulate
 import pandas as pd
@@ -336,7 +339,7 @@ class ProjectRepo(BaseRepo):
 
         if output_folder is not None:
             self.output_folder = output_folder
-        elif output_folder is None:
+        else:
             self.output_folder = "output"
 
         self._output_repo = ResultsRepo(os.path.join(self.working_dir, self.output_folder))
@@ -432,6 +435,7 @@ class ProjectRepo(BaseRepo):
             "Project repo commit hash": str(self.head.commit),
             "Project repo folder name": os.path.split(self.working_dir)[-1],
             "Project repo remotes": [str(remote.url) for remote in self.remotes],
+            "Python sys args": str(sys.argv)
         }
         csv_header = ",".join(meta_info_dict.keys())
         csv_data = ",".join([str(x) for x in meta_info_dict.values()])
@@ -557,13 +561,15 @@ class ProjectRepo(BaseRepo):
 
         source_filepath = os.path.join(self.output_repo.working_dir, file_path)
 
-        # target_folder = os.path.join(self._output_folder + "_cached", branch_name)
-        target_folder = os.path.join(self.output_repo.working_dir, "cached", branch_name)
+        target_folder = os.path.join(self.output_repo.working_dir + "_cached", branch_name)
         os.makedirs(target_folder, exist_ok=True)
 
         target_filepath = os.path.join(target_folder, file_path)
-
+        if os.path.exists(target_filepath):
+            os.chmod(target_filepath, S_IWRITE)
+            os.remove(target_filepath)
         shutil.copyfile(source_filepath, target_filepath)
+        os.chmod(target_filepath, S_IREAD)
 
         self.output_repo._git.checkout(previous_branch)
         if has_stashed_changes:
@@ -575,8 +581,8 @@ class ProjectRepo(BaseRepo):
         """
         Delete all previously cached results.
         """
-        if os.path.exists(self.output_folder + "_cached"):
-            shutil.rmtree(self.output_folder + "_cached")
+        if os.path.exists(self.output_repo.working_dir + "_cached"):
+            shutil.rmtree(self.output_repo.working_dir + "_cached")
 
     def enter_context(self, ):
         """
@@ -610,6 +616,22 @@ class ProjectRepo(BaseRepo):
         output_repo.prepare_new_branch(new_branch_name)
         return new_branch_name
 
+    def copy_data_to_cache(self):
+        """
+        Copy all existing output results into a cached folder and make it read-only.
+
+        :return:
+        """
+        source_filepath = self.output_repo.working_dir
+
+        branch_name = self.output_repo.active_branch.name
+
+        target_folder = os.path.join(self.output_repo.working_dir + "_cached", branch_name)
+
+        shutil.copytree(source_filepath, target_folder)
+        for filename in glob.iglob(f"{target_folder}/**/*", recursive=True):
+            os.chmod(os.path.abspath(filename), S_IREAD)
+
     def exit_context(self, message):
         """
         After running all project code, this prepares the commit of the results to the output repository. This includes
@@ -629,13 +651,14 @@ class ProjectRepo(BaseRepo):
         try:
             # This has to be using ._git.commit to raise an error if no results have been written.
             commit_return = self.output_repo._git.commit("-m", message)
+            self.copy_data_to_cache()
             self.update_output_master_logs()
             print("\n" + commit_return + "\n")
         except git.exc.GitCommandError as e:
             self.output_repo.delete_active_branch_if_branch_is_empty()
             raise e
         finally:
-            self.remove_cached_files()
+            # self.remove_cached_files()
             self._is_in_context_manager = False
             self._on_context_enter_commit_hash = None
 
