@@ -40,6 +40,15 @@ def initialize_git_repo(path_to_repo: str, output_repo_name: (str | bool) = "out
 
 
 @cli.command()
+@click.argument('path_to_repo')
+@click.argument('remote_url')
+def add_remote_to_repo(path_to_repo: str, remote_url: str, ):
+    repo = ProjectRepo(path_to_repo)
+    repo.add_remote(remote_url)
+    print("Done.")
+
+
+@cli.command()
 @click.option('--url', default=None,
               help='Url to the environment.yml file.')
 def prepare_conda_env(url):

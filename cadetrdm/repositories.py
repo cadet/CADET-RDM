@@ -6,6 +6,7 @@ import shutil
 import contextlib
 import glob
 from stat import S_IREAD, S_IWRITE
+from urllib.request import urlretrieve
 
 from tabulate import tabulate
 import pandas as pd
@@ -77,6 +78,10 @@ class BaseRepo:
             self._earliest_commit = earliest_commit
         return self._earliest_commit
 
+    @property
+    def tags(self):
+        return None
+
     def add_remote(self, remote_url, remote_name="origin"):
         """
         ToDO add documentation
@@ -90,7 +95,7 @@ class BaseRepo:
         self._most_recent_branch = self.active_branch
         self._git.checkout(*args, **kwargs)
 
-    def push(self, remote=None, local_branch=None, remote_branch=None, push_all=False):
+    def push(self, remote=None, local_branch=None, remote_branch=None, push_all=True):
         """
         Push local branch to remote.
 
@@ -120,6 +125,9 @@ class BaseRepo:
 
         for push_res in push_results:
             print(push_res.summary)
+
+        if hasattr(self, "output_repo") and push_all:
+            self.output_repo.push()
 
     def delete_active_branch_if_branch_is_empty(self):
         """
@@ -359,7 +367,7 @@ class ProjectRepo(BaseRepo):
         """
         project_repo_hash = str(self.head.commit)
         timestamp = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
-        branch_name = "_".join([self.output_folder, "from", str(self.active_branch), project_repo_hash[:7], timestamp])
+        branch_name = "_".join([self.output_folder, "from", str(self.active_branch), timestamp, project_repo_hash[:7]])
         return branch_name
 
     def check_results_master(self):
@@ -435,7 +443,8 @@ class ProjectRepo(BaseRepo):
             "Project repo commit hash": str(self.head.commit),
             "Project repo folder name": os.path.split(self.working_dir)[-1],
             "Project repo remotes": [str(remote.url) for remote in self.remotes],
-            "Python sys args": str(sys.argv)
+            "Python sys args": str(sys.argv),
+            "Tags": self.tags,
         }
         csv_header = ",".join(meta_info_dict.keys())
         csv_data = ",".join([str(x) for x in meta_info_dict.values()])
@@ -540,16 +549,43 @@ class ProjectRepo(BaseRepo):
         full_path = os.path.join(self.working_dir, path)
         return full_path
 
-    def load_previous_output(self, branch_name, file_path):
+    def download_file(self, url, file_path):
         """
-        Load previously generated results to iterate upon.
-        :param branch_name:
-            Name of the branch of the output repository in which the results are stored
+        Download the file from the url and put it in the output+file_path location.
+
         :param file_path:
-            Relative path within the output repository to the file you wish to load.
+        :param url:
+        :return:
+            Returns a tuple containing the path to the newly created
+            data file as well as the resulting HTTPMessage object.
+        """
+        absolute_file_path = self.create_output_file_path(file_path)
+        return urlretrieve(url, absolute_file_path)
+
+    def load_previous_output(self, file_path, branch_name=None):
+        """
+        # ToDo: needs testing!
+        Load previously generated results to iterate upon.
+        :param file_path:
+            Can be relative path within the cached output repository to the file you wish to load.
+            OR relative path within the actual output repository, if branch_name is given.
+        :param branch_name:
+            Name of the branch of the output repository in which the results are stored. If none,
+            the cached_output is used.
         :return:
             Absolute path to the newly copied file.
         """
+        if branch_name is None and os.path.exists(file_path):
+            return file_path
+
+        if branch_name is None and not os.path.exists(file_path):
+            branch_name_and_path = file_path.split("_cached")[-1]
+            if os.sep not in branch_name_and_path:
+                sep = "/"
+            else:
+                sep = os.sep
+            branch_name, file_path = file_path.split(sep, maxsplit=1)
+
         if self.output_repo.exist_uncomitted_changes:
             self.output_repo.stash_all_changes()
             has_stashed_changes = True
@@ -576,6 +612,15 @@ class ProjectRepo(BaseRepo):
             self.output_repo.apply_stashed_changes()
 
         return target_filepath
+
+    def create_output_file_path(self, sub_path):
+        """
+        Return an absolute path with the repo_dir/output_dir/sub_path
+
+        :param sub_path:
+        :return:
+        """
+        return os.path.join(self.working_dir, self.output_repo.working_dir, sub_path)
 
     def remove_cached_files(self):
         """
