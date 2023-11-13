@@ -602,10 +602,10 @@ class ProjectRepo(BaseRepo):
 
         target_filepath = os.path.join(target_folder, file_path)
         if os.path.exists(target_filepath):
-            os.chmod(target_filepath, S_IWRITE)
+            # os.chmod(target_filepath, S_IWRITE)
             os.remove(target_filepath)
         shutil.copyfile(source_filepath, target_filepath)
-        os.chmod(target_filepath, S_IREAD)
+        # os.chmod(target_filepath, S_IREAD)
 
         self.output_repo._git.checkout(previous_branch)
         if has_stashed_changes:
