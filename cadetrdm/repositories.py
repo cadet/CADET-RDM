@@ -674,8 +674,8 @@ class ProjectRepo(BaseRepo):
         target_folder = os.path.join(self.output_repo.working_dir + "_cached", branch_name)
 
         shutil.copytree(source_filepath, target_folder)
-        for filename in glob.iglob(f"{target_folder}/**/*", recursive=True):
-            os.chmod(os.path.abspath(filename), S_IREAD)
+        # for filename in glob.iglob(f"{target_folder}/**/*", recursive=True):
+        #     os.chmod(os.path.abspath(filename), S_IREAD)
 
     def exit_context(self, message):
         """
