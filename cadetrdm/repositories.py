@@ -1,6 +1,7 @@
 import os
 import json
 import sys
+import traceback
 from datetime import datetime
 import shutil
 import contextlib
@@ -18,6 +19,29 @@ except ImportError:
     raise ImportError("No module named git, please install the gitpython package")
 
 from cadetrdm.utils import ssh_url_to_http_url
+
+
+def recursive_chmod(path, setting):
+    for dirpath, dirnames, filenames in os.walk(path):
+        os.chmod(dirpath, setting)
+        for filename in filenames:
+            os.chmod(os.path.join(dirpath, filename), setting)
+
+
+def delete_path(filename):
+    def remove_readonly(func, path, exc_info):
+        # Clear the readonly bit and reattempt the removal
+        # ERROR_ACCESS_DENIED = 5
+        if func not in (os.unlink, os.rmdir) or exc_info[1].winerror != 5:
+            raise exc_info[1]
+        os.chmod(path, S_IWRITE)
+        func(path)
+
+    absolute_path = os.path.abspath(filename)
+    if os.path.isdir(absolute_path):
+        shutil.rmtree(absolute_path, onerror=remove_readonly)
+    else:
+        os.remove(absolute_path)
 
 
 class BaseRepo:
@@ -165,7 +189,12 @@ class BaseRepo:
         # reset all tracked files to previous commit, -q silences output
         self._git.reset("-q", "--hard", "HEAD")
         # remove all untracked files and directories, -q silences output
-        self._git.clean("-q", "-f", "-d")
+        try:
+            self._git.clean("-q", "-f", "-d")
+        except git.exc.GitCommandError:
+            recursive_chmod(self.working_dir, S_IWRITE)
+            self._git.clean("-q", "-f", "-d")
+
 
     @property
     def changed_files(self):
@@ -211,8 +240,11 @@ class BaseRepo:
         print(f"Commiting changes to repo {self.working_dir}")
         if add_all:
             self.add(".")
-        commit_return = self._git.commit("-m", message)
-        print("\n" + commit_return + "\n")
+        try:
+            commit_return = self._git.commit("-m", message)
+            print("\n" + commit_return + "\n")
+        except:
+            pass
 
     def git_ammend(self, ):
         """
@@ -266,8 +298,15 @@ class BaseRepo:
         self._git.checkout("master")
         self._git.checkout('-b', branch_name)  # equivalent to $ git checkout -b %branch_name
         try:
+            # Remove previous code backup
             code_backup_path = os.path.join(self.working_dir, "logs", "code_backup")
             shutil.rmtree(code_backup_path, ignore_errors=True)
+        except Exception as e:
+            print(e)
+        try:
+            # Remove previous logs
+            logs_path = os.path.join(self.working_dir, "logs")
+            shutil.rmtree(logs_path, ignore_errors=True)
         except Exception as e:
             print(e)
 
@@ -346,6 +385,7 @@ class ProjectRepo(BaseRepo):
         super().__init__(repository_path, search_parent_directories=search_parent_directories, *args, **kwargs)
 
         if output_folder is not None:
+            output_folder = os.path.split(output_folder)[-1]
             self.output_folder = output_folder
         else:
             self.output_folder = "output"
@@ -467,6 +507,7 @@ class ProjectRepo(BaseRepo):
 
         self.dump_package_list(logs_folderpath)
 
+        # Copy all code files from the project git repo to the output repo
         code_copy_folderpath = os.path.join(logs_folderpath, "code_backup")
         if not os.path.exists(code_copy_folderpath):
             os.makedirs(code_copy_folderpath)
@@ -481,14 +522,21 @@ class ProjectRepo(BaseRepo):
 
     def copy_code(self, target_path):
         for file in self._git.ls_files().split("\n"):
-            target_file_path = os.path.join(self.working_dir, target_path, file)
-            target_folder = os.path.split(target_file_path)[0]
-            if not os.path.exists(target_folder):
-                os.makedirs(target_folder)
-            shutil.copyfile(
-                os.path.join(self.working_dir, file),
-                target_file_path
-            )
+            if "\\" in file:
+                file = bytes(file, "utf-8").decode("unicode_escape").encode("cp1252").decode("utf-8")
+            if "'" in file or '"' in file:
+                file = file.replace("'", "").replace('"', '')
+            try:
+                target_file_path = os.path.join(self.working_dir, target_path, file)
+                target_folder = os.path.split(target_file_path)[0]
+                if not os.path.exists(target_folder):
+                    os.makedirs(target_folder)
+                shutil.copyfile(
+                    os.path.join(self.working_dir, file),
+                    target_file_path
+                )
+            except:
+                traceback.print_exc()
 
     def commit(self, message: str, add_all=True):
         """
@@ -559,10 +607,10 @@ class ProjectRepo(BaseRepo):
             Returns a tuple containing the path to the newly created
             data file as well as the resulting HTTPMessage object.
         """
-        absolute_file_path = self.create_output_file_path(file_path)
+        absolute_file_path = self.output_data(file_path)
         return urlretrieve(url, absolute_file_path)
 
-    def load_previous_output(self, file_path, branch_name=None):
+    def input_data(self, file_path, branch_name=None):
         """
         # ToDo: needs testing!
         Load previously generated results to iterate upon.
@@ -602,10 +650,10 @@ class ProjectRepo(BaseRepo):
 
         target_filepath = os.path.join(target_folder, file_path)
         if os.path.exists(target_filepath):
-            # os.chmod(target_filepath, S_IWRITE)
+            os.chmod(target_filepath, S_IWRITE)
             os.remove(target_filepath)
         shutil.copyfile(source_filepath, target_filepath)
-        # os.chmod(target_filepath, S_IREAD)
+        os.chmod(target_filepath, S_IREAD)
 
         self.output_repo._git.checkout(previous_branch)
         if has_stashed_changes:
@@ -613,7 +661,7 @@ class ProjectRepo(BaseRepo):
 
         return target_filepath
 
-    def create_output_file_path(self, sub_path):
+    def output_data(self, sub_path):
         """
         Return an absolute path with the repo_dir/output_dir/sub_path
 
@@ -667,15 +715,27 @@ class ProjectRepo(BaseRepo):
 
         :return:
         """
-        source_filepath = self.output_repo.working_dir
+        try:
+            source_filepath = self.output_repo.working_dir
 
-        branch_name = self.output_repo.active_branch.name
+            branch_name = self.output_repo.active_branch.name
 
-        target_folder = os.path.join(self.output_repo.working_dir + "_cached", branch_name)
+            target_folder = os.path.join(self.output_repo.working_dir + "_cached", branch_name)
 
-        shutil.copytree(source_filepath, target_folder)
-        # for filename in glob.iglob(f"{target_folder}/**/*", recursive=True):
-        #     os.chmod(os.path.abspath(filename), S_IREAD)
+            shutil.copytree(source_filepath, target_folder)
+
+            # delete all .git files from the cache
+            for filename in glob.iglob(f"{target_folder}/**/.git*", recursive=True):
+                delete_path(filename)
+
+            # Set all files to read only
+            for filename in glob.iglob(f"{target_folder}/**/*", recursive=True):
+                absolute_path = os.path.abspath(filename)
+                if os.path.isdir(absolute_path):
+                    continue
+                os.chmod(os.path.abspath(filename), S_IREAD)
+        except:
+            traceback.print_exc()
 
     def exit_context(self, message):
         """
