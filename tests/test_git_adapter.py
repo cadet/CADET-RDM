@@ -154,6 +154,25 @@ def try_initialize_from_remote():
     assert try_init_gitpython_repo("test_repo_from_remote")
 
 
+def test_init_over_existing_repo():
+    path_to_repo = "test_repo_2"
+    if os.path.exists(path_to_repo):
+        remove_dir(path_to_repo)
+    os.makedirs(path_to_repo)
+    os.chdir(path_to_repo)
+    os.system(f"git init")
+    with open("README.md", "w") as handle:
+        handle.write("Readme-line 1\n")
+    with open(".gitignore", "w") as handle:
+        handle.write("foo.bar.*")
+    repo = git.Repo(".")
+    repo.git.add(".")
+    repo.git.commit("-m", "Initial commit")
+    os.chdir("..")
+
+    initialize_git_repo(path_to_repo)
+
+
 def test_cadet_rdm(path_to_repo):
     # because these depend on one-another and there is no native support afaik for sequential tests
     # these tests are called sequentially here as try_ functions.

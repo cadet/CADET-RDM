@@ -677,6 +677,12 @@ class ProjectRepo(BaseRepo):
         if os.path.exists(self.output_repo.working_dir + "_cached"):
             shutil.rmtree(self.output_repo.working_dir + "_cached")
 
+    def test_for_correct_repo_setup(self):
+        """
+        ToDo: implement
+        :return:
+        """
+
     def enter_context(self, ):
         """
         Enter the tracking context. This includes:
@@ -688,6 +694,7 @@ class ProjectRepo(BaseRepo):
         :return:
             The name of the newly created output branch.
         """
+        self.test_for_correct_repo_setup()
         self.test_for_uncommitted_changes()
         self._on_context_enter_commit_hash = self.current_commit_hash
         self._is_in_context_manager = True

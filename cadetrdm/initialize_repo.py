@@ -15,7 +15,7 @@ def add_linebreaks(input_list):
     """
     Add linebreaks between each entry in the input_list
     """
-    return [line + "\n" for line in input_list]
+    return ["\n" + line for line in input_list]
 
 
 def init_lfs(lfs_filetypes: list, path: str = None):
@@ -102,17 +102,21 @@ def initialize_git_repo(path_to_repo: str, output_repo_name: (str | bool) = "out
     starting_directory = os.getcwd()
 
     if path_to_repo != ".":
-        if os.path.exists(path_to_repo) and len(os.listdir(path_to_repo)) > 0:
-            raise ValueError("Path to repository already exists and is not an empty directory.")
         os.makedirs(path_to_repo, exist_ok=True)
         os.chdir(path_to_repo)
 
-    os.system(f"git init")
+    try:
+        repo = git.Repo(".")
+        proceed = input(f'The target directory already contains a git repo.\n'
+                        f'Please back up or push all changes to the repo before continuing.'
+                        f'Proceed? Y/n \n')
+        if not (proceed.lower() == "y" or proceed == ""):
+            raise KeyboardInterrupt
+    except git.exc.InvalidGitRepositoryError:
+        os.system(f"git init")
 
-    init_lfs(lfs_filetypes)
-
-    write_lines_to_file(path=".gitattributes", lines=gitattributes)
-    write_lines_to_file(path=".gitignore", lines=gitignore)
+    write_lines_to_file(path=".gitattributes", lines=gitattributes, open_type="a")
+    write_lines_to_file(path=".gitignore", lines=gitignore, open_type="a")
 
     if output_repo_kwargs is None:
         output_repo_kwargs = {"gitattributes": ["logs/log.csv merge=union"]}
@@ -125,8 +129,11 @@ def initialize_git_repo(path_to_repo: str, output_repo_name: (str | bool) = "out
         # This instance of ProjectRepo is therefore the project repo
         repo = ProjectRepo(".", output_folder=output_repo_name)
     else:
-        create_output_readme()
         # If output_repo_name is False we are in the output_repo and should finish by committing the changes
+        init_lfs(lfs_filetypes)
+
+        create_output_readme()
+
         repo = ResultsRepo(".")
 
     repo.commit("initial commit")
@@ -147,7 +154,7 @@ def create_readme():
                     "Please update the environment.yml with your python environment requirements.", "", "",
                     "The output repository can be found at:",
                     "[output_repo]() (not actually set yet because no remote has been configured at this moment"]
-    write_lines_to_file("README.md", readme_lines, open_type="w")
+    write_lines_to_file("README.md", readme_lines, open_type="a")
 
 
 def create_output_readme():
@@ -155,7 +162,7 @@ def create_output_readme():
                     "- authors", "- project", "- things we will find interesting later", "", "",
                     "The project repository can be found at:",
                     "[project_repo]() (not actually set yet because no remote has been configured at this moment"]
-    write_lines_to_file("README.md", readme_lines, open_type="w")
+    write_lines_to_file("README.md", readme_lines, open_type="a")
 
 
 def initialize_from_remote(project_url, path_to_repo: str = None):
