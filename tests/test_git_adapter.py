@@ -7,7 +7,7 @@ import pytest
 import git
 import numpy as np
 
-from cadetrdm import initialize_git_repo, ProjectRepo, initialize_from_remote
+from cadetrdm import initialize_repo, ProjectRepo, initialize_from_remote
 from cadetrdm.initialize_repo import init_lfs
 
 
@@ -71,7 +71,7 @@ def try_initialize_git_repo(path_to_repo):
     if os.path.exists(path_to_repo):
         remove_dir(path_to_repo)
 
-    initialize_git_repo(path_to_repo, "results")
+    initialize_repo(path_to_repo, "results")
 
     assert try_init_gitpython_repo(path_to_repo)
     assert try_init_gitpython_repo(os.path.join(path_to_repo, "results"))
@@ -174,7 +174,7 @@ def test_init_over_existing_repo(monkeypatch):
     # using monkeypath to simulate user input
     monkeypatch.setattr('builtins.input', lambda x: "Y")
 
-    initialize_git_repo(path_to_repo)
+    initialize_repo(path_to_repo)
 
 
 def test_add_lfs_filetype():
@@ -182,7 +182,7 @@ def test_add_lfs_filetype():
     if os.path.exists(path_to_repo):
         remove_dir(path_to_repo)
     os.makedirs(path_to_repo)
-    initialize_git_repo(path_to_repo)
+    initialize_repo(path_to_repo)
     file_type = "*.bak"
     init_lfs(lfs_filetypes=[file_type], path=path_to_repo)
     repo = ProjectRepo(path_to_repo)

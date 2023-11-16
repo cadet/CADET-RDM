@@ -1,7 +1,7 @@
 import click
 
 from .repositories import ProjectRepo
-from .initialize_repo import initialize_git_repo as initialize_git_repo_implementation, init_lfs
+from .initialize_repo import initialize_repo as initialize_git_repo_implementation, init_lfs
 from .initialize_repo import initialize_from_remote as initialize_from_remote_implementation
 from .conda_env_utils import prepare_conda_env as prepare_conda_env_implementation
 
@@ -31,9 +31,9 @@ def initialize_from_remote(project_url, path_to_repo: str = None):
 @click.option('--lfs_filetypes', default=None,
               help='List of filetypes to be handled by git lfs. Optional.')
 @click.argument('path_to_repo')
-def initialize_git_repo(path_to_repo: str, output_repo_name: (str | bool) = "output", gitignore: list = None,
-                        gitattributes: list = None, lfs_filetypes: list = None,
-                        output_repo_kwargs: dict = None):
+def initialize_repo(path_to_repo: str, output_repo_name: (str | bool) = "output", gitignore: list = None,
+                    gitattributes: list = None, lfs_filetypes: list = None,
+                    output_repo_kwargs: dict = None):
     initialize_git_repo_implementation(path_to_repo, output_repo_name, gitignore,
                                        gitattributes, lfs_filetypes,
                                        output_repo_kwargs)
@@ -56,6 +56,7 @@ def add_file_type_to_lfs(path_to_repo: str, file_type: str, ):
     repo = ProjectRepo(path_to_repo)
     repo.add_all_files()
     repo.commit(f"Add {file_type} to lfs")
+
 
 @cli.command()
 @click.option('--url', default=None,

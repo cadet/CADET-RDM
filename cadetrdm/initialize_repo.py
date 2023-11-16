@@ -59,15 +59,15 @@ def is_tool(name):
     return which(name) is not None
 
 
-def initialize_git_repo(path_to_repo: str, output_repo_name: (str | bool) = "output", gitignore: list = None,
-                        gitattributes: list = None, lfs_filetypes: list = None,
-                        output_repo_kwargs: dict = None):
+def initialize_repo(path_to_repo: str, output_folder_name: (str | bool) = "output", gitignore: list = None,
+                    gitattributes: list = None, lfs_filetypes: list = None,
+                    output_repo_kwargs: dict = None):
     """
     Initialize a git repository at the given path with an optional included output results repository.
 
     :param path_to_repo:
         Path to main repository.
-    :param output_repo_name:
+    :param output_folder_name:
         Name for the output repository.
     :param gitignore:
         List of files to be added to the gitignore file.
@@ -89,9 +89,9 @@ def initialize_git_repo(path_to_repo: str, output_repo_name: (str | bool) = "out
     if gitignore is None:
         gitignore = [".idea", "*diskcache*", "*tmp*", ".ipynb_checkpoints", "__pycache__"]
 
-    if output_repo_name:
-        gitignore.append(output_repo_name)
-        gitignore.append(output_repo_name + "_cached")
+    if output_folder_name:
+        gitignore.append(output_folder_name)
+        gitignore.append(output_folder_name + "_cached")
 
     if gitattributes is None:
         gitattributes = []
@@ -121,13 +121,13 @@ def initialize_git_repo(path_to_repo: str, output_repo_name: (str | bool) = "out
     if output_repo_kwargs is None:
         output_repo_kwargs = {"gitattributes": ["logs/log.csv merge=union"]}
 
-    if output_repo_name:
+    if output_folder_name:
         # This means we are in the project repo and should now initialize the output_repo
         create_readme()
         create_environment_yml()
-        initialize_git_repo(output_repo_name, output_repo_name=False, **output_repo_kwargs)
+        initialize_repo(output_folder_name, output_folder_name=False, **output_repo_kwargs)
         # This instance of ProjectRepo is therefore the project repo
-        repo = ProjectRepo(".", output_folder=output_repo_name)
+        repo = ProjectRepo(".", output_folder=output_folder_name)
     else:
         # If output_repo_name is False we are in the output_repo and should finish by committing the changes
         init_lfs(lfs_filetypes)

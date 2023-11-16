@@ -195,7 +195,6 @@ class BaseRepo:
             recursive_chmod(self.working_dir, S_IWRITE)
             self._git.clean("-q", "-f", "-d")
 
-
     @property
     def changed_files(self):
         changed_files = self._git.diff(None, name_only=True).split('\n')
@@ -409,7 +408,7 @@ class ProjectRepo(BaseRepo):
         """
         project_repo_hash = str(self.head.commit)
         timestamp = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
-        branch_name = "_".join([self.output_folder, "from", str(self.active_branch), timestamp, project_repo_hash[:7]])
+        branch_name = "_".join([timestamp, self.output_folder, "from", str(self.active_branch), project_repo_hash[:7]])
         return branch_name
 
     def check_results_master(self):
