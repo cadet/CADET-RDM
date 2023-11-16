@@ -1,7 +1,7 @@
 import click
 
 from .repositories import ProjectRepo
-from .initialize_repo import initialize_git_repo as initialize_git_repo_implementation
+from .initialize_repo import initialize_git_repo as initialize_git_repo_implementation, init_lfs
 from .initialize_repo import initialize_from_remote as initialize_from_remote_implementation
 from .conda_env_utils import prepare_conda_env as prepare_conda_env_implementation
 
@@ -47,6 +47,15 @@ def add_remote_to_repo(path_to_repo: str, remote_url: str, ):
     repo.add_remote(remote_url)
     print("Done.")
 
+
+@cli.command()
+@click.argument('path_to_repo')
+@click.argument('file_type')
+def add_file_type_to_lfs(path_to_repo: str, file_type: str, ):
+    init_lfs(lfs_filetypes=[file_type], path=path_to_repo)
+    repo = ProjectRepo(path_to_repo)
+    repo.add_all_files()
+    repo.commit(f"Add {file_type} to lfs")
 
 @cli.command()
 @click.option('--url', default=None,

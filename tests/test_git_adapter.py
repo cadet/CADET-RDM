@@ -8,6 +8,7 @@ import git
 import numpy as np
 
 from cadetrdm import initialize_git_repo, ProjectRepo, initialize_from_remote
+from cadetrdm.initialize_repo import init_lfs
 
 
 @pytest.fixture(scope="module")
@@ -70,10 +71,10 @@ def try_initialize_git_repo(path_to_repo):
     if os.path.exists(path_to_repo):
         remove_dir(path_to_repo)
 
-    initialize_git_repo(path_to_repo)
+    initialize_git_repo(path_to_repo, "results")
 
     assert try_init_gitpython_repo(path_to_repo)
-    assert try_init_gitpython_repo(os.path.join(path_to_repo, "output"))
+    assert try_init_gitpython_repo(os.path.join(path_to_repo, "results"))
 
 
 def try_commit_code(path_to_repo):
@@ -154,7 +155,7 @@ def try_initialize_from_remote():
     assert try_init_gitpython_repo("test_repo_from_remote")
 
 
-def test_init_over_existing_repo():
+def test_init_over_existing_repo(monkeypatch):
     path_to_repo = "test_repo_2"
     if os.path.exists(path_to_repo):
         remove_dir(path_to_repo)
@@ -170,7 +171,23 @@ def test_init_over_existing_repo():
     repo.git.commit("-m", "Initial commit")
     os.chdir("..")
 
+    # using monkeypath to simulate user input
+    monkeypatch.setattr('builtins.input', lambda x: "Y")
+
     initialize_git_repo(path_to_repo)
+
+
+def test_add_lfs_filetype():
+    path_to_repo = "test_repo_3"
+    if os.path.exists(path_to_repo):
+        remove_dir(path_to_repo)
+    os.makedirs(path_to_repo)
+    initialize_git_repo(path_to_repo)
+    file_type = "*.bak"
+    init_lfs(lfs_filetypes=[file_type], path=path_to_repo)
+    repo = ProjectRepo(path_to_repo)
+    repo.add_all_files()
+    repo.commit(f"Add {file_type} to lfs")
 
 
 def test_cadet_rdm(path_to_repo):

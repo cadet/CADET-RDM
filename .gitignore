@@ -3,6 +3,6 @@ build
 *.egg-info
 results
 __pycache__
-tests/test_repo
+tests/test_repo*
 .coverage
 dist

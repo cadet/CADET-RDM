@@ -388,7 +388,9 @@ class ProjectRepo(BaseRepo):
             output_folder = os.path.split(output_folder)[-1]
             self.output_folder = output_folder
         else:
-            self.output_folder = "output"
+            with open(os.path.join(repository_path, "output_remotes.json"), "r") as handle:
+                data = json.load(handle)
+            self.output_folder = data["output_folder_name"]
 
         self._output_repo = ResultsRepo(os.path.join(self.working_dir, self.output_folder))
         self._on_context_enter_commit_hash = None
