@@ -4,7 +4,7 @@
 ### Installation
 CADET-RDM can be installed using
 
-```pip install cadetrdm```
+```pip install cadet-rdm```
 
 ### Initialize Project Repository
 Create a new project repository or convert an existing repository into a CADET-RDM repo:
@@ -61,8 +61,8 @@ _results_ repo.
 Once created, the remotes need to be added to the local repositories.
 
 ```bash
-cadet-cli add-remote-to-repo <path_to_repo> git@<my_git_server.foo>:<project>.git
-cadet-cli add-remote-to-repo <path_to_repo/output_folder> git@<my_git_server.foo>:<project>_output.git
+cadet-rdm add-remote-to-repo <path_to_repo> git@<my_git_server.foo>:<project>.git
+cadet-rdm add-remote-to-repo <path_to_repo/output_folder> git@<my_git_server.foo>:<project>_output.git
 ```
 or in Python:
 
