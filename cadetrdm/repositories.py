@@ -12,36 +12,23 @@ from urllib.request import urlretrieve
 from tabulate import tabulate
 import pandas as pd
 
+from cadetrdm.io_utils import recursive_chmod
+
 try:
     import git
 except ImportError:
     # Adding this hint to save users the confusion of trying $pip install git
     raise ImportError("No module named git, please install the gitpython package")
 
-from cadetrdm.utils import ssh_url_to_http_url
+from cadetrdm.web_utils import ssh_url_to_http_url
+from cadetrdm.io_utils import delete_path
 
 
-def recursive_chmod(path, setting):
-    for dirpath, dirnames, filenames in os.walk(path):
-        os.chmod(dirpath, setting)
-        for filename in filenames:
-            os.chmod(os.path.join(dirpath, filename), setting)
-
-
-def delete_path(filename):
-    def remove_readonly(func, path, exc_info):
-        # Clear the readonly bit and reattempt the removal
-        # ERROR_ACCESS_DENIED = 5
-        if func not in (os.unlink, os.rmdir) or exc_info[1].winerror != 5:
-            raise exc_info[1]
-        os.chmod(path, S_IWRITE)
-        func(path)
-
-    absolute_path = os.path.abspath(filename)
-    if os.path.isdir(absolute_path):
-        shutil.rmtree(absolute_path, onerror=remove_readonly)
-    else:
-        os.remove(absolute_path)
+def validate_is_output_repo(path_to_repo):
+    with open(os.path.join(path_to_repo, ".cadet-rdm-data.json", "r")) as file_handle:
+        rdm_data = json.load(file_handle)
+        if rdm_data["is_project_repo"]:
+            raise ValueError("Please use the URL to the output repository.")
 
 
 class BaseRepo:
@@ -94,6 +81,12 @@ class BaseRepo:
     @property
     def remotes(self):
         return self._git_repo.remotes
+
+    @property
+    def remote_urls(self):
+        if len(self.remotes) == 0:
+            print(RuntimeWarning(f"No remote for repo at {self.working_dir} set yet. Please add remote ASAP."))
+        return [str(remote.url) for remote in self.remotes]
 
     @property
     def earliest_commit(self):
@@ -299,13 +292,13 @@ class BaseRepo:
         try:
             # Remove previous code backup
             code_backup_path = os.path.join(self.working_dir, "logs", "code_backup")
-            shutil.rmtree(code_backup_path, ignore_errors=True)
+            delete_path(code_backup_path)
         except Exception as e:
             print(e)
         try:
             # Remove previous logs
             logs_path = os.path.join(self.working_dir, "logs")
-            shutil.rmtree(logs_path, ignore_errors=True)
+            delete_path(logs_path)
         except Exception as e:
             print(e)
 
@@ -391,7 +384,7 @@ class ProjectRepo(BaseRepo):
                 data = json.load(handle)
             self.output_folder = data["output_folder_name"]
 
-        self._output_repo = ResultsRepo(os.path.join(self.working_dir, self.output_folder))
+        self._output_repo = OutputRepo(os.path.join(self.working_dir, self.output_folder))
         self._on_context_enter_commit_hash = None
         self._is_in_context_manager = False
 
@@ -400,6 +393,14 @@ class ProjectRepo(BaseRepo):
         if self._output_repo is None:
             raise ValueError("The output repo has not been set yet.")
         return self._output_repo
+
+    @property
+    def data_json_path(self):
+        return os.path.join(self.working_dir, ".cadet-rdm-data.json")
+
+    @property
+    def cache_json_path(self):
+        return os.path.join(self.working_dir, ".cadet-rdm-cache.json")
 
     def get_new_output_branch_name(self):
         """
@@ -483,7 +484,7 @@ class ProjectRepo(BaseRepo):
             "Output repo commit hash": output_repo_hash,
             "Project repo commit hash": str(self.head.commit),
             "Project repo folder name": os.path.split(self.working_dir)[-1],
-            "Project repo remotes": [str(remote.url) for remote in self.remotes],
+            "Project repo remotes": self.remote_urls,
             "Python sys args": str(sys.argv),
             "Tags": self.tags,
         }
@@ -549,7 +550,7 @@ class ProjectRepo(BaseRepo):
             Option to add all changed and new files to git automatically.
         """
 
-        output_repo_remotes = [str(remote.url) for remote in self.output_repo.remotes]
+        output_repo_remotes = self.output_repo.remote_urls
         self.add_list_of_remotes_in_readme_file("output_repo", output_repo_remotes)
 
         output_json_filepath = os.path.join(self.working_dir, "output_remotes.json")
@@ -559,44 +560,6 @@ class ProjectRepo(BaseRepo):
             json.dump(json_dict, file_handle, indent=2)
 
         super().commit(message=message, add_all=add_all)
-
-    def load_external_repository(self, url, branch=None, commit=None, name=None, path=None, ):
-        """
-        Load an external git repository as a git submodule into this repository.
-
-        :param url:
-            URL of the git repository.
-        :param branch:
-            Branch of the external repository to check out.
-        :param commit:
-            Commit of the external repository to check out.
-        :param name:
-            Optional custom name for the repository.
-        :param path:
-            Optional custom relative path where the repository should be placed.
-        :return:
-        """
-        if path is None or name is None:
-            if "/" in url:
-                sep = "/"
-            elif "\\" in url:
-                sep = "\\"
-            else:
-                raise RuntimeError("Could not automatically extract name from URL"
-                                   " because the URL is not of a known format")
-
-            if path is None:
-                repo_name = url.split(sep)[-1]
-                path = os.path.join("external_repos", repo_name)
-            if name is None:
-                name = url.split(sep)[-1]
-
-        self._git_repo.create_submodule(name=name, url=url, branch=branch, path=path)
-        if commit is not None:
-            submodule = BaseRepo(path)
-            submodule._git.checkout(commit)
-        full_path = os.path.join(self.working_dir, path)
-        return full_path
 
     def download_file(self, url, file_path):
         """
@@ -662,6 +625,175 @@ class ProjectRepo(BaseRepo):
 
         return target_filepath
 
+    def import_remote_repo(self, source_repo_location, source_repo_branch, target_repo_location=None):
+        """
+
+        :param source_repo_location:
+        Path or URL to the source repo.
+        Example https://jugit.fz-juelich.de/IBG-1/ModSim/cadet/agile_cadet_rdm_presentation_output.git
+        or git@jugit.fz-juelich.de:IBG-1/ModSim/cadet/agile_cadet_rdm_presentation_output.git
+
+        :param source_repo_branch:
+        Branch of the source repo to check out.
+
+        :param target_repo_location:
+        Place to store the repo. If None, the external_cache folder is used.
+
+        :return:
+        Path to the cloned repository
+        """
+        if target_repo_location is None:
+            target_repo_location = os.path.join(self.working_dir, "external_cache", source_repo_location.split("/")[-1])
+        else:
+            target_repo_location = os.path.join(self.working_dir, target_repo_location)
+
+        multi_options = ["--filter=blob:none", "--branch", source_repo_branch, "--single-branch"]
+
+        self.add_path_to_gitignore(target_repo_location)
+
+        print(f"Cloning from {source_repo_location} into {target_repo_location}")
+        repo = git.Repo.clone_from(source_repo_location, target_repo_location, multi_options=multi_options)
+        repo.git.clear_cache()
+
+        self.update_cadet_rdm_cache_json(source_repo_branch=source_repo_branch,
+                                         target_repo_location=target_repo_location,
+                                         source_repo_location=source_repo_location)
+        return target_repo_location
+
+    def add_path_to_gitignore(self, path_to_be_ignored):
+        """
+        Add the path to the .gitignore file
+
+        :param path_to_be_ignored:
+        :return:
+        """
+        path_to_be_ignored = self.ensure_relative_path(path_to_be_ignored)
+        with open(os.path.join(self.working_dir, ".gitignore"), "r") as file_handle:
+            gitignore = file_handle.readlines()
+            gitignore[-1] += "\n"  # Sometimes there is no trailing newline
+        if path_to_be_ignored + "\n" not in gitignore:
+            gitignore.append(path_to_be_ignored + "\n")
+        with open(os.path.join(self.working_dir, ".gitignore"), "w") as file_handle:
+            file_handle.writelines(gitignore)
+
+    def update_cadet_rdm_cache_json(self, source_repo_location, source_repo_branch, target_repo_location):
+        """
+        Update the information in the .cadet_rdm_cache.json file
+
+        :param source_repo_location:
+        Path or URL to the source repo.
+        :param source_repo_branch:
+        Name of the branch to check out.
+        :param target_repo_location:
+        Path where to put the repo or data
+        """
+
+        with open(self.cache_json_path, "r") as file_handle:
+            rdm_cache = json.load(file_handle)
+
+        repo = BaseRepo(target_repo_location)
+        commit_hash = repo.current_commit_hash
+        if "__example/path/to/repo__" in rdm_cache.keys():
+            rdm_cache.pop("__example/path/to/repo__")
+
+        target_repo_location = self.ensure_relative_path(target_repo_location)
+
+        rdm_cache[target_repo_location] = {
+            "source_repo_location": source_repo_location,
+            "branch_name": source_repo_branch,
+            "commit_hash": commit_hash,
+        }
+
+        with open(self.cache_json_path, "w") as file_handle:
+            json.dump(rdm_cache, file_handle, indent=2)
+
+    def ensure_relative_path(self, input_path):
+        """
+        Turn the input path into a relative path, relative to the repo working directory.
+
+        :param input_path:
+        :return:
+        """
+        if os.path.isabs(input_path):
+            relative_path = os.path.relpath(input_path, self.working_dir)
+        else:
+            relative_path = input_path
+        return relative_path
+
+    def verify_unchanged_cache(self):
+        """
+        Verify that all repos referenced in .cadet-rdm-data.json are
+        in an unmodified state. Raises a RuntimeError if the commit hash has changed or if
+        uncommited changes are found.
+
+        :return:
+        """
+
+        with open(self.cache_json_path, "r") as file_handle:
+            rdm_cache = json.load(file_handle)
+
+        if "__example/path/to/repo__" in rdm_cache.keys():
+            rdm_cache.pop("__example/path/to/repo__")
+
+        for repo_location, repo_info in rdm_cache.items():
+            try:
+                repo = BaseRepo(repo_location)
+                repo._git.clear_cache()
+            except git.exc.NoSuchPathError:
+                raise git.exc.NoSuchPathError(f"The imported repository at {repo_location} was not found.")
+
+            self.verify_cache_folder_is_unchanged(repo_location, repo_info["commit_hash"])
+
+    def verify_cache_folder_is_unchanged(self, repo_location, commit_hash):
+        """
+        Verify that the repo located at repo_location has no uncommited changes and that the current commit_hash
+        is equal to the given commit_hash
+
+        :param repo_location:
+        :param commit_hash:
+        :return:
+        """
+        repo = BaseRepo(repo_location)
+        commit_changed = repo.current_commit_hash != commit_hash
+        uncommited_changes = repo.exist_uncomitted_changes
+        if commit_changed or uncommited_changes:
+            raise RuntimeError(f"The contents of {repo_location} have been modified. Don't do that.")
+        repo._git.clear_cache()
+
+    def fill_data_from_cadet_rdm_json(self, re_load=False):
+        """
+        Iterate through all references within the .cadet-rdm-data.json and
+        load or re-load the data.
+
+        :param re_load:
+        If true: delete and re-load all data. If false, existing data will be left as-is.
+
+        ToDo: add to cadetrdm post-clone function
+        ToDo: can we integrate into git post-clone hooks?
+
+        :return:
+        """
+
+        with open(self.cache_json_path, "r") as file_handle:
+            rdm_cache = json.load(file_handle)
+
+        if "__example/path/to/repo__" in rdm_cache.keys():
+            rdm_cache.pop("__example/path/to/repo__")
+
+        for repo_location, repo_info in rdm_cache.items():
+            if os.path.exists(repo_location) and re_load is False:
+                continue
+            elif os.path.exists(repo_location) and re_load is True:
+                delete_path(repo_location)
+
+            if repo_info["source_repo_location"] == ".":
+                self.copy_data_to_cache(branch_name=repo_info["branch_name"])
+            else:
+                self.import_remote_repo(
+                    target_repo_location=repo_location,
+                    source_repo_location=repo_info["source_repo_location"],
+                    source_repo_branch=repo_info["branch_name"])
+
     def output_data(self, sub_path):
         """
         Return an absolute path with the repo_dir/output_dir/sub_path
@@ -676,7 +808,7 @@ class ProjectRepo(BaseRepo):
         Delete all previously cached results.
         """
         if os.path.exists(self.output_repo.working_dir + "_cached"):
-            shutil.rmtree(self.output_repo.working_dir + "_cached")
+            delete_path(self.output_repo.working_dir + "_cached")
 
     def test_for_correct_repo_setup(self):
         """
@@ -710,31 +842,35 @@ class ProjectRepo(BaseRepo):
 
         # update urls in master branch of output_repo
         output_repo._git.checkout("master")
-        project_repo_remotes = [str(remote.url) for remote in self.remotes]
+        project_repo_remotes = self.remote_urls
         output_repo.add_list_of_remotes_in_readme_file("project_repo", project_repo_remotes)
         output_repo.commit("Update urls")
 
         output_repo.prepare_new_branch(new_branch_name)
         return new_branch_name
 
-    def copy_data_to_cache(self):
+    def copy_data_to_cache(self, branch_name=None):
         """
         Copy all existing output results into a cached folder and make it read-only.
+
+        :param branch_name:
+        optional branch name, if None, current branch is used.
 
         :return:
         """
         try:
             source_filepath = self.output_repo.working_dir
 
-            branch_name = self.output_repo.active_branch.name
+            if branch_name is None:
+                branch_name = self.output_repo.active_branch.name
+                previous_branch = None
+            else:
+                previous_branch = self.output_repo.active_branch.name
+                self.output_repo.checkout(branch_name)
 
             target_folder = os.path.join(self.output_repo.working_dir + "_cached", branch_name)
 
             shutil.copytree(source_filepath, target_folder)
-
-            # delete all .git files from the cache
-            for filename in glob.iglob(f"{target_folder}/**/.git*", recursive=True):
-                delete_path(filename)
 
             # Set all files to read only
             for filename in glob.iglob(f"{target_folder}/**/*", recursive=True):
@@ -742,6 +878,9 @@ class ProjectRepo(BaseRepo):
                 if os.path.isdir(absolute_path):
                     continue
                 os.chmod(os.path.abspath(filename), S_IREAD)
+
+            if previous_branch is not None:
+                self.output_repo.checkout(previous_branch)
         except:
             traceback.print_exc()
 
@@ -797,5 +936,5 @@ class ProjectRepo(BaseRepo):
             self.exit_context(message=results_commit_message)
 
 
-class ResultsRepo(BaseRepo):
+class OutputRepo(BaseRepo):
     pass

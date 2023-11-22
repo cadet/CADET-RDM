@@ -22,6 +22,32 @@ def initialize_from_remote(project_url, path_to_repo: str = None):
 
 
 @cli.command()
+@click.option('--target_repo_location', default=None,
+              help='Path to folder for the repository. Optional.')
+@click.argument('source_repo_location')
+@click.argument('source_repo_branch')
+def import_remote_repo(source_repo_location, source_repo_branch, target_repo_location=None):
+    repo = ProjectRepo(".")
+    repo.import_remote_repo(source_repo_location=source_repo_location,
+                            source_repo_branch=source_repo_branch,
+                            target_repo_location=target_repo_location)
+
+
+@cli.command()
+def verify_unchanged_cache():
+    repo = ProjectRepo(".")
+    repo.verify_unchanged_cache()
+
+
+@cli.command()
+@click.option('--re_load', default=False,
+              help='Re-load all data.')
+def fill_data_from_cadet_rdm_json(re_load=False):
+    repo = ProjectRepo(".")
+    repo.fill_data_from_cadet_rdm_json(re_load=re_load)
+
+
+@cli.command()
 @click.option('--output_repo_name', default="output",
               help='Name of the folder where the tracked output should be stored. Optional. Default: "output".')
 @click.option('--gitignore', default=None,
@@ -40,20 +66,18 @@ def initialize_repo(path_to_repo: str, output_repo_name: (str | bool) = "output"
 
 
 @cli.command()
-@click.argument('path_to_repo')
 @click.argument('remote_url')
-def add_remote_to_repo(path_to_repo: str, remote_url: str, ):
-    repo = ProjectRepo(path_to_repo)
+def add_remote_to_repo(remote_url: str, ):
+    repo = ProjectRepo(".")
     repo.add_remote(remote_url)
     print("Done.")
 
 
 @cli.command()
-@click.argument('path_to_repo')
 @click.argument('file_type')
-def add_file_type_to_lfs(path_to_repo: str, file_type: str, ):
-    init_lfs(lfs_filetypes=[file_type], path=path_to_repo)
-    repo = ProjectRepo(path_to_repo)
+def add_file_type_to_lfs(file_type: str, ):
+    init_lfs(lfs_filetypes=[file_type], path=".")
+    repo = ProjectRepo(".")
     repo.add_all_files()
     repo.commit(f"Add {file_type} to lfs")
 
@@ -66,7 +90,6 @@ def prepare_conda_env(url):
 
 
 @cli.command()
-@click.argument('path_to_repo')
-def print_output_log(path_to_repo):
-    repo = ProjectRepo(path_to_repo)
+def print_output_log():
+    repo = ProjectRepo(".")
     repo.print_output_log()

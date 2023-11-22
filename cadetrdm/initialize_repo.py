@@ -8,15 +8,10 @@ except ImportError:
     # Adding this hint to save users the confusion of trying $pip install git
     raise ImportError("No module named git, please install the gitpython package")
 
-from cadetrdm.repositories import ProjectRepo, ResultsRepo
-from cadetrdm.utils import ssh_url_to_http_url
-
-
-def add_linebreaks(input_list):
-    """
-    Add linebreaks between each entry in the input_list
-    """
-    return ["\n" + line for line in input_list]
+import cadetrdm
+from cadetrdm.repositories import ProjectRepo, OutputRepo
+from cadetrdm.web_utils import ssh_url_to_http_url
+from cadetrdm.io_utils import write_lines_to_file, is_tool
 
 
 def init_lfs(lfs_filetypes: list, path: str = None):
@@ -30,6 +25,8 @@ def init_lfs(lfs_filetypes: list, path: str = None):
     if path is not None:
         previous_path = os.getcwd()
         os.chdir(path)
+    else:
+        previous_path = "."
 
     os.system(f"git lfs install")
     lfs_filetypes_string = " ".join(lfs_filetypes)
@@ -37,27 +34,6 @@ def init_lfs(lfs_filetypes: list, path: str = None):
 
     if path is not None:
         os.chdir(previous_path)
-
-
-def write_lines_to_file(path, lines, open_type="a"):
-    """
-    Convenience function. Write lines to a file at path with added newlines between each line.
-    :param path:
-        Path to file.
-    :param lines:
-        List of lines to be written to file.
-    :param open_type:
-        The way the file should be opened. I.e. "a" for append and "w" for fresh write.
-    """
-    with open(path, open_type) as f:
-        f.writelines(add_linebreaks(lines))
-
-
-def is_tool(name):
-    """Check whether `name` is on PATH and marked as executable."""
-
-    from shutil import which
-    return which(name) is not None
 
 
 def initialize_repo(path_to_repo: str, output_folder_name: (str | bool) = "output", gitignore: list = None,
@@ -101,8 +77,8 @@ def initialize_repo(path_to_repo: str, output_folder_name: (str | bool) = "outpu
         lfs_filetypes = ["*.jpg", "*.png", "*.xlsx", "*.h5", "*.ipynb", "*.pdf", "*.docx"]
 
     starting_directory = os.getcwd()
-    project_repo_uuid = uuid.uuid4()
-    output_repo_uuid = uuid.uuid4()
+    project_repo_uuid = str(uuid.uuid4())
+    output_repo_uuid = str(uuid.uuid4())
 
     if path_to_repo != ".":
         os.makedirs(path_to_repo, exist_ok=True)
@@ -128,22 +104,40 @@ def initialize_repo(path_to_repo: str, output_folder_name: (str | bool) = "outpu
         # This means we are in the project repo and should now initialize the output_repo
         create_readme()
         create_environment_yml()
+
+        rdm_data = {
+            "is_project_repo": True, "is_output_repo": False,
+            "project_uuid": project_repo_uuid, "output_uuid": output_repo_uuid,
+            "cadet_rdm_version": cadetrdm.__version__
+        }
         with open(".cadet-rdm-data.json", "w") as f:
-            json.dump({"is_project_repo": True, "is_output_repo": False,
-                       "project_uuid": project_repo_uuid, "output_uuid": output_repo_uuid}, f, indent=2)
+            json.dump(rdm_data, f, indent=2)
+
+        with open(".cadet-rdm-cache.json", "w") as f:
+            json.dump({"__example/path/to/repo__": {
+                "source_repo_location": "git@jugit.fz-juelich.de:IBG-1/ModSim/cadet"
+                                        "/agile_cadet_rdm_presentation_output.git",
+                "branch_name": "output_from_master_3910c84_2023-10-25_00-17-23",
+                "commit_hash": "6e3c26527999036e9490d2d86251258fe81d46dc"
+            }}, f, indent=2)
+
         initialize_repo(output_folder_name, output_folder_name=False, **output_repo_kwargs)
         # This instance of ProjectRepo is therefore the project repo
         repo = ProjectRepo(".", output_folder=output_folder_name)
     else:
         # If output_repo_name is False we are in the output_repo and should finish by committing the changes
+        rdm_data = {
+            "is_project_repo": False, "is_output_repo": True,
+            "project_uuid": project_repo_uuid, "output_uuid": output_repo_uuid,
+            "cadet_rdm_version": cadetrdm.__version__
+        }
         with open(".cadet-rdm-data.json", "w") as f:
-            json.dump({"is_project_repo": False, "is_output_repo": True,
-                       "project_uuid": project_repo_uuid, "output_uuid": output_repo_uuid}, f, indent=2)
+            json.dump(rdm_data, f, indent=2)
         init_lfs(lfs_filetypes)
 
         create_output_readme()
 
-        repo = ResultsRepo(".")
+        repo = OutputRepo(".")
 
     repo.commit("initial commit")
 

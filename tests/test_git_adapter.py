@@ -9,6 +9,8 @@ import numpy as np
 
 from cadetrdm import initialize_repo, ProjectRepo, initialize_from_remote
 from cadetrdm.initialize_repo import init_lfs
+from cadetrdm.repositories import OutputRepo
+from cadetrdm.io_utils import delete_path
 
 
 @pytest.fixture(scope="module")
@@ -25,18 +27,6 @@ def path_to_repo():
 #     yield "this is just here because something must yield"
 #     print("TEAR DOWN")
 #     remove_dir(path_to_repo)
-
-
-def remove_dir(path_to_dir):
-    def remove_readonly(func, path, exc_info):
-        "Clear the readonly bit and reattempt the removal"
-        # ERROR_ACCESS_DENIED = 5
-        if func not in (os.unlink, os.rmdir) or exc_info[1].winerror != 5:
-            raise exc_info[1]
-        os.chmod(path, stat.S_IWRITE)
-        func(path)
-
-    shutil.rmtree(path_to_dir, onerror=remove_readonly)
 
 
 def modify_code(path_to_repo):
@@ -69,7 +59,7 @@ def try_init_gitpython_repo(repo_path):
 
 def try_initialize_git_repo(path_to_repo):
     if os.path.exists(path_to_repo):
-        remove_dir(path_to_repo)
+        delete_path(path_to_repo)
 
     initialize_repo(path_to_repo, "results")
 
@@ -86,12 +76,6 @@ def try_commit_code(path_to_repo):
 
     updated_commit_number = count_commit_number(repo)
     assert current_commit_number + 1 == updated_commit_number
-
-
-def try_add_submodule(path_to_repo):
-    repo = ProjectRepo(path_to_repo)
-    submodule_path = repo.load_external_repository("https://jugit.fz-juelich.de/IBG-1/ModSim/cadet/git_lfs_data_1")
-    assert os.path.exists(submodule_path)
 
 
 def try_commit_code_without_code_changes(path_to_repo):
@@ -149,7 +133,7 @@ def try_add_remote(path_to_repo):
 
 def try_initialize_from_remote():
     if os.path.exists("test_repo_from_remote"):
-        remove_dir("test_repo_from_remote")
+        delete_path("test_repo_from_remote")
     initialize_from_remote("https://jugit.fz-juelich.de/IBG-1/ModSim/cadet/rdm-examples-fraunhofer-ime-aachen",
                            "test_repo_from_remote")
     assert try_init_gitpython_repo("test_repo_from_remote")
@@ -158,7 +142,7 @@ def try_initialize_from_remote():
 def test_init_over_existing_repo(monkeypatch):
     path_to_repo = "test_repo_2"
     if os.path.exists(path_to_repo):
-        remove_dir(path_to_repo)
+        delete_path(path_to_repo)
     os.makedirs(path_to_repo)
     os.chdir(path_to_repo)
     os.system(f"git init")
@@ -175,12 +159,13 @@ def test_init_over_existing_repo(monkeypatch):
     monkeypatch.setattr('builtins.input', lambda x: "Y")
 
     initialize_repo(path_to_repo)
+    delete_path(path_to_repo)
 
 
 def test_add_lfs_filetype():
     path_to_repo = "test_repo_3"
     if os.path.exists(path_to_repo):
-        remove_dir(path_to_repo)
+        delete_path(path_to_repo)
     os.makedirs(path_to_repo)
     initialize_repo(path_to_repo)
     file_type = "*.bak"
@@ -188,6 +173,7 @@ def test_add_lfs_filetype():
     repo = ProjectRepo(path_to_repo)
     repo.add_all_files()
     repo.commit(f"Add {file_type} to lfs")
+    delete_path(path_to_repo)
 
 
 def test_cadet_rdm(path_to_repo):
@@ -209,3 +195,44 @@ def test_cadet_rdm(path_to_repo):
     try_commit_code(path_to_repo)
 
     try_load_previous_output(path_to_repo, results_branch_name)
+
+
+def test_with_external_repos():
+    path_to_repo = "test_repo_external_data"
+    if os.path.exists(path_to_repo):
+        delete_path(path_to_repo)
+    os.makedirs(path_to_repo)
+    initialize_repo(path_to_repo)
+
+    os.chdir(path_to_repo)
+
+    # to be able to hand over a valid branch, I first need to determine that branch
+    imported_repo = OutputRepo("../test_repo/results")
+    branch_name = imported_repo.active_branch.name
+
+    repo = ProjectRepo(".")
+
+    # import two repos and confirm verify works.
+    repo.import_remote_repo(source_repo_location="../test_repo/results", source_repo_branch=branch_name)
+    repo.import_remote_repo(source_repo_location="../test_repo/results", source_repo_branch=branch_name,
+                            target_repo_location="foo/bar/repo")
+    repo.verify_unchanged_cache()
+
+    # delete folder and reload
+    delete_path("foo/bar/repo")
+    repo.fill_data_from_cadet_rdm_json()
+    repo.verify_unchanged_cache()
+
+    # Test if re_load correctly re_loads by modifying and then reloading
+    with open("external_cache/results/README.md", "w") as file_handle:
+        file_handle.writelines(["a", "b", "c"])
+    repo.fill_data_from_cadet_rdm_json(re_load=True)
+    repo.verify_unchanged_cache()
+
+    # modify file and confirm error raised
+    with open("external_cache/results/README.md", "w") as file_handle:
+        file_handle.writelines(["a", "b", "c"])
+    with pytest.raises(Exception):
+        repo.verify_unchanged_cache()
+
+    os.chdir("..")
