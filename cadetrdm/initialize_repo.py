@@ -1,5 +1,6 @@
 import os
 import json
+import uuid
 
 try:
     import git
@@ -100,6 +101,8 @@ def initialize_repo(path_to_repo: str, output_folder_name: (str | bool) = "outpu
         lfs_filetypes = ["*.jpg", "*.png", "*.xlsx", "*.h5", "*.ipynb", "*.pdf", "*.docx"]
 
     starting_directory = os.getcwd()
+    project_repo_uuid = uuid.uuid4()
+    output_repo_uuid = uuid.uuid4()
 
     if path_to_repo != ".":
         os.makedirs(path_to_repo, exist_ok=True)
@@ -125,11 +128,17 @@ def initialize_repo(path_to_repo: str, output_folder_name: (str | bool) = "outpu
         # This means we are in the project repo and should now initialize the output_repo
         create_readme()
         create_environment_yml()
+        with open(".cadet-rdm-data.json", "w") as f:
+            json.dump({"is_project_repo": True, "is_output_repo": False,
+                       "project_uuid": project_repo_uuid, "output_uuid": output_repo_uuid}, f, indent=2)
         initialize_repo(output_folder_name, output_folder_name=False, **output_repo_kwargs)
         # This instance of ProjectRepo is therefore the project repo
         repo = ProjectRepo(".", output_folder=output_folder_name)
     else:
         # If output_repo_name is False we are in the output_repo and should finish by committing the changes
+        with open(".cadet-rdm-data.json", "w") as f:
+            json.dump({"is_project_repo": False, "is_output_repo": True,
+                       "project_uuid": project_repo_uuid, "output_uuid": output_repo_uuid}, f, indent=2)
         init_lfs(lfs_filetypes)
 
         create_output_readme()
