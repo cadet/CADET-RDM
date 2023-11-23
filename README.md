@@ -131,5 +131,5 @@ This will store the URL, branch_name and location in the .cadet-rdm-cache.json f
 You can use this file to load the remote repositories based on the cache.json with
 
 ```bash
-cadet-rdm fill_data_from_cadet_rdm_json
+cadet-rdm fill-data-from-cadet-rdm-json
 ```
