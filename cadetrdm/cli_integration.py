@@ -1,3 +1,6 @@
+import shlex
+import subprocess
+
 import click
 
 from .repositories import ProjectRepo
@@ -45,6 +48,26 @@ def verify_unchanged_cache():
 def fill_data_from_cadet_rdm_json(re_load=False):
     repo = ProjectRepo(".")
     repo.fill_data_from_cadet_rdm_json(re_load=re_load)
+
+
+@cli.command()
+@click.argument('file_name')
+@click.argument('results_commit_message')
+def run_python_file(file_name, results_commit_message):
+    repo = ProjectRepo(".")
+    repo.enter_context()
+    subprocess.run(["python", file_name])
+    repo.exit_context(results_commit_message)
+
+
+@cli.command()
+@click.argument('command')
+@click.argument('results_commit_message')
+def run_command(command, results_commit_message):
+    repo = ProjectRepo(".")
+    repo.enter_context()
+    subprocess.run(shlex.split(command))
+    repo.exit_context(results_commit_message)
 
 
 @cli.command()
