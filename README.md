@@ -26,9 +26,9 @@ initialize_repo(path_to_repo)
 
 The `output_folder_name` can be given optionally. It defaults to `output`.
 
-### Use CADET-RDM in Python
+## Use CADET-RDM in Python
 
-#### Tracking Results
+### Tracking Results
 
 ```python
 from cadetrdm import ProjectRepo
@@ -58,7 +58,7 @@ if __name__ == '__main__':
 
 ```
 
-#### Sharing Results
+### Sharing Results
 
 To share your project code and results with others, you need to create remote repositories on e.g.
 [GitHub](https://github.com/) or GitLab. You need to create a remote for both the _project_ repo and the
@@ -87,7 +87,7 @@ command
 repo.push()
 ```
 
-#### Re-using results from previous iterations
+### Re-using results from previous iterations
 
 Each result stored with CADET-RDM is given a unique branch name, formatted as:
 `<timestamp>_<output_folder>_"from"_<active_project_branch>_<project_repo_hash[:7]>`
@@ -106,7 +106,26 @@ the correct branch name from the path to the file within the cache
 cached_array_path = repo.input_data(source_file_path="output_cached/<branch_name>/raw_data/data.csv")
 ```
 
-### Using results from another repository
+## Use CADET RDM from the CLI
+
+### Executing scripts
+
+You can execute python files or arbitray commands using the CLI:
+
+```bash
+cd path/to/your/project
+cadet-rdm run-python-file <path/to/file> "commit message for the results"
+cadet-rdm run-command "command as it would be run" "commit message for the results"
+```
+
+For the run-command option, the command must be given in quotes, so:
+
+```bash
+cadet-rdm run-command "python example_file.py" "commit message for the results"
+```
+
+
+#### Using results from another repository
 
 You can load in results from another repository to use in your project using the CLI:
 
