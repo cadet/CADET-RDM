@@ -470,18 +470,21 @@ class BaseRepo:
         """
         self._git.checkout("master")
         self._git.checkout('-b', branch_name)  # equivalent to $ git checkout -b %branch_name
-        try:
-            # Remove previous code backup
-            code_backup_path = os.path.join(self.working_dir, "logs", "code_backup")
-            delete_path(code_backup_path)
-        except Exception as e:
-            print(e)
-        try:
-            # Remove previous logs
-            logs_path = os.path.join(self.working_dir, "logs")
-            delete_path(logs_path)
-        except Exception as e:
-            print(e)
+        code_backup_path = os.path.join(self.working_dir, "logs", "code_backup")
+        logs_path = os.path.join(self.working_dir, "logs")
+        if os.path.exists(code_backup_path):
+            try:
+                # Remove previous code backup
+
+                delete_path(code_backup_path)
+            except Exception as e:
+                print(e)
+        if os.path.exists(logs_path):
+            try:
+                # Remove previous logs
+                delete_path(logs_path)
+            except Exception as e:
+                print(e)
 
     def apply_stashed_changes(self):
         """
