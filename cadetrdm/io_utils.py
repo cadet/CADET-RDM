@@ -3,11 +3,20 @@ import shutil
 from _stat import S_IWRITE
 
 
-def add_linebreaks(input_list):
+def add_linebreaks(input_list, initial_linebreak=True):
     """
     Add linebreaks between each entry in the input_list
+
+    :param input_list:
+    List of strings to add linebreaks to.
+
+    :param initial_linebreak:
+    Bool, if true: add a newline before the first line.
     """
-    return ["\n" + line for line in input_list]
+    lines = [line + "\n" for line in input_list]
+    if initial_linebreak:
+        lines = ["\n"] + lines
+    return lines
 
 
 def write_lines_to_file(path, lines, open_type="a"):
@@ -20,8 +29,17 @@ def write_lines_to_file(path, lines, open_type="a"):
     :param open_type:
         The way the file should be opened. I.e. "a" for append and "w" for fresh write.
     """
+
+    add_initial_linebreak = False
+
+    if os.path.exists(path) and open_type == "a":
+        with open(path, "r") as f:
+            existing_lines = f.readlines()
+        if len(existing_lines) > 0 and not existing_lines[-1].endswith("\n"):
+            add_initial_linebreak = True
+
     with open(path, open_type) as f:
-        f.writelines(add_linebreaks(lines))
+        f.writelines(add_linebreaks(lines, initial_linebreak=add_initial_linebreak))
 
 
 def is_tool(name):
