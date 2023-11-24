@@ -3,7 +3,7 @@ import subprocess
 
 import click
 
-from .repositories import ProjectRepo
+from .repositories import ProjectRepo, BaseRepo
 from .initialize_repo import initialize_repo as initialize_git_repo_implementation, init_lfs
 from .initialize_repo import initialize_from_remote as initialize_from_remote_implementation
 from .conda_env_utils import prepare_conda_env as prepare_conda_env_implementation
@@ -89,9 +89,11 @@ def initialize_repo(path_to_repo: str, output_repo_name: (str | bool) = "output"
 
 
 @cli.command()
+@click.option("-p", '--path_to_repo', default=".",
+              help='Path to repository to which the remote is added. Default is cwd.')
 @click.argument('remote_url')
-def add_remote_to_repo(remote_url: str, ):
-    repo = ProjectRepo(".")
+def add_remote_to_repo(remote_url: str, path_to_repo="."):
+    repo = BaseRepo(path_to_repo)
     repo.add_remote(remote_url)
     print("Done.")
 
@@ -100,7 +102,7 @@ def add_remote_to_repo(remote_url: str, ):
 @click.argument('file_type')
 def add_file_type_to_lfs(file_type: str, ):
     init_lfs(lfs_filetypes=[file_type], path=".")
-    repo = ProjectRepo(".")
+    repo = BaseRepo(".")
     repo.add_all_files()
     repo.commit(f"Add {file_type} to lfs")
 
@@ -114,5 +116,6 @@ def prepare_conda_env(url):
 
 @cli.command()
 def print_output_log():
+    # ToDo: test if Project or Output repo
     repo = ProjectRepo(".")
     repo.print_output_log()
