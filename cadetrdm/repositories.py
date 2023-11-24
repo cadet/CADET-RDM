@@ -99,6 +99,14 @@ class BaseRepo:
     def tags(self):
         return None
 
+    @property
+    def data_json_path(self):
+        return os.path.join(self.working_dir, ".cadet-rdm-data.json")
+
+    @property
+    def cache_json_path(self):
+        return os.path.join(self.working_dir, ".cadet-rdm-cache.json")
+
     def add_remote(self, remote_url, remote_name="origin"):
         """
         ToDO add documentation
@@ -107,6 +115,179 @@ class BaseRepo:
         :return:
         """
         self._git_repo.create_remote(remote_name, url=remote_url)
+
+    def import_remote_repo(self, source_repo_location, source_repo_branch, target_repo_location=None):
+        """
+        # ToDo: consider moving this into the base repo, to use without
+
+        :param source_repo_location:
+        Path or URL to the source repo.
+        Example https://jugit.fz-juelich.de/IBG-1/ModSim/cadet/agile_cadet_rdm_presentation_output.git
+        or git@jugit.fz-juelich.de:IBG-1/ModSim/cadet/agile_cadet_rdm_presentation_output.git
+
+        :param source_repo_branch:
+        Branch of the source repo to check out.
+
+        :param target_repo_location:
+        Place to store the repo. If None, the external_cache folder is used.
+
+        :return:
+        Path to the cloned repository
+        """
+        if target_repo_location is None:
+            target_repo_location = os.path.join(self.working_dir, "external_cache", source_repo_location.split("/")[-1])
+        else:
+            target_repo_location = os.path.join(self.working_dir, target_repo_location)
+
+        multi_options = ["--filter=blob:none", "--branch", source_repo_branch, "--single-branch"]
+
+        self.add_path_to_gitignore(target_repo_location)
+
+        print(f"Cloning from {source_repo_location} into {target_repo_location}")
+        repo = git.Repo.clone_from(source_repo_location, target_repo_location, multi_options=multi_options)
+        repo.git.clear_cache()
+
+        self.update_cadet_rdm_cache_json(source_repo_branch=source_repo_branch,
+                                         target_repo_location=target_repo_location,
+                                         source_repo_location=source_repo_location)
+        return target_repo_location
+
+    def add_path_to_gitignore(self, path_to_be_ignored):
+        """
+        Add the path to the .gitignore file
+
+        :param path_to_be_ignored:
+        :return:
+        """
+        path_to_be_ignored = self.ensure_relative_path(path_to_be_ignored)
+        with open(os.path.join(self.working_dir, ".gitignore"), "r") as file_handle:
+            gitignore = file_handle.readlines()
+            gitignore[-1] += "\n"  # Sometimes there is no trailing newline
+        if path_to_be_ignored + "\n" not in gitignore:
+            gitignore.append(path_to_be_ignored + "\n")
+        with open(os.path.join(self.working_dir, ".gitignore"), "w") as file_handle:
+            file_handle.writelines(gitignore)
+
+    def update_cadet_rdm_cache_json(self, source_repo_location, source_repo_branch, target_repo_location):
+        """
+        Update the information in the .cadet_rdm_cache.json file
+
+        :param source_repo_location:
+        Path or URL to the source repo.
+        :param source_repo_branch:
+        Name of the branch to check out.
+        :param target_repo_location:
+        Path where to put the repo or data
+        """
+        if not os.path.exists(self.cache_json_path):
+            with open(self.cache_json_path, "w") as file_handle:
+                file_handle.writelines("{}")
+
+        with open(self.cache_json_path, "r") as file_handle:
+            rdm_cache = json.load(file_handle)
+
+        repo = BaseRepo(target_repo_location)
+        commit_hash = repo.current_commit_hash
+        if "__example/path/to/repo__" in rdm_cache.keys():
+            rdm_cache.pop("__example/path/to/repo__")
+
+        target_repo_location = self.ensure_relative_path(target_repo_location)
+
+        rdm_cache[target_repo_location] = {
+            "source_repo_location": source_repo_location,
+            "branch_name": source_repo_branch,
+            "commit_hash": commit_hash,
+        }
+
+        with open(self.cache_json_path, "w") as file_handle:
+            json.dump(rdm_cache, file_handle, indent=2)
+
+    def ensure_relative_path(self, input_path):
+        """
+        Turn the input path into a relative path, relative to the repo working directory.
+
+        :param input_path:
+        :return:
+        """
+        if os.path.isabs(input_path):
+            relative_path = os.path.relpath(input_path, self.working_dir)
+        else:
+            relative_path = input_path
+        return relative_path
+
+    def verify_unchanged_cache(self):
+        """
+        Verify that all repos referenced in .cadet-rdm-data.json are
+        in an unmodified state. Raises a RuntimeError if the commit hash has changed or if
+        uncommited changes are found.
+
+        :return:
+        """
+
+        with open(self.cache_json_path, "r") as file_handle:
+            rdm_cache = json.load(file_handle)
+
+        if "__example/path/to/repo__" in rdm_cache.keys():
+            rdm_cache.pop("__example/path/to/repo__")
+
+        for repo_location, repo_info in rdm_cache.items():
+            try:
+                repo = BaseRepo(repo_location)
+                repo._git.clear_cache()
+            except git.exc.NoSuchPathError:
+                raise git.exc.NoSuchPathError(f"The imported repository at {repo_location} was not found.")
+
+            self.verify_cache_folder_is_unchanged(repo_location, repo_info["commit_hash"])
+
+    def verify_cache_folder_is_unchanged(self, repo_location, commit_hash):
+        """
+        Verify that the repo located at repo_location has no uncommited changes and that the current commit_hash
+        is equal to the given commit_hash
+
+        :param repo_location:
+        :param commit_hash:
+        :return:
+        """
+        repo = BaseRepo(repo_location)
+        commit_changed = repo.current_commit_hash != commit_hash
+        uncommited_changes = repo.exist_uncomitted_changes
+        if commit_changed or uncommited_changes:
+            raise RuntimeError(f"The contents of {repo_location} have been modified. Don't do that.")
+        repo._git.clear_cache()
+
+    def fill_data_from_cadet_rdm_json(self, re_load=False):
+        """
+        Iterate through all references within the .cadet-rdm-data.json and
+        load or re-load the data.
+
+        :param re_load:
+        If true: delete and re-load all data. If false, existing data will be left as-is.
+
+        ToDo: add to cadetrdm post-clone function
+        ToDo: can we integrate into git post-clone hooks?
+
+        :return:
+        """
+
+        with open(self.cache_json_path, "r") as file_handle:
+            rdm_cache = json.load(file_handle)
+
+        if "__example/path/to/repo__" in rdm_cache.keys():
+            rdm_cache.pop("__example/path/to/repo__")
+
+        for repo_location, repo_info in rdm_cache.items():
+            if os.path.exists(repo_location) and re_load is False:
+                continue
+            elif os.path.exists(repo_location) and re_load is True:
+                delete_path(repo_location)
+
+            if repo_info["source_repo_location"] == ".":
+                self.copy_data_to_cache(branch_name=repo_info["branch_name"])
+            else:
+                self.import_remote_repo(
+                    target_repo_location=repo_location,
+                    source_repo_location=repo_info["source_repo_location"],
+                    source_repo_branch=repo_info["branch_name"])
 
     def checkout(self, *args, **kwargs):
         self._most_recent_branch = self.active_branch
@@ -394,14 +575,6 @@ class ProjectRepo(BaseRepo):
             raise ValueError("The output repo has not been set yet.")
         return self._output_repo
 
-    @property
-    def data_json_path(self):
-        return os.path.join(self.working_dir, ".cadet-rdm-data.json")
-
-    @property
-    def cache_json_path(self):
-        return os.path.join(self.working_dir, ".cadet-rdm-cache.json")
-
     def get_new_output_branch_name(self):
         """
         Construct a name for the new branch in the output repository.
@@ -624,175 +797,6 @@ class ProjectRepo(BaseRepo):
             self.output_repo.apply_stashed_changes()
 
         return target_filepath
-
-    def import_remote_repo(self, source_repo_location, source_repo_branch, target_repo_location=None):
-        """
-
-        :param source_repo_location:
-        Path or URL to the source repo.
-        Example https://jugit.fz-juelich.de/IBG-1/ModSim/cadet/agile_cadet_rdm_presentation_output.git
-        or git@jugit.fz-juelich.de:IBG-1/ModSim/cadet/agile_cadet_rdm_presentation_output.git
-
-        :param source_repo_branch:
-        Branch of the source repo to check out.
-
-        :param target_repo_location:
-        Place to store the repo. If None, the external_cache folder is used.
-
-        :return:
-        Path to the cloned repository
-        """
-        if target_repo_location is None:
-            target_repo_location = os.path.join(self.working_dir, "external_cache", source_repo_location.split("/")[-1])
-        else:
-            target_repo_location = os.path.join(self.working_dir, target_repo_location)
-
-        multi_options = ["--filter=blob:none", "--branch", source_repo_branch, "--single-branch"]
-
-        self.add_path_to_gitignore(target_repo_location)
-
-        print(f"Cloning from {source_repo_location} into {target_repo_location}")
-        repo = git.Repo.clone_from(source_repo_location, target_repo_location, multi_options=multi_options)
-        repo.git.clear_cache()
-
-        self.update_cadet_rdm_cache_json(source_repo_branch=source_repo_branch,
-                                         target_repo_location=target_repo_location,
-                                         source_repo_location=source_repo_location)
-        return target_repo_location
-
-    def add_path_to_gitignore(self, path_to_be_ignored):
-        """
-        Add the path to the .gitignore file
-
-        :param path_to_be_ignored:
-        :return:
-        """
-        path_to_be_ignored = self.ensure_relative_path(path_to_be_ignored)
-        with open(os.path.join(self.working_dir, ".gitignore"), "r") as file_handle:
-            gitignore = file_handle.readlines()
-            gitignore[-1] += "\n"  # Sometimes there is no trailing newline
-        if path_to_be_ignored + "\n" not in gitignore:
-            gitignore.append(path_to_be_ignored + "\n")
-        with open(os.path.join(self.working_dir, ".gitignore"), "w") as file_handle:
-            file_handle.writelines(gitignore)
-
-    def update_cadet_rdm_cache_json(self, source_repo_location, source_repo_branch, target_repo_location):
-        """
-        Update the information in the .cadet_rdm_cache.json file
-
-        :param source_repo_location:
-        Path or URL to the source repo.
-        :param source_repo_branch:
-        Name of the branch to check out.
-        :param target_repo_location:
-        Path where to put the repo or data
-        """
-
-        with open(self.cache_json_path, "r") as file_handle:
-            rdm_cache = json.load(file_handle)
-
-        repo = BaseRepo(target_repo_location)
-        commit_hash = repo.current_commit_hash
-        if "__example/path/to/repo__" in rdm_cache.keys():
-            rdm_cache.pop("__example/path/to/repo__")
-
-        target_repo_location = self.ensure_relative_path(target_repo_location)
-
-        rdm_cache[target_repo_location] = {
-            "source_repo_location": source_repo_location,
-            "branch_name": source_repo_branch,
-            "commit_hash": commit_hash,
-        }
-
-        with open(self.cache_json_path, "w") as file_handle:
-            json.dump(rdm_cache, file_handle, indent=2)
-
-    def ensure_relative_path(self, input_path):
-        """
-        Turn the input path into a relative path, relative to the repo working directory.
-
-        :param input_path:
-        :return:
-        """
-        if os.path.isabs(input_path):
-            relative_path = os.path.relpath(input_path, self.working_dir)
-        else:
-            relative_path = input_path
-        return relative_path
-
-    def verify_unchanged_cache(self):
-        """
-        Verify that all repos referenced in .cadet-rdm-data.json are
-        in an unmodified state. Raises a RuntimeError if the commit hash has changed or if
-        uncommited changes are found.
-
-        :return:
-        """
-
-        with open(self.cache_json_path, "r") as file_handle:
-            rdm_cache = json.load(file_handle)
-
-        if "__example/path/to/repo__" in rdm_cache.keys():
-            rdm_cache.pop("__example/path/to/repo__")
-
-        for repo_location, repo_info in rdm_cache.items():
-            try:
-                repo = BaseRepo(repo_location)
-                repo._git.clear_cache()
-            except git.exc.NoSuchPathError:
-                raise git.exc.NoSuchPathError(f"The imported repository at {repo_location} was not found.")
-
-            self.verify_cache_folder_is_unchanged(repo_location, repo_info["commit_hash"])
-
-    def verify_cache_folder_is_unchanged(self, repo_location, commit_hash):
-        """
-        Verify that the repo located at repo_location has no uncommited changes and that the current commit_hash
-        is equal to the given commit_hash
-
-        :param repo_location:
-        :param commit_hash:
-        :return:
-        """
-        repo = BaseRepo(repo_location)
-        commit_changed = repo.current_commit_hash != commit_hash
-        uncommited_changes = repo.exist_uncomitted_changes
-        if commit_changed or uncommited_changes:
-            raise RuntimeError(f"The contents of {repo_location} have been modified. Don't do that.")
-        repo._git.clear_cache()
-
-    def fill_data_from_cadet_rdm_json(self, re_load=False):
-        """
-        Iterate through all references within the .cadet-rdm-data.json and
-        load or re-load the data.
-
-        :param re_load:
-        If true: delete and re-load all data. If false, existing data will be left as-is.
-
-        ToDo: add to cadetrdm post-clone function
-        ToDo: can we integrate into git post-clone hooks?
-
-        :return:
-        """
-
-        with open(self.cache_json_path, "r") as file_handle:
-            rdm_cache = json.load(file_handle)
-
-        if "__example/path/to/repo__" in rdm_cache.keys():
-            rdm_cache.pop("__example/path/to/repo__")
-
-        for repo_location, repo_info in rdm_cache.items():
-            if os.path.exists(repo_location) and re_load is False:
-                continue
-            elif os.path.exists(repo_location) and re_load is True:
-                delete_path(repo_location)
-
-            if repo_info["source_repo_location"] == ".":
-                self.copy_data_to_cache(branch_name=repo_info["branch_name"])
-            else:
-                self.import_remote_repo(
-                    target_repo_location=repo_location,
-                    source_repo_location=repo_info["source_repo_location"],
-                    source_repo_branch=repo_info["branch_name"])
 
     def output_data(self, sub_path):
         """

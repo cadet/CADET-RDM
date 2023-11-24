@@ -30,7 +30,7 @@ def initialize_from_remote(project_url, path_to_repo: str = None):
 @click.argument('source_repo_location')
 @click.argument('source_repo_branch')
 def import_remote_repo(source_repo_location, source_repo_branch, target_repo_location=None):
-    repo = ProjectRepo(".")
+    repo = BaseRepo(".")
     repo.import_remote_repo(source_repo_location=source_repo_location,
                             source_repo_branch=source_repo_branch,
                             target_repo_location=target_repo_location)
@@ -38,7 +38,7 @@ def import_remote_repo(source_repo_location, source_repo_branch, target_repo_loc
 
 @cli.command()
 def verify_unchanged_cache():
-    repo = ProjectRepo(".")
+    repo = BaseRepo(".")
     repo.verify_unchanged_cache()
 
 
@@ -46,7 +46,7 @@ def verify_unchanged_cache():
 @click.option('--re_load', default=False,
               help='Re-load all data.')
 def fill_data_from_cadet_rdm_json(re_load=False):
-    repo = ProjectRepo(".")
+    repo = BaseRepo(".")
     repo.fill_data_from_cadet_rdm_json(re_load=re_load)
 
 

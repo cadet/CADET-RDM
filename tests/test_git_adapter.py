@@ -9,7 +9,7 @@ import numpy as np
 
 from cadetrdm import initialize_repo, ProjectRepo, initialize_from_remote
 from cadetrdm.initialize_repo import init_lfs
-from cadetrdm.repositories import OutputRepo
+from cadetrdm.repositories import OutputRepo, BaseRepo
 from cadetrdm.io_utils import delete_path
 
 
@@ -160,6 +160,33 @@ def test_init_over_existing_repo(monkeypatch):
 
     initialize_repo(path_to_repo)
     delete_path(path_to_repo)
+
+
+def test_cache_with_non_rdm_repo(monkeypatch):
+    path_to_repo = "test_repo_5"
+    if os.path.exists(path_to_repo):
+        delete_path(path_to_repo)
+    os.makedirs(path_to_repo)
+    os.chdir(path_to_repo)
+    os.system(f"git init")
+    with open("README.md", "w") as handle:
+        handle.write("Readme-line 1\n")
+    with open(".gitignore", "w") as handle:
+        handle.write("foo.bar.*")
+    repo = git.Repo(".")
+    repo.git.add(".")
+    repo.git.commit("-m", "Initial commit")
+
+    imported_repo = OutputRepo("../test_repo/results")
+    branch_name = imported_repo.active_branch.name
+
+    repo = BaseRepo(".")
+
+    # import two repos and confirm verify works.
+    repo.import_remote_repo(source_repo_location="../test_repo/results", source_repo_branch=branch_name)
+    repo.import_remote_repo(source_repo_location="../test_repo/results", source_repo_branch=branch_name,
+                            target_repo_location="foo/bar/repo")
+    repo.verify_unchanged_cache()
 
 
 def test_add_lfs_filetype():
