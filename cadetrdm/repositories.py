@@ -534,7 +534,7 @@ class BaseRepo:
 
 
 class ProjectRepo(BaseRepo):
-    def __init__(self, repository_path=None, output_folder=None,
+    def __init__(self, repository_path=".", output_folder=None,
                  search_parent_directories=True, *args, **kwargs):
         """
         Class for Project-Repositories. Handles interaction between the project repo and
