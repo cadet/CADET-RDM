@@ -152,3 +152,11 @@ You can use this file to load the remote repositories based on the cache.json wi
 ```bash
 cadet-rdm fill-data-from-cadet-rdm-json
 ```
+
+### Cloning from remote
+
+You should use `cadet-rdm clone` instead of `git clone` to clone the repo to a new location.
+
+```bash
+cadet-rdm clone <URL> <path/to/repo>
+```

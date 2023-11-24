@@ -5,7 +5,7 @@ import click
 
 from .repositories import ProjectRepo, BaseRepo
 from .initialize_repo import initialize_repo as initialize_git_repo_implementation, init_lfs
-from .initialize_repo import initialize_from_remote as initialize_from_remote_implementation
+from .initialize_repo import clone as clone_implementation
 from .conda_env_utils import prepare_conda_env as prepare_conda_env_implementation
 
 CONTEXT_SETTINGS = dict(help_option_names=['-h', '--help'])
@@ -20,8 +20,8 @@ def cli():
 @click.option('--path_to_repo', default=None,
               help='Path to folder for the repository. Optional.')
 @click.argument('project_url')
-def initialize_from_remote(project_url, path_to_repo: str = None):
-    initialize_from_remote_implementation(project_url, path_to_repo)
+def clone(project_url, path_to_repo: str = None):
+    clone_implementation(project_url, path_to_repo)
 
 
 @cli.command()

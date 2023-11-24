@@ -168,7 +168,7 @@ def create_output_readme():
     write_lines_to_file("README.md", readme_lines, open_type="a")
 
 
-def initialize_from_remote(project_url, path_to_repo: str = None):
+def clone(project_url, path_to_repo: str = None):
     if path_to_repo is None:
         path_to_repo = project_url.split("/")[-1]
     print(f"Cloning {project_url} into {path_to_repo}")
@@ -191,6 +191,9 @@ def initialize_from_remote(project_url, path_to_repo: str = None):
         else:
             break
     environment_path = os.path.join(os.getcwd(), path_to_repo, "environment.yml")
+
+    repo = ProjectRepo(path_to_repo)
+    repo.fill_data_from_cadet_rdm_json()
 
     print("To set up the project conda environment please run this command:\n"
           f"conda deactivate && conda env create -f '{environment_path}'")
