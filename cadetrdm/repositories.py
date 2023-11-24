@@ -798,14 +798,21 @@ class ProjectRepo(BaseRepo):
 
         return target_filepath
 
-    def output_data(self, sub_path):
+    @property
+    def output_path(self):
+        return self.output_data()
+
+    def output_data(self, sub_path=None):
         """
         Return an absolute path with the repo_dir/output_dir/sub_path
 
         :param sub_path:
         :return:
         """
-        return os.path.join(self.working_dir, self.output_repo.working_dir, sub_path)
+        if sub_path is None:
+            return os.path.join(self.working_dir, self.output_repo.working_dir)
+        else:
+            return os.path.join(self.working_dir, self.output_repo.working_dir, sub_path)
 
     def remove_cached_files(self):
         """

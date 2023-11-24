@@ -147,8 +147,8 @@ def initialize_repo(path_to_repo: str, output_folder_name: (str | bool) = "outpu
 def create_environment_yml():
     file_lines = ["name: rdm_example", "channels:", "  - conda-forge", "dependencies:", "  - python=3.10", "  - conda",
                   "  - cadet", "  - pip", "  - pip:", "      - cadet-process", "      - cadet-rdm"]
-
-    write_lines_to_file("environment.yml", file_lines, open_type="w")
+    if not os.path.exists("environment.yml"):
+        write_lines_to_file("environment.yml", file_lines, open_type="w")
 
 
 def create_readme():
