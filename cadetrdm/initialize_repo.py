@@ -182,6 +182,8 @@ def clone(project_url, path_to_repo: str = None):
     output_folder_name = os.path.join(path_to_repo, meta_dict["output_folder_name"])
     ssh_remotes = list(meta_dict["output_remotes"].values())
     http_remotes = [ssh_url_to_http_url(url) for url in ssh_remotes]
+    if len(ssh_remotes + http_remotes) == 0:
+        raise RuntimeError("No output remotes configured in output_remotes.json")
     for output_remote in ssh_remotes + http_remotes:
         try:
             print(f"Attempting to clone {output_remote} into {output_folder_name}")

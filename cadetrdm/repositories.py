@@ -115,6 +115,13 @@ class BaseRepo:
         :return:
         """
         self._git_repo.create_remote(remote_name, url=remote_url)
+        with open(self.data_json_path, "r") as handle:
+            rdm_data = json.load(handle)
+        if rdm_data["is_project_repo"]:
+            pass
+        if rdm_data["is_output_repo"]:
+            project_repo = ProjectRepo(os.path.split(self.working_dir)[0])
+            project_repo.update_output_remotes_json()
 
     def import_remote_repo(self, source_repo_location, source_repo_branch, target_repo_location=None):
         """
@@ -726,16 +733,18 @@ class ProjectRepo(BaseRepo):
             Option to add all changed and new files to git automatically.
         """
 
+        self.update_output_remotes_json()
+
+        super().commit(message=message, add_all=add_all)
+
+    def update_output_remotes_json(self):
         output_repo_remotes = self.output_repo.remote_urls
         self.add_list_of_remotes_in_readme_file("output_repo", output_repo_remotes)
-
         output_json_filepath = os.path.join(self.working_dir, "output_remotes.json")
         with open(output_json_filepath, "w") as file_handle:
             remotes_dict = {remote.name: str(remote.url) for remote in self.output_repo.remotes}
             json_dict = {"output_folder_name": self.output_folder, "output_remotes": remotes_dict}
             json.dump(json_dict, file_handle, indent=2)
-
-        super().commit(message=message, add_all=add_all)
 
     def download_file(self, url, file_path):
         """
