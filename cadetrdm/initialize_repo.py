@@ -171,6 +171,7 @@ def create_output_readme():
 def clone(project_url, path_to_repo: str = None):
     if path_to_repo is None:
         path_to_repo = project_url.split("/")[-1]
+        path_to_repo = path_to_repo.replace(".git", "")
     print(f"Cloning {project_url} into {path_to_repo}")
     git.Repo.clone_from(project_url, path_to_repo)
 
