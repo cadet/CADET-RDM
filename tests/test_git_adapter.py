@@ -1,6 +1,5 @@
-import os.path
-import shutil
-import stat
+from pathlib import Path
+import os
 import random
 
 import pytest
@@ -16,23 +15,13 @@ from cadetrdm.io_utils import delete_path
 @pytest.fixture(scope="module")
 def path_to_repo():
     # a "fixture" serves up shared, ready variables to test functions that should use the fixture as a kwarg
-    return "test_repo"
-
-
-# @pytest.fixture(scope="module", autouse=True)
-# def my_fixture(path_to_repo):
-#     print('INITIALIZATION')
-#     if os.path.exists(path_to_repo):
-#         remove_dir(path_to_repo)
-#     yield "this is just here because something must yield"
-#     print("TEAR DOWN")
-#     remove_dir(path_to_repo)
+    return Path("test_repo")
 
 
 def modify_code(path_to_repo):
     # Add changes to the project code
     random_number = random.randint(0, 265)
-    filepath = os.path.join(path_to_repo, f"print_random_number.py")
+    filepath = path_to_repo / f"print_random_number.py"
     with open(filepath, "w") as file:
         file.write(f"print({random_number})\n")
 
@@ -45,26 +34,24 @@ def count_commit_number(repo):
 
 def example_generate_results_array(path_to_repo, output_folder):
     results_array = np.random.random((500, 3))
-    np.savetxt(os.path.join(path_to_repo, output_folder, "result.csv"),
-               results_array,
-               delimiter=",")
+    np.savetxt(path_to_repo / output_folder / "result.csv", results_array, delimiter=",")
     return results_array
 
 
 def try_init_gitpython_repo(repo_path):
-    os.path.exists(repo_path)
+    repo_path.exists()
     git.Repo(repo_path)
     return True
 
 
 def try_initialize_git_repo(path_to_repo):
-    if os.path.exists(path_to_repo):
+    if path_to_repo.exists():
         delete_path(path_to_repo)
 
     initialize_repo(path_to_repo, "results")
 
     assert try_init_gitpython_repo(path_to_repo)
-    assert try_init_gitpython_repo(os.path.join(path_to_repo, "results"))
+    assert try_init_gitpython_repo(path_to_repo / "results")
 
 
 def try_commit_code(path_to_repo):
@@ -117,12 +104,12 @@ def try_load_previous_output(path_to_repo, branch_name):
                                             file_path="result.csv")
         previous_array = np.loadtxt(cached_array_path, delimiter=",")
         extended_array = np.concatenate([previous_array, previous_array])
-        extended_array_file_path = os.path.join(path_to_repo, repo.output_folder, "extended_result.csv")
+        extended_array_file_path = path_to_repo / repo.output_folder / "extended_result.csv"
         np.savetxt(extended_array_file_path,
                    extended_array,
                    delimiter=",")
-        assert os.path.exists(cached_array_path)
-        assert os.path.exists(extended_array_file_path)
+        assert cached_array_path.exists()
+        assert extended_array_file_path.exists()
 
 
 def try_add_remote(path_to_repo):
@@ -132,16 +119,16 @@ def try_add_remote(path_to_repo):
 
 
 def try_initialize_from_remote():
-    if os.path.exists("test_repo_from_remote"):
+    if Path("test_repo_from_remote").exists():
         delete_path("test_repo_from_remote")
     clone("https://jugit.fz-juelich.de/IBG-1/ModSim/cadet/rdm-examples-fraunhofer-ime-aachen",
-                           "test_repo_from_remote")
+          "test_repo_from_remote")
     assert try_init_gitpython_repo("test_repo_from_remote")
 
 
 def test_init_over_existing_repo(monkeypatch):
-    path_to_repo = "test_repo_2"
-    if os.path.exists(path_to_repo):
+    path_to_repo = Path("test_repo_2")
+    if path_to_repo.exists():
         delete_path(path_to_repo)
     os.makedirs(path_to_repo)
     os.chdir(path_to_repo)
@@ -163,8 +150,8 @@ def test_init_over_existing_repo(monkeypatch):
 
 
 def test_cache_with_non_rdm_repo(monkeypatch):
-    path_to_repo = "test_repo_5"
-    if os.path.exists(path_to_repo):
+    path_to_repo = Path("test_repo_5")
+    if path_to_repo.exists():
         delete_path(path_to_repo)
     os.makedirs(path_to_repo)
     os.chdir(path_to_repo)
@@ -190,8 +177,8 @@ def test_cache_with_non_rdm_repo(monkeypatch):
 
 
 def test_add_lfs_filetype():
-    path_to_repo = "test_repo_3"
-    if os.path.exists(path_to_repo):
+    path_to_repo = Path("test_repo_3")
+    if path_to_repo.exists():
         delete_path(path_to_repo)
     os.makedirs(path_to_repo)
     initialize_repo(path_to_repo)
@@ -225,8 +212,8 @@ def test_cadet_rdm(path_to_repo):
 
 
 def test_with_external_repos():
-    path_to_repo = "test_repo_external_data"
-    if os.path.exists(path_to_repo):
+    path_to_repo = Path("test_repo_external_data")
+    if path_to_repo.exists():
         delete_path(path_to_repo)
     os.makedirs(path_to_repo)
     initialize_repo(path_to_repo)
@@ -243,10 +230,12 @@ def test_with_external_repos():
     repo.import_remote_repo(source_repo_location="../test_repo/results", source_repo_branch=branch_name)
     repo.import_remote_repo(source_repo_location="../test_repo/results", source_repo_branch=branch_name,
                             target_repo_location="foo/bar/repo")
-    repo.verify_unchanged_cache()
-
     # delete folder and reload
     delete_path("foo/bar/repo")
+
+    with pytest.raises(Exception):
+        repo.verify_unchanged_cache()
+
     repo.fill_data_from_cadet_rdm_json()
     repo.verify_unchanged_cache()
 

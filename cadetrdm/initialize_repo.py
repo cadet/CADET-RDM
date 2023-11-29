@@ -1,6 +1,7 @@
 import os
 import json
 import uuid
+from pathlib import Path
 
 try:
     import git
@@ -176,12 +177,14 @@ def clone(project_url, path_to_repo: str = None):
     print(f"Cloning {project_url} into {path_to_repo}")
     git.Repo.clone_from(project_url, path_to_repo)
 
+    path_to_repo = Path(path_to_repo)
+
     # Clone output repo from remotes
-    json_path = os.path.join(path_to_repo, "output_remotes.json")
+    json_path = path_to_repo / "output_remotes.json"
     with open(json_path, "r") as file_handle:
         meta_dict = json.load(file_handle)
 
-    output_folder_name = os.path.join(path_to_repo, meta_dict["output_folder_name"])
+    output_folder_name = path_to_repo / meta_dict["output_folder_name"]
     ssh_remotes = list(meta_dict["output_remotes"].values())
     http_remotes = [ssh_url_to_http_url(url) for url in ssh_remotes]
     if len(ssh_remotes + http_remotes) == 0:
@@ -194,7 +197,7 @@ def clone(project_url, path_to_repo: str = None):
             print(e)
         else:
             break
-    environment_path = os.path.join(os.getcwd(), path_to_repo, "environment.yml")
+    environment_path = Path(os.getcwd()) / path_to_repo / "environment.yml"
 
     repo = ProjectRepo(path_to_repo)
     repo.fill_data_from_cadet_rdm_json()
