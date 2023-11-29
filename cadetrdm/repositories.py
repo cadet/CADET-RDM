@@ -26,7 +26,7 @@ from cadetrdm.io_utils import delete_path
 
 
 def validate_is_output_repo(path_to_repo):
-    with open(os.path.join(path_to_repo, ".cadet-rdm-data.json", "r")) as file_handle:
+    with open(os.path.join(path_to_repo, ".cadet-rdm-data.json"), "r") as file_handle:
         rdm_data = json.load(file_handle)
         if rdm_data["is_project_repo"]:
             raise ValueError("Please use the URL to the output repository.")
