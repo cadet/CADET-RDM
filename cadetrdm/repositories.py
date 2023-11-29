@@ -4,6 +4,7 @@ import sys
 import traceback
 from datetime import datetime
 import shutil
+import zipfile
 import contextlib
 import glob
 from stat import S_IREAD, S_IWRITE
@@ -146,11 +147,10 @@ class BaseRepo:
         else:
             target_repo_location = os.path.join(self.working_dir, target_repo_location)
 
-        multi_options = ["--filter=blob:none", "--branch", source_repo_branch, "--single-branch"]
-
         self.add_path_to_gitignore(target_repo_location)
 
         print(f"Cloning from {source_repo_location} into {target_repo_location}")
+        multi_options = ["--filter=blob:none", "--branch", source_repo_branch, "--single-branch"]
         repo = git.Repo.clone_from(source_repo_location, target_repo_location, multi_options=multi_options)
         repo.git.clear_cache()
 
@@ -477,8 +477,8 @@ class BaseRepo:
         """
         self._git.checkout("master")
         self._git.checkout('-b', branch_name)  # equivalent to $ git checkout -b %branch_name
-        code_backup_path = os.path.join(self.working_dir, "logs", "code_backup")
-        logs_path = os.path.join(self.working_dir, "logs")
+        code_backup_path = os.path.join(self.working_dir, "run_history")
+        logs_path = os.path.join(self.working_dir, "log.csv")
         if os.path.exists(code_backup_path):
             try:
                 # Remove previous code backup
@@ -617,7 +617,7 @@ class ProjectRepo(BaseRepo):
 
         self.output_repo.checkout("master")
 
-        csv_filepath = os.path.join(self.working_dir, self.output_folder, "logs", "log.csv")
+        csv_filepath = os.path.join(self.working_dir, self.output_folder, "log.csv")
 
         df = pd.read_csv(csv_filepath, sep=",", header=0)
         # Clean up the headers
@@ -652,14 +652,14 @@ class ProjectRepo(BaseRepo):
 
         self._output_repo._git.checkout("master")
 
-        logs_folderpath = os.path.join(self.working_dir, self.output_folder, "logs")
+        logs_folderpath = os.path.join(self.working_dir, self.output_folder, "run_history", output_branch_name)
         if not os.path.exists(logs_folderpath):
             os.makedirs(logs_folderpath)
 
-        json_filepath = os.path.join(logs_folderpath, f"{output_branch_name}.json")
+        json_filepath = os.path.join(logs_folderpath, "metadata.json")
         # note: if filename of "log.csv" is changed,
         #  this also has to be changed in the gitattributes of the init repo func
-        csv_filepath = os.path.join(logs_folderpath, "log.csv")
+        csv_filepath = os.path.join(self.output_repo.working_dir, "log.csv")
 
         meta_info_dict = {
             "Output repo commit message": output_commit_message,
@@ -693,10 +693,10 @@ class ProjectRepo(BaseRepo):
         self.dump_package_list(logs_folderpath)
 
         # Copy all code files from the project git repo to the output repo
-        code_copy_folderpath = os.path.join(logs_folderpath, "code_backup")
-        if not os.path.exists(code_copy_folderpath):
-            os.makedirs(code_copy_folderpath)
-        self.copy_code(code_copy_folderpath)
+        # code_copy_folderpath = os.path.join(logs_folderpath, "code_backup")
+        # if not os.path.exists(code_copy_folderpath):
+        #     os.makedirs(code_copy_folderpath)
+        self.copy_code(logs_folderpath)
 
         self._output_repo.add(".")
         self._output_repo._git.commit("-m", f"log for '{output_commit_message}' \n"
@@ -706,22 +706,21 @@ class ProjectRepo(BaseRepo):
         self._most_recent_branch = output_branch_name
 
     def copy_code(self, target_path):
-        for file in self._git.ls_files().split("\n"):
-            if "\\" in file:
-                file = bytes(file, "utf-8").decode("unicode_escape").encode("cp1252").decode("utf-8")
-            if "'" in file or '"' in file:
-                file = file.replace("'", "").replace('"', '')
-            try:
-                target_file_path = os.path.join(self.working_dir, target_path, file)
-                target_folder = os.path.split(target_file_path)[0]
-                if not os.path.exists(target_folder):
-                    os.makedirs(target_folder)
-                shutil.copyfile(
-                    os.path.join(self.working_dir, file),
-                    target_file_path
-                )
-            except:
-                traceback.print_exc()
+        """
+        Clone only the current branch of the project repo to the target_path
+        and then compress it into a zip file.
+
+        :param target_path:
+        :return:
+        """
+        code_tmp_folder = os.path.join(target_path, "git_repo")
+
+        multi_options = ["--filter=blob:none", "--single-branch"]
+        git.Repo.clone_from(self.working_dir, code_tmp_folder, multi_options=multi_options)
+
+        shutil.make_archive(os.path.join(target_path, "code"), "zip", code_tmp_folder)
+
+        delete_path(code_tmp_folder)
 
     def commit(self, message: str, add_all=True):
         """

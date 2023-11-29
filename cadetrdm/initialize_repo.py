@@ -98,7 +98,7 @@ def initialize_repo(path_to_repo: str, output_folder_name: (str | bool) = "outpu
     write_lines_to_file(path=".gitignore", lines=gitignore, open_type="a")
 
     if output_repo_kwargs is None:
-        output_repo_kwargs = {"gitattributes": ["logs/log.csv merge=union"]}
+        output_repo_kwargs = {"gitattributes": ["log.csv merge=union"]}
 
     if output_folder_name:
         # This means we are in the project repo and should now initialize the output_repo
@@ -124,6 +124,7 @@ def initialize_repo(path_to_repo: str, output_folder_name: (str | bool) = "outpu
         initialize_repo(output_folder_name, output_folder_name=False, **output_repo_kwargs)
         # This instance of ProjectRepo is therefore the project repo
         repo = ProjectRepo(".", output_folder=output_folder_name)
+        repo.update_output_remotes_json()
     else:
         # If output_repo_name is False we are in the output_repo and should finish by committing the changes
         rdm_data = {
