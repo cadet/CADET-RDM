@@ -13,7 +13,7 @@ from urllib.request import urlretrieve
 from tabulate import tabulate
 import pandas as pd
 
-from cadetrdm.io_utils import recursive_chmod
+from cadetrdm.io_utils import recursive_chmod, write_lines_to_file
 
 try:
     import git
@@ -98,7 +98,7 @@ class BaseRepo:
 
     @property
     def tags(self):
-        return None
+        return list()
 
     @property
     def data_json_path(self):
@@ -471,14 +471,14 @@ class BaseRepo:
          - checking out the master branch,
          - creating a new branch from there
         This thereby produces a clear, empty directory for data, while still maintaining
-        .gitignore and .gitatributes
+        .gitignore and .gitattributes
         :param branch_name:
             Name of the new branch.
         """
         self._git.checkout("master")
         self._git.checkout('-b', branch_name)  # equivalent to $ git checkout -b %branch_name
         code_backup_path = os.path.join(self.working_dir, "run_history")
-        logs_path = os.path.join(self.working_dir, "log.csv")
+        logs_path = os.path.join(self.working_dir, "log.tsv")
         if os.path.exists(code_backup_path):
             try:
                 # Remove previous code backup
@@ -617,9 +617,11 @@ class ProjectRepo(BaseRepo):
 
         self.output_repo.checkout("master")
 
-        csv_filepath = os.path.join(self.working_dir, self.output_folder, "log.csv")
+        self.convert_csv_to_tsv_if_necessary()
 
-        df = pd.read_csv(csv_filepath, sep=",", header=0)
+        tsv_filepath = os.path.join(self.working_dir, self.output_folder, "log.tsv")
+
+        df = pd.read_csv(tsv_filepath, sep="\t", header=0)
         # Clean up the headers
         df = df.rename(columns={"Output repo commit message": 'Output commit message',
                                 "Output repo branch": "Output branch",
@@ -637,6 +639,33 @@ class ProjectRepo(BaseRepo):
         print(tabulate(df, headers=df.columns, showindex=False))
 
         self.output_repo.checkout(self.output_repo._most_recent_branch)
+
+    def convert_csv_to_tsv_if_necessary(self):
+        """
+        If not tsv log is found AND a csv log is found, convert the csv to tsv.
+
+        :return:
+        """
+        tsv_filepath = os.path.join(self.working_dir, self.output_folder, "log.tsv")
+        if os.path.exists(tsv_filepath):
+            return
+
+        csv_filepath = os.path.join(self.working_dir, self.output_folder, "log.csv")
+        if not os.path.exists(csv_filepath):
+            # We have just initialized the repo and neither tsv nor csv exist.
+            return
+
+        with open(csv_filepath) as csv_handle:
+            csv_lines = csv_handle.readlines()
+
+        tsv_lines = [line.replace(",", "\t") for line in csv_lines]
+
+        with open(tsv_filepath, "w") as f:
+            f.writelines(tsv_lines)
+
+        write_lines_to_file(path=os.path.join(self.working_dir, ".gitattributes"),
+                            lines=["rmd-log.tsv merge=union"],
+                            open_type="a")
 
     def update_output_master_logs(self, ):
         """
@@ -657,9 +686,10 @@ class ProjectRepo(BaseRepo):
             os.makedirs(logs_folderpath)
 
         json_filepath = os.path.join(logs_folderpath, "metadata.json")
-        # note: if filename of "log.csv" is changed,
+        # note: if filename of "log.tsv" is changed,
         #  this also has to be changed in the gitattributes of the init repo func
-        csv_filepath = os.path.join(self.output_repo.working_dir, "log.csv")
+        tsv_filepath = os.path.join(self.output_repo.working_dir, "log.tsv")
+        self.convert_csv_to_tsv_if_necessary()
 
         meta_info_dict = {
             "Output repo commit message": output_commit_message,
@@ -669,25 +699,25 @@ class ProjectRepo(BaseRepo):
             "Project repo folder name": os.path.split(self.working_dir)[-1],
             "Project repo remotes": self.remote_urls,
             "Python sys args": str(sys.argv),
-            "Tags": self.tags,
+            "Tags": ", ".join(self.tags),
         }
-        csv_header = ",".join(meta_info_dict.keys())
-        csv_data = ",".join([str(x) for x in meta_info_dict.values()])
+        csv_header = "\t".join(meta_info_dict.keys())
+        csv_data = "\t".join([str(x) for x in meta_info_dict.values()])
 
         with open(json_filepath, "w") as f:
             json.dump(meta_info_dict, f, indent=2)
 
-        if not os.path.exists(csv_filepath):
-            with open(csv_filepath, "w") as f:
+        if not os.path.exists(tsv_filepath):
+            with open(tsv_filepath, "w") as f:
                 f.write(csv_header + "\n")
                 # csv.writer(csv_header + "\n")
 
-        with open(csv_filepath, "r") as f:
+        with open(tsv_filepath, "r") as f:
             existing_header = f.readline().replace("\n", "")
             if existing_header != csv_header:
-                raise ValueError("The used structure of the meta_dict doesn't match the header found in log.csv")
+                raise ValueError("The used structure of the meta_dict doesn't match the header found in log.tsv")
 
-        with open(csv_filepath, "a") as f:
+        with open(tsv_filepath, "a") as f:
             f.write(csv_data + "\n")
 
         self.dump_package_list(logs_folderpath)

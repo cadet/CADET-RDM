@@ -49,7 +49,7 @@ def initialize_repo(path_to_repo: str, output_folder_name: (str | bool) = "outpu
     :param gitignore:
         List of files to be added to the gitignore file.
     :param gitattributes:
-        List of lines to be added to the gittatributes file
+        List of lines to be added to the gitattributes file
     :param lfs_filetypes:
         List of filetypes to be handled by git lfs.
     :param output_repo_kwargs:
@@ -98,7 +98,7 @@ def initialize_repo(path_to_repo: str, output_folder_name: (str | bool) = "outpu
     write_lines_to_file(path=".gitignore", lines=gitignore, open_type="a")
 
     if output_repo_kwargs is None:
-        output_repo_kwargs = {"gitattributes": ["log.csv merge=union"]}
+        output_repo_kwargs = {"gitattributes": ["rmd-log.tsv merge=union"]}
 
     if output_folder_name:
         # This means we are in the project repo and should now initialize the output_repo
