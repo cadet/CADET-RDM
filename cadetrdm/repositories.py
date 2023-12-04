@@ -14,7 +14,8 @@ from urllib.request import urlretrieve
 from tabulate import tabulate
 import pandas as pd
 
-from cadetrdm.io_utils import recursive_chmod, write_lines_to_file
+from cadetrdm.io_utils import recursive_chmod, write_lines_to_file, wait_for_user
+from cadetrdm.jupyter_functionality import Notebook
 from cadetrdm.version import version as cadetrdm_version
 
 try:
@@ -371,11 +372,11 @@ class BaseRepo:
         self.add(".")
 
     def reset_hard_to_head(self):
-        proceed = input(f'The output directory contains the following uncommitted changes:\n'
-                        f'{self.untracked_files + self.changed_files}\n'
-                        f' These will be lost if you continue\n'
-                        f'Proceed? Y/n \n')
-        if not (proceed.lower() == "y" or proceed == ""):
+        proceed = wait_for_user(f'The output directory contains the following uncommitted changes:\n'
+                                f'{self.untracked_files + self.changed_files}\n'
+                                f' These will be lost if you continue\n'
+                                f'Proceed?')
+        if not proceed:
             raise KeyboardInterrupt
         # reset all tracked files to previous commit, -q silences output
         self._git.reset("-q", "--hard", "HEAD")

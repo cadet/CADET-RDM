@@ -70,3 +70,11 @@ def delete_path(filename):
         shutil.rmtree(absolute_path, onerror=remove_readonly)
     else:
         os.remove(absolute_path)
+
+
+def wait_for_user(message):
+    proceed = input(message + " Y/n \n")
+    if proceed.lower() == "y" or proceed == "":
+        return True
+    else:
+        return False

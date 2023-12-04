@@ -12,7 +12,7 @@ except ImportError:
 import cadetrdm
 from cadetrdm.repositories import ProjectRepo, OutputRepo
 from cadetrdm.web_utils import ssh_url_to_http_url
-from cadetrdm.io_utils import write_lines_to_file, is_tool
+from cadetrdm.io_utils import write_lines_to_file, is_tool, wait_for_user
 
 
 def init_lfs(lfs_filetypes: list, path: str = None):
@@ -130,10 +130,10 @@ def initialize_git(folder="."):
 
     try:
         repo = git.Repo(".")
-        proceed = input(f'The target directory already contains a git repo.\n'
-                        f'Please back up or push all changes to the repo before continuing.'
-                        f'Proceed? Y/n \n')
-        if not (proceed.lower() == "y" or proceed == ""):
+        proceed = wait_for_user('The target directory already contains a git repo.\n'
+                                'Please back up or push all changes to the repo before continuing.\n'
+                                'Proceed?')
+        if not proceed:
             raise KeyboardInterrupt
     except git.exc.InvalidGitRepositoryError:
         os.system(f"git init")
