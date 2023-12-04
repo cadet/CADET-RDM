@@ -14,6 +14,10 @@ class Notebook:
     def __init__(self, notebook_path):
         self.notebook_path = Path(notebook_path)
 
+    @property
+    def notebook_name(self):
+        return str(self.notebook_path.name).replace(".", "_")
+
     def check_execution_order(self,
                               check_all_executed=False,
                               check_top_to_bottom=False,
@@ -96,21 +100,15 @@ class Notebook:
         app = JupyterFrontEnd()
         app.commands.execute('docmanager:reload')
 
-    def wait_for_user(self, message):
-        proceed = input(message + " Y/n")
-        if proceed.lower() == "y" or proceed == "":
-            return True
-        else:
-            return False
-
-    def clear_and_rerun_notebook(self, force_rerun=False, timeout=600):
+    def check_and_rerun_notebook(self, force_rerun=False, timeout=600):
         if "nbconvert_call" in sys.argv:
             return
 
         self.save_ipynb()
+        # wait a second for the save process to finish.
         time.sleep(1)
 
-        is_in_order = self.check_execution_order(self.notebook_filename, exclude_last_cell=False)
+        is_in_order = self.check_execution_order(exclude_last_cell=False)
 
         if is_in_order and not force_rerun:
             print("Notebook was already executed in order.")
@@ -122,27 +120,26 @@ class Notebook:
                 return
 
         print("Rerunning.")
-        with open(self.notebook_filename) as f:
+        with open(self.notebook_path) as f:
             nb = nbf.read(f, as_version=4)
 
         ep = ExecutePreprocessor(timeout=timeout, kernel_name='python3', extra_arguments=["nbconvert_call"])
         ep.preprocess(nb, )
 
-        with open(self.notebook_filename, 'w', encoding='utf-8') as f:
+        with open(self.notebook_path, 'w', encoding='utf-8') as f:
             nbf.write(nb, f)
 
         self.reload_notebook()
 
-    def convert_ipynb(self, formats: list = None):
+    def convert_ipynb(self, output_dir, formats: list = None):
         if formats is None:
             formats = ["pdf", "python"]
         app = NbConvertApp()
         app.initialize()
-        output_root_directory = os.path.join(r"C:\Users\ronal\PycharmProjects\git_lfs_test_2", "results",
-                                             self.notebook_path.name.replace('.', '_'))
+        output_root_directory = os.path.join(output_dir, self.notebook_name)
         for export_format in formats:
             app.export_format = export_format
-            app.notebooks = [self.notebook_path]
+            app.notebooks = [str(self.notebook_path)]
             app.output_base = os.path.join(output_root_directory,
                                            self.notebook_path.name.replace('.ipynb', ''))
             if not os.path.exists(output_root_directory):
@@ -151,7 +148,7 @@ class Notebook:
 
     def export_all_figures(self, output_dir):
         file_without_extension = self.notebook_path.stem
-        images = junix.export_images(filepath=self.notebook_path,
-                                     output_dir=os.path.join(output_dir,
-                                                             str(self.notebook_path.name).replace(".", "_")),
+        images = junix.export_images(filepath=str(self.notebook_path),
+                                     output_dir=os.path.join(output_dir, self.notebook_name),
                                      prefix=file_without_extension)
+
