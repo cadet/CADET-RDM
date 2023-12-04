@@ -38,8 +38,7 @@ def init_lfs(lfs_filetypes: list, path: str = None):
 
 
 def initialize_repo(path_to_repo: str, output_folder_name: (str | bool) = "output", gitignore: list = None,
-                    gitattributes: list = None, lfs_filetypes: list = None,
-                    output_repo_kwargs: dict = None):
+                    gitattributes: list = None, output_repo_kwargs: dict = None):
     """
     Initialize a git repository at the given path with an optional included output results repository.
 
@@ -51,8 +50,6 @@ def initialize_repo(path_to_repo: str, output_folder_name: (str | bool) = "outpu
         List of files to be added to the gitignore file.
     :param gitattributes:
         List of lines to be added to the gitattributes file
-    :param lfs_filetypes:
-        List of filetypes to be handled by git lfs.
     :param output_repo_kwargs:
         kwargs to be given to the creation of the output repo initalization function.
         Include gitignore, gitattributes, and lfs_filetypes kwargs.
@@ -65,17 +62,16 @@ def initialize_repo(path_to_repo: str, output_folder_name: (str | bool) = "outpu
                            "/managing-large-files/installing-git-large-file-storage")
 
     if gitignore is None:
-        gitignore = [".idea", "*diskcache*", "*tmp*", ".ipynb_checkpoints", "__pycache__"]
+        gitignore = get_default_gitignore() + ["*.ipynb"]
 
-    if output_folder_name:
-        gitignore.append(output_folder_name)
-        gitignore.append(output_folder_name + "_cached")
+    gitignore.append(output_folder_name)
+    gitignore.append(output_folder_name + "_cached")
 
     if gitattributes is None:
         gitattributes = []
 
-    if lfs_filetypes is None:
-        lfs_filetypes = ["*.jpg", "*.png", "*.xlsx", "*.h5", "*.ipynb", "*.pdf", "*.docx"]
+    if output_repo_kwargs is None:
+        output_repo_kwargs = {}
 
     starting_directory = os.getcwd()
     project_repo_uuid = str(uuid.uuid4())
@@ -84,6 +80,53 @@ def initialize_repo(path_to_repo: str, output_folder_name: (str | bool) = "outpu
     if path_to_repo != ".":
         os.makedirs(path_to_repo, exist_ok=True)
         os.chdir(path_to_repo)
+
+    initialize_git()
+
+    write_lines_to_file(path=".gitattributes", lines=gitattributes, open_type="a")
+    write_lines_to_file(path=".gitignore", lines=gitignore, open_type="a")
+
+    create_readme()
+    create_environment_yml()
+
+    ProjectRepo.add_jupytext_file()
+
+    rdm_data = {
+        "is_project_repo": True, "is_output_repo": False,
+        "project_uuid": project_repo_uuid, "output_uuid": output_repo_uuid,
+        "cadet_rdm_version": cadetrdm.__version__
+    }
+    with open(".cadet-rdm-data.json", "w") as f:
+        json.dump(rdm_data, f, indent=2)
+
+    with open(".cadet-rdm-cache.json", "w") as f:
+        json.dump({"__example/path/to/repo__": {
+            "source_repo_location": "git@jugit.fz-juelich.de:IBG-1/ModSim/cadet"
+                                    "/agile_cadet_rdm_presentation_output.git",
+            "branch_name": "output_from_master_3910c84_2023-10-25_00-17-23",
+            "commit_hash": "6e3c26527999036e9490d2d86251258fe81d46dc"
+        }}, f, indent=2)
+
+    with open("output_remotes.json", "w") as file_handle:
+        remotes_dict = {}
+        json_dict = {"output_folder_name": output_folder_name, "output_remotes": remotes_dict}
+        json.dump(json_dict, file_handle, indent=2)
+
+    initialize_output_repo(output_folder_name, project_repo_uuid=project_repo_uuid,
+                           output_repo_uuid=output_repo_uuid, **output_repo_kwargs)
+
+    repo = ProjectRepo(".", output_folder=output_folder_name)
+    repo.update_output_remotes_json()
+
+    repo.commit("initial commit")
+
+    os.chdir(starting_directory)
+
+
+def initialize_git(folder="."):
+    if folder != ":":
+        starting_directory = os.getcwd()
+        os.chdir(folder)
 
     try:
         repo = git.Repo(".")
@@ -95,52 +138,65 @@ def initialize_repo(path_to_repo: str, output_folder_name: (str | bool) = "outpu
     except git.exc.InvalidGitRepositoryError:
         os.system(f"git init")
 
+    if folder != ":":
+        os.chdir(starting_directory)
+
+
+def get_default_gitignore():
+    return [".idea", "*diskcache*", "*tmp*", ".ipynb_checkpoints", "__pycache__"]
+
+
+def get_default_lfs_filetypes():
+    return ["*.jpg", "*.png", "*.xlsx", "*.h5", "*.ipynb", "*.pdf", "*.docx", "*.zip", "*.html"]
+
+
+def initialize_output_repo(output_folder_name, gitignore: list = None,
+                           gitattributes: list = None, lfs_filetypes: list = None,
+                           project_repo_uuid: str = None, output_repo_uuid: str = None):
+    """
+    Initialize a git repository at the given path with an optional included output results repository.
+
+    :param output_folder_name:
+        Name for the output repository.
+    :param gitignore:
+        List of files to be added to the gitignore file.
+    :param gitattributes:
+        List of lines to be added to the gitattributes file
+    :param lfs_filetypes:
+        List of filetypes to be handled by git lfs.
+    :return:
+    """
+    starting_directory = os.getcwd()
+    os.makedirs(output_folder_name, exist_ok=True)
+    os.chdir(output_folder_name)
+
+    if gitignore is None:
+        gitignore = get_default_gitignore()
+
+    if gitattributes is None:
+        gitattributes = ["rdm-log.tsv merge=union"]
+
+    if lfs_filetypes is None:
+        lfs_filetypes = get_default_lfs_filetypes()
+
+    initialize_git()
+
     write_lines_to_file(path=".gitattributes", lines=gitattributes, open_type="a")
     write_lines_to_file(path=".gitignore", lines=gitignore, open_type="a")
 
-    if output_repo_kwargs is None:
-        output_repo_kwargs = {"gitattributes": ["rmd-log.tsv merge=union"]}
+    rdm_data = {
+        "is_project_repo": False, "is_output_repo": True,
+        "project_uuid": project_repo_uuid, "output_uuid": output_repo_uuid,
+        "cadet_rdm_version": cadetrdm.__version__
+    }
+    with open(".cadet-rdm-data.json", "w") as f:
+        json.dump(rdm_data, f, indent=2)
 
-    if output_folder_name:
-        # This means we are in the project repo and should now initialize the output_repo
-        create_readme()
-        create_environment_yml()
+    init_lfs(lfs_filetypes)
 
-        rdm_data = {
-            "is_project_repo": True, "is_output_repo": False,
-            "project_uuid": project_repo_uuid, "output_uuid": output_repo_uuid,
-            "cadet_rdm_version": cadetrdm.__version__
-        }
-        with open(".cadet-rdm-data.json", "w") as f:
-            json.dump(rdm_data, f, indent=2)
+    create_output_readme()
 
-        with open(".cadet-rdm-cache.json", "w") as f:
-            json.dump({"__example/path/to/repo__": {
-                "source_repo_location": "git@jugit.fz-juelich.de:IBG-1/ModSim/cadet"
-                                        "/agile_cadet_rdm_presentation_output.git",
-                "branch_name": "output_from_master_3910c84_2023-10-25_00-17-23",
-                "commit_hash": "6e3c26527999036e9490d2d86251258fe81d46dc"
-            }}, f, indent=2)
-
-        initialize_repo(output_folder_name, output_folder_name=False, **output_repo_kwargs)
-        # This instance of ProjectRepo is therefore the project repo
-        repo = ProjectRepo(".", output_folder=output_folder_name)
-        repo.update_output_remotes_json()
-    else:
-        # If output_repo_name is False we are in the output_repo and should finish by committing the changes
-        rdm_data = {
-            "is_project_repo": False, "is_output_repo": True,
-            "project_uuid": project_repo_uuid, "output_uuid": output_repo_uuid,
-            "cadet_rdm_version": cadetrdm.__version__
-        }
-        with open(".cadet-rdm-data.json", "w") as f:
-            json.dump(rdm_data, f, indent=2)
-        init_lfs(lfs_filetypes)
-
-        create_output_readme()
-
-        repo = OutputRepo(".")
-
+    repo = OutputRepo(".")
     repo.commit("initial commit")
 
     os.chdir(starting_directory)

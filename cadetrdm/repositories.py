@@ -15,6 +15,7 @@ from tabulate import tabulate
 import pandas as pd
 
 from cadetrdm.io_utils import recursive_chmod, write_lines_to_file
+from cadetrdm.version import version as cadetrdm_version
 
 try:
     import git
@@ -562,7 +563,7 @@ class ProjectRepo(BaseRepo):
         :param repository_path:
             Path to the root of the git repository.
         :param output_folder:
-            Path to the root of the output repository.
+            Deprecated: Path to the root of the output repository.
         :param search_parent_directories:
             if True, all parent directories will be searched for a valid repo as well.
 
@@ -577,12 +578,21 @@ class ProjectRepo(BaseRepo):
 
         super().__init__(repository_path, search_parent_directories=search_parent_directories, *args, **kwargs)
 
+        with open(repository_path / "output_remotes.json", "r") as handle:
+            output_remotes = json.load(handle)
+
         if output_folder is not None:
-            self.output_folder = Path(output_folder).name
-        else:
-            with open(repository_path / "output_remotes.json", "r") as handle:
-                data = json.load(handle)
-            self.output_folder = data["output_folder_name"]
+            print("Deprecation Warning. Setting the outputfolder manually during repo instantiation is deprecated"
+                  " and will be removed in a future update.")
+
+        self.output_folder = output_remotes["output_folder_name"]
+
+        with open(repository_path / ".cadet-rdm-data.json", "r") as handle:
+            metadata = json.load(handle)
+            repo_version = metadata["cadet_rdm_version"]
+            if cadetrdm_version != repo_version:
+                print(f"Repo version {repo_version} is outdated. Current CADET-RDM version is {cadetrdm_version}\n"
+                      "Updating the repository now.")
 
         self._output_repo = OutputRepo(self.working_dir / self.output_folder)
         self._on_context_enter_commit_hash = None
@@ -593,6 +603,18 @@ class ProjectRepo(BaseRepo):
         if self._output_repo is None:
             raise ValueError("The output repo has not been set yet.")
         return self._output_repo
+
+    def update_version(self, current_version):
+        version_parts = [int(x) for x in current_version.split(".")]
+        version_sum = version_parts[0] * 1000 * 1000 + version_parts[1] * 1000 + version_parts[2]
+        if current_version < 9:
+            self.convert_csv_to_tsv_if_necessary()
+            self.add_jupytext_file(self.working_dir)
+
+    @staticmethod
+    def add_jupytext_file(path_root: str | Path = "."):
+        jupytext_lines = ['# Pair ipynb notebooks to py:percent text notebooks', 'formats: "ipynb,py:percent"']
+        write_lines_to_file(Path(path_root) / "jupytext.yml", lines=jupytext_lines, open_type="w")
 
     def get_new_output_branch_name(self):
         """
@@ -625,8 +647,6 @@ class ProjectRepo(BaseRepo):
             return '\n'.join(lines)
 
         self.output_repo.checkout("master")
-
-        self.convert_csv_to_tsv_if_necessary()
 
         tsv_filepath = self.working_dir / self.output_folder / "log.tsv"
 
@@ -673,7 +693,7 @@ class ProjectRepo(BaseRepo):
             f.writelines(tsv_lines)
 
         write_lines_to_file(path=self.working_dir / ".gitattributes",
-                            lines=["rmd-log.tsv merge=union"],
+                            lines=["rdm-log.tsv merge=union"],
                             open_type="a")
 
     def update_output_master_logs(self, ):
@@ -698,7 +718,6 @@ class ProjectRepo(BaseRepo):
         # note: if filename of "log.tsv" is changed,
         #  this also has to be changed in the gitattributes of the init repo func
         tsv_filepath = self.output_repo.working_dir / "log.tsv"
-        self.convert_csv_to_tsv_if_necessary()
 
         meta_info_dict = {
             "Output repo commit message": output_commit_message,
