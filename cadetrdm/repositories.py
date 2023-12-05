@@ -371,11 +371,14 @@ class BaseRepo:
         """
         self.add(".")
 
-    def reset_hard_to_head(self):
-        proceed = wait_for_user(f'The output directory contains the following uncommitted changes:\n'
+    def reset_hard_to_head(self, force_entry=False):
+        if not force_entry:
+            proceed = wait_for_user(f'The output directory contains the following uncommitted changes:\n'
                                 f'{self.untracked_files + self.changed_files}\n'
                                 f' These will be lost if you continue\n'
                                 f'Proceed?')
+        else:
+            proceed = True
         if not proceed:
             raise KeyboardInterrupt
         # reset all tracked files to previous commit, -q silences output
@@ -611,6 +614,7 @@ class ProjectRepo(BaseRepo):
         if current_version < 9:
             self.convert_csv_to_tsv_if_necessary()
             self.add_jupytext_file(self.working_dir)
+        # ToDo: actually update version
 
     @staticmethod
     def add_jupytext_file(path_root: str | Path = "."):
@@ -896,7 +900,7 @@ class ProjectRepo(BaseRepo):
         :return:
         """
 
-    def enter_context(self, ):
+    def enter_context(self, force=False):
         """
         Enter the tracking context. This includes:
          - Ensure no uncommitted changes in the project repository
@@ -914,7 +918,7 @@ class ProjectRepo(BaseRepo):
         output_repo = self.output_repo
 
         if output_repo.exist_uncomitted_changes:
-            output_repo.reset_hard_to_head()
+            output_repo.reset_hard_to_head(force_entry=force)
 
         output_repo.delete_active_branch_if_branch_is_empty()
 
@@ -1015,12 +1019,16 @@ class ProjectRepo(BaseRepo):
         else:
             self.exit_context(message=results_commit_message)
 
-    def commit_notebook(self, notebook_path: str, results_commit_message: str,
-                        force_rerun=False, timeout=600, conversion_formats: list = None):
+    def commit_nb_output(self, notebook_path: str, results_commit_message: str,
+                         force_rerun=False, timeout=600, conversion_formats: list = None):
         if not Path(notebook_path).is_absolute():
             notebook_path = self.working_dir / notebook_path
 
-        self.enter_context()
+        # if "nbconvert_call" in sys.argv:
+        #     # This won't work as intended.
+        #     self.enter_context(force=True)
+        # else:
+        #     self.enter_context(force=False)
 
         notebook = Notebook(notebook_path)
         notebook.check_and_rerun_notebook(force_rerun=force_rerun,
