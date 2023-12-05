@@ -77,15 +77,12 @@ def run_command(command, results_commit_message):
               help='List of files to be added to the gitignore file. Optional.')
 @click.option('--gitattributes', default=None,
               help='List of files to be added to the gitattributes file. Optional.')
-@click.option('--lfs_filetypes', default=None,
-              help='List of filetypes to be handled by git lfs. Optional.')
 @click.argument('path_to_repo')
 def initialize_repo(path_to_repo: str, output_repo_name: (str | bool) = "output", gitignore: list = None,
-                    gitattributes: list = None, lfs_filetypes: list = None,
+                    gitattributes: list = None,
                     output_repo_kwargs: dict = None):
     initialize_git_repo_implementation(path_to_repo, output_repo_name, gitignore,
-                                       gitattributes, lfs_filetypes,
-                                       output_repo_kwargs)
+                                       gitattributes, output_repo_kwargs)
 
 
 @cli.command()
