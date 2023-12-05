@@ -3,6 +3,7 @@ import time
 import os
 from pathlib import Path
 
+from cadetrdm.io_utils import wait_for_user
 from ipylab import JupyterFrontEnd
 import junix
 import nbformat as nbf
@@ -114,7 +115,7 @@ class Notebook:
             print("Notebook was already executed in order.")
             return
         else:
-            rerun_confirmed_bool = self.wait_for_user("Notebook was not in order, rerun notebook now?")
+            rerun_confirmed_bool = wait_for_user("Notebook was not in order, rerun notebook now?")
             if not rerun_confirmed_bool and not force_rerun:
                 print("Aborting.")
                 return
@@ -133,7 +134,7 @@ class Notebook:
 
     def convert_ipynb(self, output_dir, formats: list = None):
         if formats is None:
-            formats = ["html", ]
+            formats = ["html", ]  # ToDo add ipynb: does this work? or should I copy?
         app = NbConvertApp()
         app.initialize()
         output_root_directory = os.path.join(output_dir, self.notebook_name)
