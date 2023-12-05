@@ -5,12 +5,14 @@ import sys
 import traceback
 from datetime import datetime
 import shutil
+import time
 import zipfile
 import contextlib
 import glob
 from stat import S_IREAD, S_IWRITE
 from urllib.request import urlretrieve
 
+from ipylab import JupyterFrontEnd
 from tabulate import tabulate
 import pandas as pd
 
@@ -427,6 +429,17 @@ class BaseRepo:
         :param add_all:
             Option to add all changed and new files to git automatically.
         """
+        try:
+            app = JupyterFrontEnd()
+            print("Saving", end="")
+            # note: docmanager:save doesn't lock the python thread until saving is completed.
+            # Sometimes, new changes aren't completely saved before checks are performed.
+            # Waiting for 0.1 seconds seems to prevent that.
+            app.commands.execute('docmanager:save')
+            time.sleep(0.1)
+            print("")
+        except:
+            pass
         if not self.exist_uncomitted_changes:
             print(f"No changes to commit in repo {self.working_dir}")
             return
