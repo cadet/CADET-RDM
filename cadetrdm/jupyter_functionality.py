@@ -133,7 +133,7 @@ class Notebook:
 
     def convert_ipynb(self, output_dir, formats: list = None):
         if formats is None:
-            formats = ["pdf", "python"]
+            formats = ["html", "python"]
         app = NbConvertApp()
         app.initialize()
         output_root_directory = os.path.join(output_dir, self.notebook_name)
