@@ -87,7 +87,8 @@ class Notebook:
             )
         return all(pass_check)
 
-    def save_ipynb(self):
+    @staticmethod
+    def save_ipynb():
         app = JupyterFrontEnd()
         print("Saving", end="")
         # note: docmanager:save doesn't lock the python thread until saving is completed.

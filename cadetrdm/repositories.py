@@ -1032,25 +1032,33 @@ class ProjectRepo(BaseRepo):
         else:
             self.exit_context(message=results_commit_message)
 
+
+
+class OutputRepo(BaseRepo):
+    pass
+
+
+class JupyterInterfaceRepo(ProjectRepo):
+    def commit(self, message: str, add_all=True):
+        Notebook.save_ipynb()
+        super().commit(message, add_all)
+
     def commit_nb_output(self, notebook_path: str, results_commit_message: str,
                          force_rerun=False, timeout=600, conversion_formats: list = None):
         if not Path(notebook_path).is_absolute():
             notebook_path = self.working_dir / notebook_path
 
-        # if "nbconvert_call" in sys.argv:
-        #     # This won't work as intended.
-        #     self.enter_context(force=True)
-        # else:
-        #     self.enter_context(force=False)
-
         notebook = Notebook(notebook_path)
-        notebook.check_and_rerun_notebook(force_rerun=force_rerun,
-                                          timeout=timeout)
-        notebook.convert_ipynb(self.output_path, formats=conversion_formats)
-        notebook.export_all_figures(self.output_path)
 
-        self.exit_context(results_commit_message)
+        if "nbconvert_call" not in sys.argv:
+            # This is reached in the first call of this function
+            self.enter_context(force=False)
 
+            notebook.check_and_rerun_notebook(force_rerun=force_rerun,
+                                              timeout=timeout)
+        else:
+            # This is executed during the nbconvert call
+            notebook.convert_ipynb(self.output_path, formats=conversion_formats)
+            notebook.export_all_figures(self.output_path)
 
-class OutputRepo(BaseRepo):
-    pass
+            self.exit_context(results_commit_message)
