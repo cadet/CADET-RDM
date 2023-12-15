@@ -112,14 +112,15 @@ class Notebook:
 
         is_in_order = self.check_execution_order(exclude_last_cell=False)
 
-        if is_in_order and not force_rerun:
-            print("Notebook was already executed in order.")
-            return
-        else:
-            rerun_confirmed_bool = wait_for_user("Notebook was not in order, rerun notebook now?")
-            if not rerun_confirmed_bool and not force_rerun:
-                print("Aborting.")
+        if not force_rerun:
+            if is_in_order:
+                print("Notebook was already executed in order.")
                 return
+            else:
+                rerun_confirmed_bool = wait_for_user("Rerun notebook now?")
+                if not rerun_confirmed_bool:
+                    print("Aborting.")
+                    return
 
         print("Rerunning.")
         with open(self.notebook_path) as f:

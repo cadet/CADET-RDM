@@ -1012,18 +1012,22 @@ class ProjectRepo(BaseRepo):
             self._on_context_enter_commit_hash = None
 
     @contextlib.contextmanager
-    def track_results(self, results_commit_message: str, debug=False):
+    def track_results(self, results_commit_message: str, debug=False, force=False):
         """
         Context manager to be used when running project code that produces output that should
         be tracked in the output repository.
         :param results_commit_message:
             Commit message for the commit of the output repository.
+        :param debug:
+            Perform calculations without tracking output.
+        :param force:
+            Skip confirmation and force tracking of results.
         """
         if debug:
             yield "debug"
             return
 
-        new_branch_name = self.enter_context()
+        new_branch_name = self.enter_context(force=force)
         try:
             yield new_branch_name
         except Exception as e:
@@ -1040,25 +1044,28 @@ class OutputRepo(BaseRepo):
 
 class JupyterInterfaceRepo(ProjectRepo):
     def commit(self, message: str, add_all=True):
+        if "nbconvert_call" in sys.argv:
+            print("Not committing during nbconvert.")
+            return
+
         Notebook.save_ipynb()
+
         super().commit(message, add_all)
 
     def commit_nb_output(self, notebook_path: str, results_commit_message: str,
-                         force_rerun=False, timeout=600, conversion_formats: list = None):
+                         force_rerun=True, timeout=600, conversion_formats: list = None):
+        if "nbconvert_call" in sys.argv:
+            return 
+        # This is reached in the first call of this function
         if not Path(notebook_path).is_absolute():
             notebook_path = self.working_dir / notebook_path
 
         notebook = Notebook(notebook_path)
 
-        if "nbconvert_call" not in sys.argv:
-            # This is reached in the first call of this function
-            self.enter_context(force=False)
-
+        with self.track_results(results_commit_message, force=True):
             notebook.check_and_rerun_notebook(force_rerun=force_rerun,
                                               timeout=timeout)
-        else:
-            # This is executed during the nbconvert call
+
+            # This is executed after the nbconvert call
             notebook.convert_ipynb(self.output_path, formats=conversion_formats)
             notebook.export_all_figures(self.output_path)
-
-            self.exit_context(results_commit_message)
