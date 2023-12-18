@@ -35,3 +35,20 @@ repo.create_gitlab_remotes(
     name="e.g. API_test_project"
 )
 ```
+
+## Extending GIT-LFS scope
+
+Several common datatypes are included in GIT-LFS by default. These currently are
+`"*.jpg", "*.png", "*.xlsx", "*.h5", "*.ipynb", "*.pdf", "*.docx", "*.zip", "*.html"`
+
+You can add datatypes you require by running:
+
+````python
+repo.add_filetype_to_lfs("*.npy")
+````
+
+or
+
+````commandline
+cadet-rdm add_filetype_to_lfs *.npy
+````

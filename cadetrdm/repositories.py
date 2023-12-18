@@ -15,6 +15,7 @@ from ipylab import JupyterFrontEnd
 from tabulate import tabulate
 import pandas as pd
 
+from cadetrdm.initialize_repo import init_lfs
 from cadetrdm.io_utils import recursive_chmod, write_lines_to_file, wait_for_user
 from cadetrdm.jupyter_functionality import Notebook
 from cadetrdm.remote_integration import create_gitlab_remote
@@ -145,7 +146,17 @@ class BaseRepo:
             project_repo.add_list_of_remotes_in_readme_file("output_repo", self.remote_urls)
             project_repo.commit("Add remote for output repo")
 
+    def add_filetype_to_lfs(self, file_type):
+        """
+        Add the filetype given in file_type to the GIT-LFS tracking
 
+        :param file_type:
+        Wildcard formatted string. Examples: "*.png" or "*.xlsx"
+        :return:
+        """
+        init_lfs(lfs_filetypes=[file_type], path=self.working_dir)
+        self.add_all_files()
+        self.commit(f"Add {file_type} to lfs")
 
     def import_remote_repo(self, source_repo_location, source_repo_branch, target_repo_location=None):
         """

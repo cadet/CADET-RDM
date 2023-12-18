@@ -97,11 +97,9 @@ def add_remote_to_repo(remote_url: str, path_to_repo="."):
 
 @cli.command()
 @click.argument('file_type')
-def add_file_type_to_lfs(file_type: str, ):
-    init_lfs(lfs_filetypes=[file_type], path=".")
+def add_filetype_to_lfs(file_type: str, ):
     repo = BaseRepo(".")
-    repo.add_all_files()
-    repo.commit(f"Add {file_type} to lfs")
+    repo.add_filetype_to_lfs(file_type)
 
 
 @cli.command()
