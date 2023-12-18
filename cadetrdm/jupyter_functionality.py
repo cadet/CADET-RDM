@@ -2,13 +2,19 @@ import sys
 import time
 import os
 from pathlib import Path
+import traceback
 
 from cadetrdm.io_utils import wait_for_user
 from ipylab import JupyterFrontEnd
 import junix
 import nbformat as nbf
-from nbconvert.preprocessors import ExecutePreprocessor
-from nbconvert.nbconvertapp import NbConvertApp
+
+try:
+    from nbconvert.preprocessors import ExecutePreprocessor
+    from nbconvert.nbconvertapp import NbConvertApp
+except ModuleNotFoundError as e:
+    traceback.print_exc()
+    print("No working nbconvert installation found OR a conflict in your packages found.")
 
 
 class Notebook:

@@ -6,7 +6,6 @@ import traceback
 from datetime import datetime
 import shutil
 import time
-import zipfile
 import contextlib
 import glob
 from stat import S_IREAD, S_IWRITE
@@ -611,7 +610,10 @@ class ProjectRepo(BaseRepo):
         super().__init__(repository_path, search_parent_directories=search_parent_directories, *args, **kwargs)
 
         with open(repository_path / "output_remotes.json", "r") as handle:
-            output_remotes = json.load(handle)
+            try:
+                output_remotes = json.load(handle)
+            except FileNotFoundError:
+                raise RuntimeError(f"Folder {self.working_dir} does not appear to be a CADET-RDM repository.")
 
         if output_folder is not None:
             print("Deprecation Warning. Setting the outputfolder manually during repo instantiation is deprecated"
