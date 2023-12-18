@@ -15,10 +15,9 @@ from ipylab import JupyterFrontEnd
 from tabulate import tabulate
 import pandas as pd
 
-from cadetrdm.initialize_repo import init_lfs
-from cadetrdm.io_utils import recursive_chmod, write_lines_to_file, wait_for_user
+from cadetrdm.io_utils import recursive_chmod, write_lines_to_file, wait_for_user, init_lfs
 from cadetrdm.jupyter_functionality import Notebook
-from cadetrdm.remote_integration import create_gitlab_remote
+from cadetrdm.remote_integration import create_gitlab_remote, create_github_remote
 from cadetrdm.version import version as cadetrdm_version
 
 try:
@@ -662,7 +661,7 @@ class ProjectRepo(BaseRepo):
         jupytext_lines = ['# Pair ipynb notebooks to py:percent text notebooks', 'formats: "ipynb,py:percent"']
         write_lines_to_file(Path(path_root) / "jupytext.yml", lines=jupytext_lines, open_type="w")
 
-    def create_gitlab_remotes(self, url, namespace, name):
+    def create_gitlab_remotes(self, name, namespace, url=None):
         """
         Create project in gitlab and add the projects as remotes to the project and output repositories
 
@@ -671,10 +670,25 @@ class ProjectRepo(BaseRepo):
         :param name:
         :return:
         """
-        response_project = create_gitlab_remote(url, namespace, name)
-        response_output = create_gitlab_remote(url, namespace, name + "_output")
+        response_project = create_gitlab_remote(url=url, namespace=namespace, name=name)
+        response_output = create_gitlab_remote(url=url, namespace=namespace, name=name + "_output")
         self.add_remote(response_project.ssh_url_to_repo)
         self.output_repo.add_remote(response_output.ssh_url_to_repo)
+        self.push(push_all=True)
+
+    def create_github_remotes(self, name, namespace=None, url="https://api.github.com"):
+        """
+        Create project in GitHub and add the projects as remotes to the project and output repositories
+
+        :param namespace:
+        :param name:
+        :param url:
+        :return:
+        """
+        response_project = create_github_remote(namespace=namespace, name=name, url=url)
+        response_output = create_github_remote(namespace=namespace, name=name + "_output", url=url)
+        self.add_remote(response_project.html_url)
+        self.output_repo.add_remote(response_output.html_url)
         self.push(push_all=True)
 
     def get_new_output_branch_name(self):

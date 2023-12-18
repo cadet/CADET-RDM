@@ -12,29 +12,7 @@ except ImportError:
 import cadetrdm
 from cadetrdm.repositories import ProjectRepo, OutputRepo
 from cadetrdm.web_utils import ssh_url_to_http_url
-from cadetrdm.io_utils import write_lines_to_file, is_tool, wait_for_user
-
-
-def init_lfs(lfs_filetypes: list, path: str = None):
-    """
-    Initialize lfs in the git repository at the path.
-    If path is None, the current working directory is used.
-    :param lfs_filetypes:
-        List of file types to be handled by lfs.
-        Format should be e.g. ["*.jpg", "*.png"] for jpg and png files.
-    """
-    if path is not None:
-        previous_path = os.getcwd()
-        os.chdir(path)
-    else:
-        previous_path = "."
-
-    os.system(f"git lfs install")
-    lfs_filetypes_string = " ".join(lfs_filetypes)
-    os.system(f"git lfs track {lfs_filetypes_string}")
-
-    if path is not None:
-        os.chdir(previous_path)
+from cadetrdm.io_utils import write_lines_to_file, is_tool, wait_for_user, init_lfs
 
 
 def initialize_repo(path_to_repo: str, output_folder_name: (str | bool) = "output", gitignore: list = None,

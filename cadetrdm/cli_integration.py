@@ -37,6 +37,22 @@ def import_remote_repo(source_repo_location, source_repo_branch, target_repo_loc
 
 
 @cli.command()
+@click.argument('url')
+@click.argument('namespace')
+@click.argument('name')
+def create_gitlab_remotes(url, namespace, name):
+    repo = ProjectRepo(".")
+    repo.create_gitlab_remotes(url=url, namespace=namespace, name=name)
+
+
+@cli.command()
+@click.argument('namespace')
+@click.argument('name')
+def create_github_remotes(namespace, name):
+    repo = ProjectRepo(".")
+    repo.create_github_remotes(namespace=namespace, name=name)
+
+@cli.command()
 def verify_unchanged_cache():
     repo = BaseRepo(".")
     repo.verify_unchanged_cache()
