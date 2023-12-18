@@ -13,8 +13,9 @@ try:
     from nbconvert.preprocessors import ExecutePreprocessor
     from nbconvert.nbconvertapp import NbConvertApp
 except ModuleNotFoundError as e:
-    traceback.print_exc()
+    # traceback.print_exc()
     print("No working nbconvert installation found OR a conflict in your packages found.")
+    print("For more information, import nbconvert and check the error.")
 
 
 class Notebook:
