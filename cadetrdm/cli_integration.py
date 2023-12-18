@@ -116,3 +116,9 @@ def print_output_log():
     # ToDo: test if Project or Output repo
     repo = ProjectRepo(".")
     repo.print_output_log()
+
+
+@cli.command(help="Push all changes to the project and output repositories.")
+def push():
+    repo = ProjectRepo(".")
+    repo.push(push_all=True)
