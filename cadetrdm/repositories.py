@@ -119,7 +119,8 @@ class BaseRepo:
 
     def add_remote(self, remote_url, remote_name="origin"):
         """
-        ToDO add documentation
+        Add a remote to the repository.
+
         :param remote_url:
         :param remote_name:
         :return:
@@ -298,40 +299,6 @@ class BaseRepo:
         if commit_changed or uncommited_changes:
             raise RuntimeError(f"The contents of {repo_location} have been modified. Don't do that.")
         repo._git.clear_cache()
-
-    def fill_data_from_cadet_rdm_json(self, re_load=False):
-        """
-        Iterate through all references within the .cadet-rdm-data.json and
-        load or re-load the data.
-
-        :param re_load:
-        If true: delete and re-load all data. If false, existing data will be left as-is.
-
-        ToDo: add to cadetrdm post-clone function
-        ToDo: can we integrate into git post-clone hooks?
-
-        :return:
-        """
-
-        with open(self.cache_json_path, "r") as file_handle:
-            rdm_cache = json.load(file_handle)
-
-        if "__example/path/to/repo__" in rdm_cache.keys():
-            rdm_cache.pop("__example/path/to/repo__")
-
-        for repo_location, repo_info in rdm_cache.items():
-            if os.path.exists(repo_location) and re_load is False:
-                continue
-            elif os.path.exists(repo_location) and re_load is True:
-                delete_path(repo_location)
-
-            if repo_info["source_repo_location"] == ".":
-                self.copy_data_to_cache(branch_name=repo_info["branch_name"])
-            else:
-                self.import_remote_repo(
-                    target_repo_location=repo_location,
-                    source_repo_location=repo_info["source_repo_location"],
-                    source_repo_branch=repo_info["branch_name"])
 
     def checkout(self, *args, **kwargs):
         self._most_recent_branch = self.active_branch
@@ -744,6 +711,37 @@ class ProjectRepo(BaseRepo):
 
         self.output_repo.checkout(self.output_repo._most_recent_branch)
 
+    def fill_data_from_cadet_rdm_json(self, re_load=False):
+        """
+        Iterate through all references within the .cadet-rdm-data.json and
+        load or re-load the data.
+
+        :param re_load:
+        If true: delete and re-load all data. If false, existing data will be left as-is.
+        :return:
+        """
+
+        with open(self.cache_json_path, "r") as file_handle:
+            rdm_cache = json.load(file_handle)
+
+        if "__example/path/to/repo__" in rdm_cache.keys():
+            rdm_cache.pop("__example/path/to/repo__")
+
+        for repo_location, repo_info in rdm_cache.items():
+            if os.path.exists(repo_location) and re_load is False:
+                continue
+            elif os.path.exists(repo_location) and re_load is True:
+                delete_path(repo_location)
+
+            if repo_info["source_repo_location"] == ".":
+                self.copy_data_to_cache(branch_name=repo_info["branch_name"])
+            else:
+                self.import_remote_repo(
+                    target_repo_location=repo_location,
+                    source_repo_location=repo_info["source_repo_location"],
+                    source_repo_branch=repo_info["branch_name"])
+
+
     def convert_csv_to_tsv_if_necessary(self):
         """
         If not tsv log is found AND a csv log is found, convert the csv to tsv.
@@ -892,7 +890,7 @@ class ProjectRepo(BaseRepo):
 
     def input_data(self, file_path, branch_name=None):
         """
-        # ToDo: needs testing!
+        # ToDo: needs testing
         Load previously generated results to iterate upon.
         :param file_path:
             Can be relative path within the cached output repository to the file you wish to load.

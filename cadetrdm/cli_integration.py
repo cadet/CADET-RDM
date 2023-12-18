@@ -4,7 +4,7 @@ import subprocess
 import click
 
 from .repositories import ProjectRepo, BaseRepo
-from .initialize_repo import initialize_repo as initialize_git_repo_implementation, init_lfs
+from .initialize_repo import initialize_repo as initialize_git_repo_implementation
 from .initialize_repo import clone as clone_implementation
 from .conda_env_utils import prepare_conda_env as prepare_conda_env_implementation
 

@@ -15,7 +15,7 @@ from cadetrdm.web_utils import ssh_url_to_http_url
 from cadetrdm.io_utils import write_lines_to_file, is_tool, wait_for_user, init_lfs
 
 
-def initialize_repo(path_to_repo: str, output_folder_name: (str | bool) = "output", gitignore: list = None,
+def initialize_repo(path_to_repo: str | Path, output_folder_name: (str | bool) = "output", gitignore: list = None,
                     gitattributes: list = None, output_repo_kwargs: dict = None):
     """
     Initialize a git repository at the given path with an optional included output results repository.
@@ -102,8 +102,8 @@ def initialize_repo(path_to_repo: str, output_folder_name: (str | bool) = "outpu
 
 
 def initialize_git(folder="."):
+    starting_directory = os.getcwd()
     if folder != ":":
-        starting_directory = os.getcwd()
         os.chdir(folder)
 
     try:

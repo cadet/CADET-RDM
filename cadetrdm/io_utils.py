@@ -1,6 +1,7 @@
 import os
 import shutil
 from _stat import S_IWRITE
+from pathlib import Path
 
 
 def add_linebreaks(input_list, initial_linebreak=True):
@@ -80,7 +81,7 @@ def wait_for_user(message):
         return False
 
 
-def init_lfs(lfs_filetypes: list, path: str = None):
+def init_lfs(lfs_filetypes: list, path: str | Path = None):
     """
     Initialize lfs in the git repository at the path.
     If path is None, the current working directory is used.

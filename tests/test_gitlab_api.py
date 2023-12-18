@@ -6,8 +6,7 @@ import pytest
 from cadetrdm import initialize_repo, ProjectRepo
 from cadetrdm.io_utils import delete_path
 
-from cadetrdm.remote_integration import delete_gitlab_remote, create_gitlab_remote, delete_github_remote, \
-    create_github_remote
+from cadetrdm.remote_integration import delete_gitlab_remote, create_gitlab_remote
 
 
 def test_gitlab_create():
@@ -36,6 +35,7 @@ def test_gitlab_create():
 
 
 # def test_github_create():
+#     from cadetrdm.remote_integration import delete_github_remote, create_github_remote
 #     namespace = "ronald-jaepel"
 #     name = "API_test_project"
 #

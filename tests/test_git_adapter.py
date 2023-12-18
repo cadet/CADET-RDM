@@ -39,7 +39,7 @@ def example_generate_results_array(path_to_repo, output_folder):
 
 
 def try_init_gitpython_repo(repo_path):
-    repo_path.exists()
+    Path(repo_path).exists()
     git.Repo(repo_path)
     return True
 
