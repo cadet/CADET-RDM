@@ -18,6 +18,7 @@ import pandas as pd
 
 from cadetrdm.io_utils import recursive_chmod, write_lines_to_file, wait_for_user
 from cadetrdm.jupyter_functionality import Notebook
+from cadetrdm.remote_integration import create_gitlab_remote
 from cadetrdm.version import version as cadetrdm_version
 
 try:
@@ -128,10 +129,24 @@ class BaseRepo:
         with open(self.data_json_path, "r") as handle:
             rdm_data = json.load(handle)
         if rdm_data["is_project_repo"]:
-            pass
+            # This folder is a project repo. Use a project repo class to easily access the output repo.
+            output_repo = ProjectRepo(self.working_dir).output_repo
+
+            if output_repo.active_branch != "master":
+                if output_repo.exist_uncomitted_changes:
+                    output_repo.stash_all_changes()
+                output_repo.checkout("master")
+
+            output_repo.add_list_of_remotes_in_readme_file("project_repo", self.remote_urls)
+            output_repo.commit("Add remote for project repo")
         if rdm_data["is_output_repo"]:
+            # This folder is an output repo
             project_repo = ProjectRepo(self.working_dir.parent)
             project_repo.update_output_remotes_json()
+            project_repo.add_list_of_remotes_in_readme_file("output_repo", self.remote_urls)
+            project_repo.commit("Add remote for output repo")
+
+
 
     def import_remote_repo(self, source_repo_location, source_repo_branch, target_repo_location=None):
         """
@@ -633,6 +648,21 @@ class ProjectRepo(BaseRepo):
     def add_jupytext_file(path_root: str | Path = "."):
         jupytext_lines = ['# Pair ipynb notebooks to py:percent text notebooks', 'formats: "ipynb,py:percent"']
         write_lines_to_file(Path(path_root) / "jupytext.yml", lines=jupytext_lines, open_type="w")
+
+    def create_gitlab_remotes(self, url, namespace, name):
+        """
+        Create project in gitlab and add the projects as remotes to the project and output repositories
+
+        :param url:
+        :param namespace:
+        :param name:
+        :return:
+        """
+        response_project = create_gitlab_remote(url, namespace, name)
+        response_output = create_gitlab_remote(url, namespace, name + "_output")
+        self.add_remote(response_project.ssh_url_to_repo)
+        self.output_repo.add_remote(response_output.ssh_url_to_repo)
+        self.push(push_all=True)
 
     def get_new_output_branch_name(self):
         """
