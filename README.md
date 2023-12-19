@@ -10,3 +10,6 @@ This tool aims to help track and version control:
 
 and allow for easy sharing, integration, and reproduction of generated results. 
 
+## Documentation
+
+You can read the documentation [here](https://cadet-rdm.readthedocs.io).
