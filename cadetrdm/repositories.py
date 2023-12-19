@@ -403,9 +403,13 @@ class BaseRepo:
         else:
             dump_path = self.working_dir
         print("Dumping conda environment.yml, this might take a moment.")
-        os.system(f"conda env export > {dump_path}/conda_environment.yml")
-        print("Dumping conda independent environment.yml, this might take a moment.")
-        os.system(f"conda env export --from-history > {dump_path}/conda_independent_environment.yml")
+        try:
+            os.system(f"conda env export > {dump_path}/conda_environment.yml")
+            print("Dumping conda independent environment.yml, this might take a moment.")
+            os.system(f"conda env export --from-history > {dump_path}/conda_independent_environment.yml")
+        except Exception as e:
+            print("Could not dump conda environment due to the following error:")
+            print(e)
         print("Dumping pip requirements.txt.")
         os.system(f"pip freeze > {dump_path}/pip_requirements.txt")
         print("Dumping pip independent requirements.txt.")
