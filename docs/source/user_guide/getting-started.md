@@ -23,7 +23,7 @@ The `output_folder_name` can be given optionally. It defaults to `output`.
 
 You can create remotes for both the project and the output repository with one command, using the GitLab or GitHub API.
 
-This requires you to have created a 
+Using the GitLab API requires you to have created a
 [GitLab Personal Access Token (PAT)](https://docs.gitlab.com/ee/user/profile/personal_access_tokens.html)
 and to store it in the `.token` file in the project's root. Then you can run:
 
@@ -41,7 +41,8 @@ or
 cadet-rdm create-gitlab-remotes API_test_project r.jaepel https://jugit.fz-juelich.de/
 ```
 
-Both functions are also available for the GitHub API:
+Both functions are also available for the GitHub API, which will require a
+[GitHub PAT](https://github.com/settings/tokens?type=beta):
 `repo.create_github_remotes(name, namespace)` and ` cadet-rdm create-github-remotes name namespace`.
 
 ## Extending GIT-LFS scope
@@ -52,10 +53,10 @@ Several common datatypes are included in GIT-LFS by default. These currently are
 You can add datatypes you require by running:
 
 ````python
-repo.add_filetype_to_lfs("*.npy")
+repo.output_repo.add_filetype_to_lfs("*.npy")
 ````
 
-or
+or from within the output folder:
 
 ```bash
 cadet-rdm add_filetype_to_lfs *.npy
