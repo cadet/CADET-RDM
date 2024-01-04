@@ -13,7 +13,6 @@ from urllib.request import urlretrieve
 
 from ipylab import JupyterFrontEnd
 from tabulate import tabulate
-import pandas as pd
 
 from cadetrdm.io_utils import recursive_chmod, write_lines_to_file, wait_for_user, init_lfs
 from cadetrdm.jupyter_functionality import Notebook
@@ -696,22 +695,13 @@ class ProjectRepo(BaseRepo):
 
         tsv_filepath = self.working_dir / self._output_folder / "log.tsv"
 
-        df = pd.read_csv(tsv_filepath, sep="\t", header=0)
-        # Clean up the headers
-        df = df.rename(columns={"Output repo commit message": 'Output commit message',
-                                "Output repo branch": "Output branch",
-                                "Output repo commit hash": "Output hash", "Project repo commit hash": "Project hash"})
-        # Shorten the commit hashes
-        df.loc[:, "Output hash"] = df.loc[:, "Output hash"].apply(lambda x: x[:8])
-        # Shorten commit messages
-        df.loc[:, "Output commit message"] = df.loc[:, "Output commit message"].apply(lambda x: x[:55])
-        df.loc[:, "Output commit message"] = df.loc[:, "Output commit message"].apply(insert_newlines)
+        with open(tsv_filepath, "r") as filehandle:
+            lines = filehandle.readlines()
 
-        # Select only columns of interest
-        df = df.loc[:, ["Output commit message", "Output hash", "Output branch"]]
+        line_array = [line.replace("\n", "").split("\t") for line in lines]
 
         # Print
-        print(tabulate(df, headers=df.columns, showindex=False))
+        print(tabulate(line_array[1:], headers=line_array[0]))
 
         self.output_repo.checkout(self.output_repo._most_recent_branch)
 

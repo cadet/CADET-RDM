@@ -2,24 +2,25 @@ import sys
 import time
 import os
 from pathlib import Path
-import traceback
-
 from cadetrdm.io_utils import wait_for_user
-from ipylab import JupyterFrontEnd
-import junix
-import nbformat as nbf
-
-try:
-    from nbconvert.preprocessors import ExecutePreprocessor
-    from nbconvert.nbconvertapp import NbConvertApp
-except ModuleNotFoundError as e:
-    # traceback.print_exc()
-    print("No working nbconvert installation found OR a conflict in your packages found.")
-    print("For more information, import nbconvert and check the error.")
 
 
 class Notebook:
     def __init__(self, notebook_path):
+
+        import nbformat as nbf
+        self.nbf = nbf
+
+        try:
+            from nbconvert.preprocessors import ExecutePreprocessor
+            from nbconvert.nbconvertapp import NbConvertApp
+            self.ExecutePreprocessor = ExecutePreprocessor
+            self.NbConvertApp = NbConvertApp
+        except ModuleNotFoundError as e:
+            # traceback.print_exc()
+            print("No working nbconvert installation found OR a conflict in your packages found.")
+            print("For more information, import nbconvert and check the error.")
+
         self.notebook_path = Path(notebook_path)
 
     @property
@@ -31,7 +32,7 @@ class Notebook:
                               check_top_to_bottom=False,
                               check_in_order=True,
                               exclude_last_cell=False):
-        notebook = nbf.read(self.notebook_path, nbf.NO_CONVERT)
+        notebook = self.nbf.read(self.notebook_path, self.nbf.NO_CONVERT)
 
         # extract all code cells (disregard markdown, raw and others), then extract the execution order
         output_cells = [cell for cell in notebook.cells if cell["cell_type"] == "code"]
@@ -96,6 +97,7 @@ class Notebook:
 
     @staticmethod
     def save_ipynb():
+        from ipylab import JupyterFrontEnd
         app = JupyterFrontEnd()
         print("Saving", end="")
         # note: docmanager:save doesn't lock the python thread until saving is completed.
@@ -106,6 +108,7 @@ class Notebook:
         print("")
 
     def reload_notebook(self):
+        from ipylab import JupyterFrontEnd
         app = JupyterFrontEnd()
         app.commands.execute('docmanager:reload')
 
@@ -131,20 +134,20 @@ class Notebook:
 
         print("Rerunning.")
         with open(self.notebook_path) as f:
-            nb = nbf.read(f, as_version=4)
+            nb = self.nbf.read(f, as_version=4)
 
-        ep = ExecutePreprocessor(timeout=timeout, kernel_name='python3', extra_arguments=["nbconvert_call"])
+        ep = self.ExecutePreprocessor(timeout=timeout, kernel_name='python3', extra_arguments=["nbconvert_call"])
         ep.preprocess(nb, )
 
         with open(self.notebook_path, 'w', encoding='utf-8') as f:
-            nbf.write(nb, f)
+            self.nbf.write(nb, f)
 
         self.reload_notebook()
 
     def convert_ipynb(self, output_dir, formats: list = None):
         if formats is None:
             formats = ["html", ]
-        app = NbConvertApp()
+        app = self.NbConvertApp()
         app.initialize()
         output_root_directory = os.path.join(output_dir, self.notebook_name)
         for export_format in formats:
@@ -157,8 +160,9 @@ class Notebook:
             app.start()
 
     def export_all_figures(self, output_dir):
+        import junix
+
         file_without_extension = self.notebook_path.stem
         images = junix.export_images(filepath=str(self.notebook_path),
                                      output_dir=os.path.join(output_dir, self.notebook_name),
                                      prefix=file_without_extension)
-
