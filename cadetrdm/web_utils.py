@@ -2,6 +2,9 @@ from urllib.parse import urlparse
 
 
 def ssh_url_to_http_url(url):
+    if "https" in url:
+        return url
+
     url = url.replace(":", "/").replace("git@", "https://").replace(".git", "")
     return url
 
