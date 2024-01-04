@@ -77,10 +77,18 @@ def try_commit_results_data(path_to_repo):
     repo = ProjectRepo(path_to_repo)
     current_commit_number = count_commit_number(repo.output_repo)
     with repo.track_results(results_commit_message="Add array"):
-        example_generate_results_array(path_to_repo, output_folder=repo.output_folder)
+        example_generate_results_array(path_to_repo, output_folder=repo.output_path)
     updated_commit_number = count_commit_number(repo.output_repo)
     assert current_commit_number <= updated_commit_number
     return str(repo.output_repo.active_branch)
+
+
+def try_output_function(path_to_repo):
+    repo = ProjectRepo(path_to_repo)
+    filepath = repo.output_path / "foo" / "bar"
+    assert isinstance(filepath, Path)
+    filepath = repo.output_data("foo/bar")
+    assert isinstance(filepath, Path)
 
 
 def try_print_log(path_to_repo):
@@ -93,7 +101,7 @@ def try_commit_results_with_uncommitted_code_changes(path_to_repo):
     modify_code(path_to_repo)
     with pytest.raises(Exception):
         with repo.track_results(results_commit_message="Add array"):
-            example_generate_results_array(path_to_repo, output_folder=repo.output_folder)
+            example_generate_results_array(path_to_repo, output_folder=repo.output_path)
     repo.commit("add code to print random number", add_all=True)
 
 
@@ -104,7 +112,7 @@ def try_load_previous_output(path_to_repo, branch_name):
                                             file_path="result.csv")
         previous_array = np.loadtxt(cached_array_path, delimiter=",")
         extended_array = np.concatenate([previous_array, previous_array])
-        extended_array_file_path = path_to_repo / repo.output_folder / "extended_result.csv"
+        extended_array_file_path = path_to_repo / repo.output_path / "extended_result.csv"
         np.savetxt(extended_array_file_path,
                    extended_array,
                    delimiter=",")
@@ -201,8 +209,8 @@ def test_cadet_rdm(path_to_repo):
     try_commit_code(path_to_repo)
     try_commit_code_without_code_changes(path_to_repo)
     try_commit_results_with_uncommitted_code_changes(path_to_repo)
+    try_output_function(path_to_repo)
 
-    results_branch_name = try_commit_results_data(path_to_repo)
     results_branch_name = try_commit_results_data(path_to_repo)
     try_print_log(path_to_repo)
 

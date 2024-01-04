@@ -600,7 +600,7 @@ class ProjectRepo(BaseRepo):
             print("Deprecation Warning. Setting the outputfolder manually during repo instantiation is deprecated"
                   " and will be removed in a future update.")
 
-        self.output_folder = output_remotes["output_folder_name"]
+        self._output_folder = output_remotes["output_folder_name"]
 
         with open(repository_path / ".cadet-rdm-data.json", "r") as handle:
             metadata = json.load(handle)
@@ -609,7 +609,7 @@ class ProjectRepo(BaseRepo):
                 print(f"Repo version {repo_version} is outdated. Current CADET-RDM version is {cadetrdm_version}\n"
                       "Updating the repository now.")
 
-        self._output_repo = OutputRepo(self.working_dir / self.output_folder)
+        self._output_repo = OutputRepo(self.working_dir / self._output_folder)
         self._on_context_enter_commit_hash = None
         self._is_in_context_manager = False
 
@@ -669,7 +669,7 @@ class ProjectRepo(BaseRepo):
         """
         project_repo_hash = str(self.head.commit)
         timestamp = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
-        branch_name = "_".join([timestamp, self.output_folder, "from", str(self.active_branch), project_repo_hash[:7]])
+        branch_name = "_".join([timestamp, self._output_folder, "from", str(self.active_branch), project_repo_hash[:7]])
         return branch_name
 
     def check_results_master(self):
@@ -694,7 +694,7 @@ class ProjectRepo(BaseRepo):
 
         self.output_repo.checkout("master")
 
-        tsv_filepath = self.working_dir / self.output_folder / "log.tsv"
+        tsv_filepath = self.working_dir / self._output_folder / "log.tsv"
 
         df = pd.read_csv(tsv_filepath, sep="\t", header=0)
         # Clean up the headers
@@ -752,11 +752,11 @@ class ProjectRepo(BaseRepo):
 
         :return:
         """
-        tsv_filepath = self.working_dir / self.output_folder / "log.tsv"
+        tsv_filepath = self.working_dir / self._output_folder / "log.tsv"
         if tsv_filepath.exists():
             return
 
-        csv_filepath = self.working_dir / self.output_folder / "log.csv"
+        csv_filepath = self.working_dir / self._output_folder / "log.csv"
         if not csv_filepath.exists():
             # We have just initialized the repo and neither tsv nor csv exist.
             return
@@ -787,7 +787,7 @@ class ProjectRepo(BaseRepo):
 
         self._output_repo._git.checkout("master")
 
-        logs_folderpath = self.working_dir / self.output_folder / "run_history" / output_branch_name
+        logs_folderpath = self.working_dir / self._output_folder / "run_history" / output_branch_name
         if not logs_folderpath.exists():
             os.makedirs(logs_folderpath)
 
@@ -876,7 +876,7 @@ class ProjectRepo(BaseRepo):
         output_json_filepath = self.working_dir / "output_remotes.json"
         with open(output_json_filepath, "w") as file_handle:
             remotes_dict = {remote.name: str(remote.url) for remote in self.output_repo.remotes}
-            json_dict = {"output_folder_name": self.output_folder, "output_remotes": remotes_dict}
+            json_dict = {"output_folder_name": self._output_folder, "output_remotes": remotes_dict}
             json.dump(json_dict, file_handle, indent=2)
 
     def download_file(self, url, file_path):
@@ -927,7 +927,7 @@ class ProjectRepo(BaseRepo):
 
         source_filepath = self.output_repo.working_dir / file_path
 
-        target_folder = self.working_dir / (self.output_folder + "_cached") / branch_name
+        target_folder = self.working_dir / (self._output_folder + "_cached") / branch_name
         os.makedirs(target_folder, exist_ok=True)
 
         target_filepath = target_folder / file_path
@@ -957,14 +957,14 @@ class ProjectRepo(BaseRepo):
         if sub_path is None:
             return self.working_dir / self.output_repo.working_dir
         else:
-            return self.working_dir / self.output_repo.working_dir, sub_path
+            return self.working_dir / self.output_repo.working_dir / sub_path
 
     def remove_cached_files(self):
         """
         Delete all previously cached results.
         """
-        if (self.working_dir / (self.output_folder + "_cached")).exists():
-            delete_path(self.working_dir / (self.output_folder + "_cached"))
+        if (self.working_dir / (self._output_folder + "_cached")).exists():
+            delete_path(self.working_dir / (self._output_folder + "_cached"))
 
     def test_for_correct_repo_setup(self):
         """
@@ -1024,7 +1024,7 @@ class ProjectRepo(BaseRepo):
                 previous_branch = self.output_repo.active_branch.name
                 self.output_repo.checkout(branch_name)
 
-            target_folder = self.working_dir / (self.output_folder + "_cached") / branch_name
+            target_folder = self.working_dir / (self._output_folder + "_cached") / branch_name
 
             shutil.copytree(source_filepath, target_folder)
 
