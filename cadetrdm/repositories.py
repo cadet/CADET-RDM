@@ -116,7 +116,7 @@ class BaseRepo:
     def cache_json_path(self):
         return self.working_dir / ".cadet-rdm-cache.json"
 
-    def add_remote(self, remote_url, remote_name="origin"):
+    def add_remote(self, remote_url, remote_name=None):
         """
         Add a remote to the repository.
 
@@ -124,6 +124,8 @@ class BaseRepo:
         :param remote_name:
         :return:
         """
+        if remote_name is None:
+            remote_name = "origin"
         self._git_repo.create_remote(remote_name, url=remote_url)
         with open(self.data_json_path, "r") as handle:
             rdm_data = json.load(handle)
@@ -366,9 +368,9 @@ class BaseRepo:
     def reset_hard_to_head(self, force_entry=False):
         if not force_entry:
             proceed = wait_for_user(f'The output directory contains the following uncommitted changes:\n'
-                                f'{self.untracked_files + self.changed_files}\n'
-                                f' These will be lost if you continue\n'
-                                f'Proceed?')
+                                    f'{self.untracked_files + self.changed_files}\n'
+                                    f' These will be lost if you continue\n'
+                                    f'Proceed?')
         else:
             proceed = True
         if not proceed:
@@ -685,25 +687,7 @@ class ProjectRepo(BaseRepo):
         self._output_repo._git.checkout(self._most_recent_branch)
 
     def print_output_log(self):
-        def insert_newlines(string, every=30):
-            lines = []
-            for i in range(0, len(string), every):
-                lines.append(string[i:i + every])
-            return '\n'.join(lines)
-
-        self.output_repo.checkout("master")
-
-        tsv_filepath = self.working_dir / self._output_folder / "log.tsv"
-
-        with open(tsv_filepath, "r") as filehandle:
-            lines = filehandle.readlines()
-
-        line_array = [line.replace("\n", "").split("\t") for line in lines]
-
-        # Print
-        print(tabulate(line_array[1:], headers=line_array[0]))
-
-        self.output_repo.checkout(self.output_repo._most_recent_branch)
+        self.output_repo.print_data_log()
 
     def fill_data_from_cadet_rdm_json(self, re_load=False):
         """
@@ -734,7 +718,6 @@ class ProjectRepo(BaseRepo):
                     target_repo_location=repo_location,
                     source_repo_location=repo_info["source_repo_location"],
                     source_repo_branch=repo_info["branch_name"])
-
 
     def convert_csv_to_tsv_if_necessary(self):
         """
@@ -1086,9 +1069,22 @@ class ProjectRepo(BaseRepo):
             self.exit_context(message=results_commit_message)
 
 
-
 class OutputRepo(BaseRepo):
-    pass
+
+    def print_data_log(self):
+        self.checkout("master")
+
+        tsv_filepath = self.working_dir / "log.tsv"
+
+        with open(tsv_filepath, "r") as filehandle:
+            lines = filehandle.readlines()
+
+        line_array = [line.replace("\n", "").split("\t") for line in lines]
+
+        # Print
+        print(tabulate(line_array[1:], headers=line_array[0]))
+
+        self.checkout(self._most_recent_branch)
 
 
 class JupyterInterfaceRepo(ProjectRepo):
@@ -1104,8 +1100,8 @@ class JupyterInterfaceRepo(ProjectRepo):
     def commit_nb_output(self, notebook_path: str, results_commit_message: str,
                          force_rerun=True, timeout=600, conversion_formats: list = None):
         if "nbconvert_call" in sys.argv:
-            return 
-        # This is reached in the first call of this function
+            return
+            # This is reached in the first call of this function
         if not Path(notebook_path).is_absolute():
             notebook_path = self.working_dir / notebook_path
 
