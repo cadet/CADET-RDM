@@ -779,24 +779,24 @@ class ProjectRepo(BaseRepo):
             "Python sys args": str(sys.argv),
             "Tags": ", ".join(self.tags),
         }
-        csv_header = "\t".join(meta_info_dict.keys())
-        csv_data = "\t".join([str(x) for x in meta_info_dict.values()])
+        tsv_header = "\t".join(meta_info_dict.keys())
+        tsv_data = "\t".join([str(x) for x in meta_info_dict.values()])
 
         with open(json_filepath, "w") as f:
             json.dump(meta_info_dict, f, indent=2)
 
         if not tsv_filepath.exists():
             with open(tsv_filepath, "w") as f:
-                f.write(csv_header + "\n")
-                # csv.writer(csv_header + "\n")
+                f.write(tsv_header + "\n")
+                # csv.writer(tsv_header + "\n")
 
         with open(tsv_filepath, "r") as f:
             existing_header = f.readline().replace("\n", "")
-            if existing_header != csv_header:
+            if existing_header != tsv_header:
                 raise ValueError("The used structure of the meta_dict doesn't match the header found in log.tsv")
 
         with open(tsv_filepath, "a") as f:
-            f.write(csv_data + "\n")
+            f.write(tsv_data + "\n")
 
         self.dump_package_list(logs_folderpath)
 
@@ -882,12 +882,12 @@ class ProjectRepo(BaseRepo):
             return file_path
 
         if branch_name is None and not os.path.exists(file_path):
-            branch_name_and_path = file_path.split("_cached")[-1]
+            branch_name_and_path = file_path.split("_cached/")[-1]
             if os.sep not in branch_name_and_path:
                 sep = "/"
             else:
                 sep = os.sep
-            branch_name, file_path = file_path.split(sep, maxsplit=1)
+            branch_name, file_path = branch_name_and_path.split(sep, maxsplit=1)
 
         if self.output_repo.exist_uncomitted_changes:
             self.output_repo.stash_all_changes()
@@ -1034,6 +1034,7 @@ class ProjectRepo(BaseRepo):
             commit_return = self.output_repo._git.commit("-m", message)
             self.copy_data_to_cache()
             self.update_output_master_logs()
+            self.copy_data_to_cache("master")
             print("\n" + commit_return + "\n")
         except git.exc.GitCommandError as e:
             self.output_repo.delete_active_branch_if_branch_is_empty()
@@ -1063,10 +1064,15 @@ class ProjectRepo(BaseRepo):
         try:
             yield new_branch_name
         except Exception as e:
+            self.capture_error(e)
             self.output_repo.delete_active_branch_if_branch_is_empty()
             raise e
         else:
             self.exit_context(message=results_commit_message)
+
+    def capture_error(self, error):
+        print(traceback.format_exc())
+        write_lines_to_file(self.output_path / "error.stack", traceback.format_exc())
 
 
 class OutputRepo(BaseRepo):
