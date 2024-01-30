@@ -23,12 +23,20 @@ The `output_folder_name` can be given optionally. It defaults to `output`.
 
 You can create remotes for both the project and the output repository with one command, using the GitLab or GitHub API.
 
-Using the GitLab API requires you to have created a
-[GitLab Personal Access Token (PAT)](https://docs.gitlab.com/ee/user/profile/personal_access_tokens.html)
-and to store it in the `.token` file in the project's root. Then you can run:
+You need to create a
+[GitLab Personal Access Token (PAT)](https://docs.gitlab.com/ee/user/profile/personal_access_tokens.html) or [GitHub PAT](https://github.com/settings/tokens?type=beta)
+and to store it in the Python `keyring` using
 
 ```python
-repo.create_gitlab_remotes(
+import keyring
+
+keyring.set_password("e.g. https://jugit.fz-juelich.de/", username, token)
+```
+
+Then you can run:
+
+```python
+repo.create_remotes(
     name="e.g. API_test_project",
     namespace="e.g. r.jaepel",
     url="e.g. https://jugit.fz-juelich.de/",
@@ -38,12 +46,10 @@ repo.create_gitlab_remotes(
 or
 
 ```bash
-cadet-rdm create-gitlab-remotes API_test_project r.jaepel https://jugit.fz-juelich.de/
+cadet-rdm create-remotes name namespace url username
+cadet-rdm create-remotes API_test_project r.jaepel https://jugit.fz-juelich.de/ r.jaepel
 ```
 
-Both functions are also available for the GitHub API, which will require a
-[GitHub PAT](https://github.com/settings/tokens?type=beta):
-`repo.create_github_remotes(name, namespace)` and ` cadet-rdm create-github-remotes name namespace`.
 
 ## Extending GIT-LFS scope
 
