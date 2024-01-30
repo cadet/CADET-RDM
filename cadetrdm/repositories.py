@@ -132,10 +132,10 @@ class BaseRepo:
             # This folder is a project repo. Use a project repo class to easily access the output repo.
             output_repo = ProjectRepo(self.working_dir).output_repo
 
-            if output_repo.active_branch != "master":
+            if output_repo.active_branch != "main":
                 if output_repo.exist_uncomitted_changes:
                     output_repo.stash_all_changes()
-                output_repo.checkout("master")
+                output_repo.checkout("main")
 
             output_repo.add_list_of_remotes_in_readme_file("project_repo", self.remote_urls)
             output_repo.commit("Add remote for project repo")
@@ -340,18 +340,18 @@ class BaseRepo:
 
     def delete_active_branch_if_branch_is_empty(self):
         """
-        Delete the currently active branch and checkout the master branch
+        Delete the currently active branch and checkout the main branch
         :return:
         """
         previous_branch = self.active_branch.name
-        if previous_branch == "master":
+        if previous_branch == "main":
             return
 
-        commit_of_current_master = str(self._git.rev_parse("master"))
+        commit_of_current_main = str(self._git.rev_parse("main"))
         commit_of_current_branch = str(self.head.commit)
-        if commit_of_current_branch == commit_of_current_master:
+        if commit_of_current_branch == commit_of_current_main:
             print("Removing empty branch", previous_branch)
-            self._git.checkout("master")
+            self._git.checkout("main")
             self._git.branch("-d", previous_branch)
 
     def add_all_files(self, automatically_add_new_files=True):
@@ -480,14 +480,14 @@ class BaseRepo:
     def prepare_new_branch(self, branch_name):
         """
         Prepares a new branch to recieve data. This includes:
-         - checking out the master branch,
+         - checking out the main branch,
          - creating a new branch from there
         This thereby produces a clear, empty directory for data, while still maintaining
         .gitignore and .gitattributes
         :param branch_name:
             Name of the new branch.
         """
-        self._git.checkout("master")
+        self._git.checkout("main")
         self._git.checkout('-b', branch_name)  # equivalent to $ git checkout -b %branch_name
         code_backup_path = self.working_dir / "run_history"
         logs_path = self.working_dir / "log.tsv"
@@ -662,12 +662,12 @@ class ProjectRepo(BaseRepo):
         branch_name = "_".join([timestamp, self._output_folder, "from", str(self.active_branch), project_repo_hash[:7]])
         return branch_name
 
-    def check_results_master(self):
+    def check_results_main(self):
         """
-        Checkout the master branch, which contains all the log files.
+        Checkout the main branch, which contains all the log files.
         """
         self._most_recent_branch = self._output_repo.active_branch.name
-        self._output_repo._git.checkout("master")
+        self._output_repo._git.checkout("main")
 
     def reload_recent_results(self):
         """
@@ -735,10 +735,10 @@ class ProjectRepo(BaseRepo):
                             lines=["rdm-log.tsv merge=union"],
                             open_type="a")
 
-    def update_output_master_logs(self, ):
+    def update_output_main_logs(self, ):
         """
         Dumps all the metadata information about the project repositories state and
-        the commit hash and branch name of the ouput repository into the master branch of
+        the commit hash and branch name of the ouput repository into the main branch of
         the output repository.
         """
         output_branch_name = str(self._output_repo.active_branch)
@@ -747,7 +747,7 @@ class ProjectRepo(BaseRepo):
         output_commit_message = self._output_repo.active_branch.commit.message
         output_commit_message = output_commit_message.replace("\n", "; ")
 
-        self._output_repo._git.checkout("master")
+        self._output_repo._git.checkout("main")
 
         logs_folderpath = self.working_dir / self._output_folder / "run_history" / output_branch_name
         if not logs_folderpath.exists():
@@ -958,8 +958,8 @@ class ProjectRepo(BaseRepo):
 
         new_branch_name = self.get_new_output_branch_name()
 
-        # update urls in master branch of output_repo
-        output_repo._git.checkout("master")
+        # update urls in main branch of output_repo
+        output_repo._git.checkout("main")
         project_repo_remotes = self.remote_urls
         output_repo.add_list_of_remotes_in_readme_file("project_repo", project_repo_remotes)
         output_repo.commit("Update urls")
@@ -1008,7 +1008,7 @@ class ProjectRepo(BaseRepo):
          - Ensure no uncommitted changes in the project repository
          - Stage all changes in the output repository
          - Commit all changes in the output repository with the given commit message.
-         - Update the log files in the master branch of the output repository.
+         - Update the log files in the main branch of the output repository.
         :param message:
             Commit message for the output repository commit.
         """
@@ -1022,8 +1022,8 @@ class ProjectRepo(BaseRepo):
             # This has to be using ._git.commit to raise an error if no results have been written.
             commit_return = self.output_repo._git.commit("-m", message)
             self.copy_data_to_cache()
-            self.update_output_master_logs()
-            self.copy_data_to_cache("master")
+            self.update_output_main_logs()
+            self.copy_data_to_cache("main")
             print("\n" + commit_return + "\n")
         except git.exc.GitCommandError as e:
             self.output_repo.delete_active_branch_if_branch_is_empty()
@@ -1067,7 +1067,7 @@ class ProjectRepo(BaseRepo):
 class OutputRepo(BaseRepo):
 
     def print_data_log(self):
-        self.checkout("master")
+        self.checkout("main")
 
         tsv_filepath = self.working_dir / "log.tsv"
 

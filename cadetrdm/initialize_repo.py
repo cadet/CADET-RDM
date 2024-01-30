@@ -114,7 +114,7 @@ def initialize_git(folder="."):
         if not proceed:
             raise KeyboardInterrupt
     except git.exc.InvalidGitRepositoryError:
-        os.system(f"git init")
+        os.system(f"git init -b main")
 
     if folder != ":":
         os.chdir(starting_directory)
