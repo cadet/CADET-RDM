@@ -1,15 +1,15 @@
-from pathlib import Path
 import os
 import random
+from pathlib import Path
 
-import pytest
 import git
 import numpy as np
+import pytest
 
 from cadetrdm import initialize_repo, ProjectRepo, clone
 from cadetrdm.initialize_repo import init_lfs
-from cadetrdm.repositories import OutputRepo, BaseRepo
 from cadetrdm.io_utils import delete_path
+from cadetrdm.repositories import OutputRepo, BaseRepo
 
 
 @pytest.fixture(scope="module")
@@ -158,7 +158,7 @@ def test_init_over_existing_repo(monkeypatch):
 
 
 def test_cache_with_non_rdm_repo(monkeypatch):
-    path_to_repo = Path("test_repo_5")
+    path_to_repo = Path("non_rdm_repo")
     if path_to_repo.exists():
         delete_path(path_to_repo)
     os.makedirs(path_to_repo)
@@ -172,15 +172,22 @@ def test_cache_with_non_rdm_repo(monkeypatch):
     repo.git.add(".")
     repo.git.commit("-m", "Initial commit")
 
-    imported_repo = OutputRepo("../test_repo/results")
-    branch_name = imported_repo.active_branch.name
+    os.chdir("..")
+    if Path("test_repo_non_rdm_imports").exists():
+        delete_path("test_repo_non_rdm_imports")
+    initialize_repo("test_repo_non_rdm_imports")
+    os.chdir("test_repo_non_rdm_imports")
 
     repo = BaseRepo(".")
 
+    if Path("external_cache/non_rdm_repo").exists():
+        delete_path("external_cache/non_rdm_repo")
+    if Path("foo/bar/non_rdm_repo").exists():
+        delete_path("foo/bar/non_rdm_repo")
     # import two repos and confirm verify works.
-    repo.import_remote_repo(source_repo_location="../test_repo/results", source_repo_branch=branch_name)
-    repo.import_remote_repo(source_repo_location="../test_repo/results", source_repo_branch=branch_name,
-                            target_repo_location="foo/bar/repo")
+    repo.import_remote_repo(source_repo_location=".." / path_to_repo, source_repo_branch="master")
+    repo.import_remote_repo(source_repo_location=".." / path_to_repo, source_repo_branch="master",
+                            target_repo_location="foo/bar/non_rdm_repo")
     repo.verify_unchanged_cache()
 
 

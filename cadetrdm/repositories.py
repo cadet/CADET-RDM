@@ -1,13 +1,12 @@
-import os
-from pathlib import Path
+import contextlib
+import glob
 import json
+import os
+import shutil
 import sys
 import traceback
 from datetime import datetime
-import shutil
-import time
-import contextlib
-import glob
+from pathlib import Path
 from stat import S_IREAD, S_IWRITE
 from urllib.request import urlretrieve
 
@@ -176,8 +175,12 @@ class BaseRepo:
         :return:
         Path to the cloned repository
         """
+        if "://" in str(source_repo_location):
+            source_repo_name = source_repo_location.split("/")[-1]
+        else:
+            source_repo_name = Path(source_repo_location).name
         if target_repo_location is None:
-            target_repo_location = self.working_dir / "external_cache" / source_repo_location.split("/")[-1]
+            target_repo_location = self.working_dir / "external_cache" / source_repo_name
         else:
             target_repo_location = self.working_dir / target_repo_location
 
@@ -234,6 +237,9 @@ class BaseRepo:
             rdm_cache.pop("__example/path/to/repo__")
 
         target_repo_location = str(self.ensure_relative_path(target_repo_location))
+
+        if isinstance(source_repo_location, Path):
+            source_repo_location = source_repo_location.as_posix()
 
         rdm_cache[target_repo_location] = {
             "source_repo_location": source_repo_location,
