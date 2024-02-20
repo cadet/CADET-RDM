@@ -5,10 +5,10 @@ import pytest
 
 from cadetrdm import initialize_repo, ProjectRepo
 from cadetrdm.io_utils import delete_path
-
 from cadetrdm.remote_integration import GitHubRemote, GitLabRemote
 
 
+@pytest.mark.server_api
 def test_gitlab_create():
     url = "https://jugit.fz-juelich.de/"
     namespace = "r.jaepel"
@@ -35,6 +35,7 @@ def test_gitlab_create():
         git.Repo.clone_from(response.ssh_url_to_repo, "test_repo_remote")
 
 
+@pytest.mark.server_api
 def test_github_create():
     namespace = "ronald-jaepel"
     name = "API_test_project"
@@ -66,6 +67,7 @@ def test_github_create():
         git.Repo.clone_from(response.ssh_url, "test_repo_remote")
 
 
+@pytest.mark.server_api
 def test_repo_gitlab_integration():
     url = "https://jugit.fz-juelich.de/"
     namespace = "r.jaepel"

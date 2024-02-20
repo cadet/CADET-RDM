@@ -1,3 +1,4 @@
+import pytest
 from pathlib import Path
 import random
 import os
@@ -44,6 +45,7 @@ def test_02_add_remote():
     assert result.exit_code == 0
 
 
+@pytest.mark.server_api
 def test_02b_clone():
     os.chdir("..")
     if os.path.exists("test_repo_cli_cloned"):
