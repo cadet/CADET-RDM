@@ -13,6 +13,8 @@
 import os
 import sys
 
+import cadetrdm
+
 sys.path.insert(0, os.path.abspath('../..'))
 from datetime import date
 
@@ -22,10 +24,8 @@ project = 'CADET-RDM'
 copyright = f'2023-{date.today().year}'
 author = 'IBG-1 ModSim Group'
 
-import cadetrdm
-
 version = cadetrdm.__version__
-release = cadetrdm.__version__.replace("_", "")
+release = version.replace("_", "")
 
 # -- General configuration ---------------------------------------------------
 

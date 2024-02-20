@@ -1,6 +1,5 @@
-from .repositories import ProjectRepo, JupyterInterfaceRepo
-from .initialize_repo import initialize_repo, clone
 from .conda_env_utils import prepare_conda_env
-from .version import version
+from .initialize_repo import initialize_repo, clone
+from .repositories import ProjectRepo, JupyterInterfaceRepo
 
-__version__ = version
+__version__ = "0.0.19"

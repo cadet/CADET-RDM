@@ -12,10 +12,10 @@ from urllib.request import urlretrieve
 
 from tabulate import tabulate
 
+import cadetrdm
 from cadetrdm.io_utils import recursive_chmod, write_lines_to_file, wait_for_user, init_lfs
 from cadetrdm.jupyter_functionality import Notebook
 from cadetrdm.remote_integration import GitHubRemote, GitLabRemote
-from cadetrdm.version import version as cadetrdm_version
 
 try:
     import git
@@ -601,6 +601,7 @@ class ProjectRepo(BaseRepo):
         with open(repository_path / ".cadet-rdm-data.json", "r") as handle:
             metadata = json.load(handle)
             repo_version = metadata["cadet_rdm_version"]
+            cadetrdm_version = cadetrdm.__version__
             if cadetrdm_version != repo_version:
                 print(f"Repo version {repo_version} is outdated. Current CADET-RDM version is {cadetrdm_version}\n"
                       "Updating the repository now.")
