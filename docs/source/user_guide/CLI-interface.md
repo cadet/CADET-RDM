@@ -6,7 +6,7 @@
 Create a new project repository or convert an existing repository into a CADET-RDM repo:
 
 ```bash
-cadet-rdm initialize-repo <path-to-repo>
+rdm init <path-to-repo>
 ```
 
 
@@ -19,14 +19,14 @@ You can execute python files or arbitray commands using the CLI:
 
 ```bash
 cd path/to/your/project
-cadet-rdm run-python-file <path/to/file> "commit message for the results"
-cadet-rdm run-command "command as it would be run" "commit message for the results"
+rdm run python <path/to/file> "commit message for the results"
+rdm run command "command as it would be run" "commit message for the results"
 ```
 
 For the run-command option, the command must be given in quotes, so:
 
 ```bash
-cadet-rdm run-command "python example_file.py" "commit message for the results"
+rdm run command "python example_file.py" "commit message for the results"
 ```
 
 
@@ -36,8 +36,8 @@ You can load in results from another repository to use in your project using the
 
 ```bash
 cd path/to/your/project
-cadet-rdm import-remote-repo <URL> <branch_name>
-cadet-rdm import-remote-repo <URL> <branch_name> --target_repo_location <path/to/where/you/want/it>
+rdm data import <URL> <branch_name>
+rdm data import <URL> <branch_name> --target_repo_location <path/to/where/you/want/it>
 ```
 
 This will store the URL, branch_name and location in the .cadet-rdm-cache.json file, like this:
@@ -55,7 +55,7 @@ This will store the URL, branch_name and location in the .cadet-rdm-cache.json f
 You can use this file to load the remote repositories based on the cache.json with
 
 ```bash
-cadet-rdm fill-data-from-cadet-rdm-json
+rdm data fetch
 ```
 
 ## Cloning from remote
@@ -63,7 +63,7 @@ cadet-rdm fill-data-from-cadet-rdm-json
 You should use `cadet-rdm clone` instead of `git clone` to clone the repo to a new location.
 
 ```bash
-cadet-rdm clone <URL> <path/to/repo>
+rdm clone <URL> <path/to/repo>
 ```
 
 
@@ -76,13 +76,14 @@ _results_ repo.
 Once created, the remotes need to be added to the local repositories.
 
 ```bash
-cadet-rdm add-remote-to-repo git@<my_git_server.foo>:<project>.git
-cadet-rdm --path_to_repo output add-remote-to-repo git@<my_git_server.foo>:<project>_output.git
+rdm remote add git@<my_git_server.foo>:<project>.git
+cd output
+rdm remote add git@<my_git_server.foo>:<project>_output.git
 ```
 
 Once remotes are configured, you can push all changes to the project repo and the results repos with the
 command
 
 ```bash
-cadet-rdm push
+rdm push
 ```
