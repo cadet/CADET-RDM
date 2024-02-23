@@ -35,7 +35,7 @@ def validate_is_output_repo(path_to_repo):
 
 
 class BaseRepo:
-    def __init__(self, repository_path=None, search_parent_directories=False, *args, **kwargs):
+    def __init__(self, repository_path=None, search_parent_directories=True, *args, **kwargs):
         """
         Base class handling most git workflows.
 
@@ -562,7 +562,7 @@ class BaseRepo:
 
 
 class ProjectRepo(BaseRepo):
-    def __init__(self, repository_path=".", output_folder=None,
+    def __init__(self, repository_path=None, output_folder=None,
                  search_parent_directories=True, *args, **kwargs):
         """
         Class for Project-Repositories. Handles interaction between the project repo and
@@ -582,11 +582,9 @@ class ProjectRepo(BaseRepo):
         :param kwargs:
             Additional kwargs to be handed to BaseRepo.
         """
-        repository_path = Path(repository_path)
-
         super().__init__(repository_path, search_parent_directories=search_parent_directories, *args, **kwargs)
 
-        with open(repository_path / "output_remotes.json", "r") as handle:
+        with open(self.working_dir / "output_remotes.json", "r") as handle:
             try:
                 output_remotes = json.load(handle)
             except FileNotFoundError:
@@ -598,13 +596,17 @@ class ProjectRepo(BaseRepo):
 
         self._output_folder = output_remotes["output_folder_name"]
 
-        with open(repository_path / ".cadet-rdm-data.json", "r") as handle:
+        with open(self.data_json_path, "r") as handle:
             metadata = json.load(handle)
             repo_version = metadata["cadet_rdm_version"]
             cadetrdm_version = cadetrdm.__version__
             if cadetrdm_version != repo_version:
                 print(f"Repo version {repo_version} is outdated. Current CADET-RDM version is {cadetrdm_version}\n"
                       "Updating the repository now.")
+                self.update_version(repo_version)
+                metadata["cadet_rdm_version"] = cadetrdm_version
+                with open(".cadet-rdm-data.json", "w") as f:
+                    json.dump(metadata, f, indent=2)
 
         self._output_repo = OutputRepo(self.working_dir / self._output_folder)
         self._on_context_enter_commit_hash = None
@@ -617,12 +619,11 @@ class ProjectRepo(BaseRepo):
         return self._output_repo
 
     def update_version(self, current_version):
-        version_parts = [int(x) for x in current_version.split(".")]
-        version_sum = version_parts[0] * 1000 * 1000 + version_parts[1] * 1000 + version_parts[2]
-        if current_version < 9:
+        major, minor, patch = [int(x) for x in current_version.split(".")]
+        version_sum = major * 1000 * 1000 + minor * 1000 + patch
+        if version_sum < 9:
             self.convert_csv_to_tsv_if_necessary()
             self.add_jupytext_file(self.working_dir)
-        # ToDo: actually update version
 
     @staticmethod
     def add_jupytext_file(path_root: str | Path = "."):

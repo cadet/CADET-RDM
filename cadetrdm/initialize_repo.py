@@ -96,7 +96,19 @@ def initialize_repo(path_to_repo: str | Path, output_folder_name: (str | bool) =
     repo = ProjectRepo(".", output_folder=output_folder_name)
     repo.update_output_remotes_json()
 
-    repo.commit("initial commit")
+    files = [".gitignore",
+             "README.md",
+             ".cadet-rdm-cache.json",
+             ".cadet-rdm-data.json",
+             ".gitattributes",
+             "environment.yml",
+             "jupytext.yml",
+             "output_remotes.json"]
+
+    for file in files:
+        repo._git.add(file)
+
+    repo.commit("initial commit", add_all=False)
 
     os.chdir(starting_directory)
 
