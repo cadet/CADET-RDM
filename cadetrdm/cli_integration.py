@@ -104,7 +104,7 @@ def add_remote(name: str = None, remote_url: str = None):
 @click.argument('url')
 @click.argument('namespace')
 @click.argument('name')
-@click.argument('username')
+@click.argument('username', required=False)
 def create_remotes(url, namespace, name, username=None):
     if username is None:
         username = namespace
