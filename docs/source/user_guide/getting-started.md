@@ -24,8 +24,8 @@ The `output_folder_name` can be given optionally. It defaults to `output`.
 You can create remotes for both the project and the output repository with one command, using the GitLab or GitHub API.
 
 You need to create a
-[GitLab Personal Access Token (PAT)](https://docs.gitlab.com/ee/user/profile/personal_access_tokens.html) or [GitHub PAT](https://github.com/settings/tokens?type=beta)
-and to store it in the Python `keyring` using an interactive Python session:
+[GitLab Personal Access Token (PAT)](https://docs.gitlab.com/ee/user/profile/personal_access_tokens.html) or [GitHub PAT](https://github.com/settings/tokens?type=beta) with api access rights
+and store it in the Python `keyring` using an interactive Python session:
 
 ```python
 import keyring
