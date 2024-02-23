@@ -18,8 +18,10 @@ def cli():
 @click.option('--gitattributes', default=None,
               help='List of files to be added to the gitattributes file. Optional.')
 @click.argument('path_to_repo', required=False)
-def init(path_to_repo: str = ".", output_repo_name: (str | bool) = "output", gitignore: list = None,
+def init(path_to_repo: str = None, output_repo_name: (str | bool) = "output", gitignore: list = None,
          gitattributes: list = None, output_repo_kwargs: dict = None):
+    if path_to_repo is None:
+        path_to_repo = "."
     from cadetrdm.initialize_repo import initialize_repo as initialize_git_repo_implementation
     initialize_git_repo_implementation(path_to_repo, output_repo_name, gitignore,
                                        gitattributes, output_repo_kwargs)

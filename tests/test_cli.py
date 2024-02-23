@@ -29,7 +29,7 @@ def modify_code(path_to_repo):
 
 
 def test_01_initialize_repo():
-    result = runner.invoke(cli, ["init", "."])
+    result = runner.invoke(cli, ["init", ])
     print(result.output)
     assert result.exit_code == 0
 
