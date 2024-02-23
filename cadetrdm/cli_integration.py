@@ -101,18 +101,17 @@ def add_remote(name: str = None, remote_url: str = None):
 
 
 @remote.command(name="create")
-@click.option("-p", '--path_to_repo', default=".",
-              help='Path to repository to which the remote is added. Default is cwd.')
 @click.argument('url')
 @click.argument('namespace')
 @click.argument('name')
-def create_remotes(url, namespace, name):
+@click.argument('username')
+def create_remotes(url, namespace, name, username=None):
+    if username is None:
+        username = namespace
+
     from cadetrdm.repositories import ProjectRepo
     repo = ProjectRepo(".")
-    if "github" in url:
-        repo.create_github_remotes(namespace=namespace, name=name)
-    else:
-        repo.create_gitlab_remotes(url=url, namespace=namespace, name=name)
+    repo.create_remotes(name=name, namespace=namespace, url=url, username=username)
 
 
 @remote.command(name="list")
