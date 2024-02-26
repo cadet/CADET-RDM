@@ -205,6 +205,27 @@ def test_add_lfs_filetype():
     delete_path(path_to_repo)
 
 
+def test_error_stack():
+    path_to_repo = Path("test_repo_3")
+    if path_to_repo.exists():
+        delete_path(path_to_repo)
+    os.makedirs(path_to_repo)
+    initialize_repo(path_to_repo)
+    repo = ProjectRepo(path_to_repo)
+    try:
+        with repo.track_results("test error"):
+            raise ValueError("This is an error message with \n a line break")
+    except ValueError:
+        pass
+    with open("test_repo_3/output/error.stack", "r") as handle:
+        lines = handle.readlines()
+
+    error_line = '    raise ValueError("This is an error message with \\n a line break")\n'
+    assert error_line in lines
+
+    delete_path(path_to_repo)
+
+
 def test_cadet_rdm(path_to_repo):
     # because these depend on one-another and there is no native support afaik for sequential tests
     # these tests are called sequentially here as try_ functions.

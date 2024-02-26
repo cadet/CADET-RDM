@@ -1053,14 +1053,13 @@ class ProjectRepo(BaseRepo):
             yield new_branch_name
         except Exception as e:
             self.capture_error(e)
-            self.output_repo.delete_active_branch_if_branch_is_empty()
             raise e
         else:
             self.exit_context(message=results_commit_message)
 
     def capture_error(self, error):
         print(traceback.format_exc())
-        write_lines_to_file(self.output_path / "error.stack", traceback.format_exc())
+        write_lines_to_file(self.output_path / "error.stack", traceback.format_exc().split("\n"))
 
 
 class OutputRepo(BaseRepo):
