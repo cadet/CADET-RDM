@@ -93,7 +93,7 @@ def initialize_repo(path_to_repo: str | Path, output_folder_name: (str | bool) =
     initialize_output_repo(output_folder_name, project_repo_uuid=project_repo_uuid,
                            output_repo_uuid=output_repo_uuid, **output_repo_kwargs)
 
-    repo = ProjectRepo(".", output_folder=output_folder_name)
+    repo = ProjectRepo(".")
     repo.update_output_remotes_json()
 
     files = [".gitignore",
