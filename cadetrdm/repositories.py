@@ -438,6 +438,7 @@ class BaseRepo:
         print(f"Commiting changes to repo {self.working_dir}")
         if add_all:
             self.add(".")
+
         try:
             commit_return = self._git.commit("-m", message)
             print("\n" + commit_return + "\n")

@@ -157,6 +157,27 @@ def test_init_over_existing_repo(monkeypatch):
     delete_path(path_to_repo)
 
 
+def test_init_over_existing_code(monkeypatch):
+    path_to_repo = Path("test_repo_2")
+    if path_to_repo.exists():
+        delete_path(path_to_repo)
+    os.makedirs(path_to_repo)
+
+    with open(path_to_repo / "foobar.py", "w") as handle:
+        handle.write("print('Hello World')\n")
+    with open(path_to_repo / ".gitignore", "w") as handle:
+        handle.write("foo.bar.*")
+
+    # using monkeypath to simulate user input
+    monkeypatch.setattr('builtins.input', lambda x: "Y")
+
+    initialize_repo(path_to_repo)
+    repo = git.Repo(path_to_repo)
+    assert "Untracked files:" in repo.git.status()
+
+    delete_path(path_to_repo)
+
+
 def test_cache_with_non_rdm_repo(monkeypatch):
     path_to_repo = Path("non_rdm_repo")
     if path_to_repo.exists():
