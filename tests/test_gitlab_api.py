@@ -88,3 +88,5 @@ def test_repo_gitlab_integration():
 
     repo = ProjectRepo(repo_name)
     repo.create_remotes(url=url, namespace=namespace, name=name, username="r.jaepel")
+
+    assert repo.has_changes_upstream is False

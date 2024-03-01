@@ -78,7 +78,16 @@ class BaseRepo:
         return str(self.head.commit)
 
     @property
+    def path(self):
+        return Path(self._git_repo.working_dir)
+
+    @property
+    def bare(self):
+        return self._git_repo.bare
+
+    @property
     def working_dir(self):
+        print("Deprecation Warning. .working_dir is getting replaced with .path")
         return Path(self._git_repo.working_dir)
 
     @property
@@ -92,7 +101,7 @@ class BaseRepo:
     @property
     def remote_urls(self):
         if len(self.remotes) == 0:
-            print(RuntimeWarning(f"No remote for repo at {self.working_dir} set yet. Please add remote ASAP."))
+            print(RuntimeWarning(f"No remote for repo at {self.path} set yet. Please add remote ASAP."))
         return [str(remote.url) for remote in self.remotes]
 
     @property
@@ -108,11 +117,40 @@ class BaseRepo:
 
     @property
     def data_json_path(self):
-        return self.working_dir / ".cadet-rdm-data.json"
+        return self.path / ".cadet-rdm-data.json"
 
     @property
     def cache_json_path(self):
-        return self.working_dir / ".cadet-rdm-cache.json"
+        return self.path / ".cadet-rdm-cache.json"
+
+    @property
+    def has_changes_upstream(self):
+        try:
+            remote_hash = str(self.remotes[0].fetch()[0].commit)
+
+            if self.current_commit_hash != remote_hash:
+                return True
+            else:
+                return False
+
+        except git.GitCommandError as e:
+            traceback.print_exc()
+            print(f"Git command error in {self.path}: {e}")
+
+    def fetch(self):
+        self._git.fetch()
+
+    def update(self):
+        try:
+            self.fetch()
+
+            if self.has_changes_upstream:
+                print(f"New changes detected in {self.remotes[0].origin}, pulling updates...")
+                self.remotes[0].origin.pull()
+
+        except git.GitCommandError as e:
+            traceback.print_exc()
+            print(f"Git command error in {self.path}: {e}")
 
     def add_remote(self, remote_url, remote_name=None):
         """
@@ -129,7 +167,7 @@ class BaseRepo:
             rdm_data = json.load(handle)
         if rdm_data["is_project_repo"]:
             # This folder is a project repo. Use a project repo class to easily access the output repo.
-            output_repo = ProjectRepo(self.working_dir).output_repo
+            output_repo = ProjectRepo(self.path).output_repo
 
             if output_repo.active_branch != "main":
                 if output_repo.exist_uncomitted_changes:
@@ -140,7 +178,7 @@ class BaseRepo:
             output_repo.commit("Add remote for project repo")
         if rdm_data["is_output_repo"]:
             # This folder is an output repo
-            project_repo = ProjectRepo(self.working_dir.parent)
+            project_repo = ProjectRepo(self.path.parent)
             project_repo.update_output_remotes_json()
             project_repo.add_list_of_remotes_in_readme_file("output_repo", self.remote_urls)
             project_repo.commit("Add remote for output repo")
@@ -153,7 +191,7 @@ class BaseRepo:
         Wildcard formatted string. Examples: "*.png" or "*.xlsx"
         :return:
         """
-        init_lfs(lfs_filetypes=[file_type], path=self.working_dir)
+        init_lfs(lfs_filetypes=[file_type], path=self.path)
         self.add_all_files()
         self.commit(f"Add {file_type} to lfs")
 
@@ -180,9 +218,9 @@ class BaseRepo:
         else:
             source_repo_name = Path(source_repo_location).name
         if target_repo_location is None:
-            target_repo_location = self.working_dir / "external_cache" / source_repo_name
+            target_repo_location = self.path / "external_cache" / source_repo_name
         else:
-            target_repo_location = self.working_dir / target_repo_location
+            target_repo_location = self.path / target_repo_location
 
         self.add_path_to_gitignore(target_repo_location)
 
@@ -205,12 +243,12 @@ class BaseRepo:
         :return:
         """
         path_to_be_ignored = self.ensure_relative_path(path_to_be_ignored)
-        with open(self.working_dir / ".gitignore", "r") as file_handle:
+        with open(self.path / ".gitignore", "r") as file_handle:
             gitignore = file_handle.readlines()
             gitignore[-1] += "\n"  # Sometimes there is no trailing newline
         if str(path_to_be_ignored) + "\n" not in gitignore:
             gitignore.append(str(path_to_be_ignored) + "\n")
-        with open(self.working_dir / ".gitignore", "w") as file_handle:
+        with open(self.path / ".gitignore", "w") as file_handle:
             file_handle.writelines(gitignore)
 
     def update_cadet_rdm_cache_json(self, source_repo_location, source_repo_branch, target_repo_location):
@@ -261,7 +299,7 @@ class BaseRepo:
             input_path = Path(input_path)
 
         if input_path.is_absolute:
-            relative_path = input_path.relative_to(self.working_dir)
+            relative_path = input_path.relative_to(self.path)
         else:
             relative_path = input_path
         return relative_path
@@ -386,7 +424,7 @@ class BaseRepo:
         try:
             self._git.clean("-q", "-f", "-d")
         except git.exc.GitCommandError:
-            recursive_chmod(self.working_dir, S_IWRITE)
+            recursive_chmod(self.path, S_IWRITE)
             self._git.clean("-q", "-f", "-d")
 
     @property
@@ -407,7 +445,7 @@ class BaseRepo:
         if target_folder is not None:
             dump_path = target_folder
         else:
-            dump_path = self.working_dir
+            dump_path = self.path
         print("Dumping conda environment.yml, this might take a moment.")
         try:
             os.system(f"conda env export > {dump_path}/conda_environment.yml")
@@ -432,10 +470,10 @@ class BaseRepo:
         """
 
         if not self.exist_uncomitted_changes:
-            print(f"No changes to commit in repo {self.working_dir}")
+            print(f"No changes to commit in repo {self.path}")
             return
 
-        print(f"Commiting changes to repo {self.working_dir}")
+        print(f"Commiting changes to repo {self.path}")
         if add_all:
             self.add(".")
 
@@ -496,8 +534,8 @@ class BaseRepo:
         """
         self._git.checkout("main")
         self._git.checkout('-b', branch_name)  # equivalent to $ git checkout -b %branch_name
-        code_backup_path = self.working_dir / "run_history"
-        logs_path = self.working_dir / "log.tsv"
+        code_backup_path = self.path / "run_history"
+        logs_path = self.path / "log.tsv"
         if code_backup_path.exists():
             try:
                 # Remove previous code backup
@@ -533,7 +571,7 @@ class BaseRepo:
         :return:
         """
         if self.exist_uncomitted_changes:
-            raise RuntimeError(f"Found uncommitted changes in the repository {self.working_dir}.")
+            raise RuntimeError(f"Found uncommitted changes in the repository {self.path}.")
 
     def add_list_of_remotes_in_readme_file(self, repo_identifier: str, remotes_url_list: list):
         if len(remotes_url_list) > 0:
@@ -542,7 +580,7 @@ class BaseRepo:
             output_link_line = " and ".join(f"[{repo_identifier}]({output_repo_remote})"
                                             for output_repo_remote in remotes_url_list_http) + "\n"
 
-            readme_filepath = self.working_dir / "README.md"
+            readme_filepath = self.path / "README.md"
             with open(readme_filepath, "r") as file_handle:
                 filelines = file_handle.readlines()
                 filelines_giving_output_repo = [i for i in range(len(filelines))
@@ -585,11 +623,11 @@ class ProjectRepo(BaseRepo):
         """
         super().__init__(repository_path, search_parent_directories=search_parent_directories, *args, **kwargs)
 
-        with open(self.working_dir / "output_remotes.json", "r") as handle:
+        with open(self.path / "output_remotes.json", "r") as handle:
             try:
                 output_remotes = json.load(handle)
             except FileNotFoundError:
-                raise RuntimeError(f"Folder {self.working_dir} does not appear to be a CADET-RDM repository.")
+                raise RuntimeError(f"Folder {self.path} does not appear to be a CADET-RDM repository.")
 
         if output_folder is not None:
             print("Deprecation Warning. Setting the outputfolder manually during repo instantiation is deprecated"
@@ -609,7 +647,7 @@ class ProjectRepo(BaseRepo):
                 with open(".cadet-rdm-data.json", "w") as f:
                     json.dump(metadata, f, indent=2)
 
-        self._output_repo = OutputRepo(self.working_dir / self._output_folder)
+        self._output_repo = OutputRepo(self.path / self._output_folder)
         self._on_context_enter_commit_hash = None
         self._is_in_context_manager = False
 
@@ -624,7 +662,7 @@ class ProjectRepo(BaseRepo):
         version_sum = major * 1000 * 1000 + minor * 1000 + patch
         if version_sum < 9:
             self.convert_csv_to_tsv_if_necessary()
-            self.add_jupytext_file(self.working_dir)
+            self.add_jupytext_file(self.path)
 
     @staticmethod
     def add_jupytext_file(path_root: str | Path = "."):
@@ -714,11 +752,11 @@ class ProjectRepo(BaseRepo):
 
         :return:
         """
-        tsv_filepath = self.working_dir / self._output_folder / "log.tsv"
+        tsv_filepath = self.path / self._output_folder / "log.tsv"
         if tsv_filepath.exists():
             return
 
-        csv_filepath = self.working_dir / self._output_folder / "log.csv"
+        csv_filepath = self.path / self._output_folder / "log.csv"
         if not csv_filepath.exists():
             # We have just initialized the repo and neither tsv nor csv exist.
             return
@@ -731,7 +769,7 @@ class ProjectRepo(BaseRepo):
         with open(tsv_filepath, "w") as f:
             f.writelines(tsv_lines)
 
-        write_lines_to_file(path=self.working_dir / ".gitattributes",
+        write_lines_to_file(path=self.path / ".gitattributes",
                             lines=["rdm-log.tsv merge=union"],
                             open_type="a")
 
@@ -749,21 +787,21 @@ class ProjectRepo(BaseRepo):
 
         self._output_repo._git.checkout("main")
 
-        logs_folderpath = self.working_dir / self._output_folder / "run_history" / output_branch_name
+        logs_folderpath = self.path / self._output_folder / "run_history" / output_branch_name
         if not logs_folderpath.exists():
             os.makedirs(logs_folderpath)
 
         json_filepath = logs_folderpath / "metadata.json"
         # note: if filename of "log.tsv" is changed,
         #  this also has to be changed in the gitattributes of the init repo func
-        tsv_filepath = self.output_repo.working_dir / "log.tsv"
+        tsv_filepath = self.output_repo.path / "log.tsv"
 
         meta_info_dict = {
             "Output repo commit message": output_commit_message,
             "Output repo branch": output_branch_name,
             "Output repo commit hash": output_repo_hash,
             "Project repo commit hash": str(self.head.commit),
-            "Project repo folder name": self.working_dir.name,
+            "Project repo folder name": self.path.name,
             "Project repo remotes": self.remote_urls,
             "Python sys args": str(sys.argv),
             "Tags": ", ".join(self.tags),
@@ -812,7 +850,7 @@ class ProjectRepo(BaseRepo):
         code_tmp_folder = target_path / "git_repo"
 
         multi_options = ["--filter=blob:none", "--single-branch"]
-        git.Repo.clone_from(self.working_dir, code_tmp_folder, multi_options=multi_options)
+        git.Repo.clone_from(self.path, code_tmp_folder, multi_options=multi_options)
 
         shutil.make_archive(target_path / "code", "zip", code_tmp_folder)
 
@@ -835,7 +873,7 @@ class ProjectRepo(BaseRepo):
     def update_output_remotes_json(self):
         output_repo_remotes = self.output_repo.remote_urls
         self.add_list_of_remotes_in_readme_file("output_repo", output_repo_remotes)
-        output_json_filepath = self.working_dir / "output_remotes.json"
+        output_json_filepath = self.path / "output_remotes.json"
         with open(output_json_filepath, "w") as file_handle:
             remotes_dict = {remote.name: str(remote.url) for remote in self.output_repo.remotes}
             json_dict = {"output_folder_name": self._output_folder, "output_remotes": remotes_dict}
@@ -887,9 +925,9 @@ class ProjectRepo(BaseRepo):
         previous_branch = self.output_repo.active_branch.name
         self.output_repo._git.checkout(branch_name)
 
-        source_filepath = self.output_repo.working_dir / file_path
+        source_filepath = self.output_repo.path / file_path
 
-        target_folder = self.working_dir / (self._output_folder + "_cached") / branch_name
+        target_folder = self.path / (self._output_folder + "_cached") / branch_name
         os.makedirs(target_folder, exist_ok=True)
 
         target_filepath = target_folder / file_path
@@ -917,16 +955,16 @@ class ProjectRepo(BaseRepo):
         :return:
         """
         if sub_path is None:
-            return self.working_dir / self.output_repo.working_dir
+            return self.path / self.output_repo.path
         else:
-            return self.working_dir / self.output_repo.working_dir / sub_path
+            return self.path / self.output_repo.path / sub_path
 
     def remove_cached_files(self):
         """
         Delete all previously cached results.
         """
-        if (self.working_dir / (self._output_folder + "_cached")).exists():
-            delete_path(self.working_dir / (self._output_folder + "_cached"))
+        if (self.path / (self._output_folder + "_cached")).exists():
+            delete_path(self.path / (self._output_folder + "_cached"))
 
     def test_for_correct_repo_setup(self):
         """
@@ -977,7 +1015,7 @@ class ProjectRepo(BaseRepo):
         :return:
         """
         try:
-            source_filepath = self.output_repo.working_dir
+            source_filepath = self.output_repo.path
 
             if branch_name is None:
                 branch_name = self.output_repo.active_branch.name
@@ -986,7 +1024,7 @@ class ProjectRepo(BaseRepo):
                 previous_branch = self.output_repo.active_branch.name
                 self.output_repo.checkout(branch_name)
 
-            target_folder = self.working_dir / (self._output_folder + "_cached") / branch_name
+            target_folder = self.path / (self._output_folder + "_cached") / branch_name
 
             shutil.copytree(source_filepath, target_folder)
 
@@ -1068,7 +1106,7 @@ class OutputRepo(BaseRepo):
     def print_data_log(self):
         self.checkout("main")
 
-        tsv_filepath = self.working_dir / "log.tsv"
+        tsv_filepath = self.path / "log.tsv"
 
         with open(tsv_filepath, "r") as filehandle:
             lines = filehandle.readlines()
@@ -1097,7 +1135,7 @@ class JupyterInterfaceRepo(ProjectRepo):
             return
             # This is reached in the first call of this function
         if not Path(notebook_path).is_absolute():
-            notebook_path = self.working_dir / notebook_path
+            notebook_path = self.path / notebook_path
 
         notebook = Notebook(notebook_path)
 
