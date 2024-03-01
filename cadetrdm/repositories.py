@@ -522,34 +522,6 @@ class BaseRepo:
         self.add(".")
         self._git.stash()
 
-    def prepare_new_branch(self, branch_name):
-        """
-        Prepares a new branch to recieve data. This includes:
-         - checking out the main branch,
-         - creating a new branch from there
-        This thereby produces a clear, empty directory for data, while still maintaining
-        .gitignore and .gitattributes
-        :param branch_name:
-            Name of the new branch.
-        """
-        self._git.checkout("main")
-        self._git.checkout('-b', branch_name)  # equivalent to $ git checkout -b %branch_name
-        code_backup_path = self.path / "run_history"
-        logs_path = self.path / "log.tsv"
-        if code_backup_path.exists():
-            try:
-                # Remove previous code backup
-
-                delete_path(code_backup_path)
-            except Exception as e:
-                print(e)
-        if logs_path.exists():
-            try:
-                # Remove previous logs
-                delete_path(logs_path)
-            except Exception as e:
-                print(e)
-
     def apply_stashed_changes(self):
         """
         Apply the last stashed changes.
@@ -746,14 +718,30 @@ class ProjectRepo(BaseRepo):
                     source_repo_location=repo_info["source_repo_location"],
                     source_repo_branch=repo_info["branch_name"])
 
+    @property
+    def results_log_file(self):
+        # note: if filename of "log.tsv" is changed,
+        #  this also has to be changed in the gitattributes of the init repo func
+        return self.output_repo.path / "log.tsv"
+
+    @property
+    def results_log(self):
+        with open(self.results_log_file) as handle:
+            lines = handle.readlines()
+        lines = [line.split("\t") for line in lines]
+        return lines
+
+    def print_results_log(self):
+        self.output_repo.print_data_log()
+
     def convert_csv_to_tsv_if_necessary(self):
         """
         If not tsv log is found AND a csv log is found, convert the csv to tsv.
 
         :return:
         """
-        tsv_filepath = self.path / self._output_folder / "log.tsv"
-        if tsv_filepath.exists():
+
+        if self.results_log_file.exists():
             return
 
         csv_filepath = self.path / self._output_folder / "log.csv"
@@ -766,7 +754,7 @@ class ProjectRepo(BaseRepo):
 
         tsv_lines = [line.replace(",", "\t") for line in csv_lines]
 
-        with open(tsv_filepath, "w") as f:
+        with open(self.results_log_file, "w") as f:
             f.writelines(tsv_lines)
 
         write_lines_to_file(path=self.path / ".gitattributes",
@@ -792,9 +780,6 @@ class ProjectRepo(BaseRepo):
             os.makedirs(logs_folderpath)
 
         json_filepath = logs_folderpath / "metadata.json"
-        # note: if filename of "log.tsv" is changed,
-        #  this also has to be changed in the gitattributes of the init repo func
-        tsv_filepath = self.output_repo.path / "log.tsv"
 
         meta_info_dict = {
             "Output repo commit message": output_commit_message,
@@ -812,17 +797,17 @@ class ProjectRepo(BaseRepo):
         with open(json_filepath, "w") as f:
             json.dump(meta_info_dict, f, indent=2)
 
-        if not tsv_filepath.exists():
-            with open(tsv_filepath, "w") as f:
+        if not self.results_log_file.exists():
+            with open(self.results_log_file, "w") as f:
                 f.write(tsv_header + "\n")
                 # csv.writer(tsv_header + "\n")
 
-        with open(tsv_filepath, "r") as f:
+        with open(self.results_log_file, "r") as f:
             existing_header = f.readline().replace("\n", "")
             if existing_header != tsv_header:
                 raise ValueError("The used structure of the meta_dict doesn't match the header found in log.tsv")
 
-        with open(tsv_filepath, "a") as f:
+        with open(self.results_log_file, "a") as f:
             f.write(tsv_data + "\n")
 
         self.dump_package_list(logs_folderpath)
@@ -1117,6 +1102,34 @@ class OutputRepo(BaseRepo):
         print(tabulate(line_array[1:], headers=line_array[0]))
 
         self.checkout(self._most_recent_branch)
+
+    def prepare_new_branch(self, branch_name):
+        """
+        Prepares a new branch to receive data. This includes:
+         - checking out the main branch,
+         - creating a new branch from there
+        This thereby produces a clear, empty directory for data, while still maintaining
+        .gitignore and .gitattributes
+        :param branch_name:
+            Name of the new branch.
+        """
+        self._git.checkout("main")
+        self._git.checkout('-b', branch_name)  # equivalent to $ git checkout -b %branch_name
+        code_backup_path = self.path / "run_history"
+        logs_path = self.path / "log.tsv"
+        if code_backup_path.exists():
+            try:
+                # Remove previous code backup
+
+                delete_path(code_backup_path)
+            except Exception as e:
+                print(e)
+        if logs_path.exists():
+            try:
+                # Remove previous logs
+                delete_path(logs_path)
+            except Exception as e:
+                print(e)
 
 
 class JupyterInterfaceRepo(ProjectRepo):
