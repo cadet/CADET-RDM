@@ -44,10 +44,28 @@ class GitLabRemote(Remote):
         :return:
         Query response
         """
+        namespace = namespace.lower()
         token = self.load_token([url] + self.url_fallbacks, username)
         gl = gitlab.Gitlab(url, private_token=token)
+        # We need the groups list, because for some ineffable reason, gitlab doesn't always give all namespaces.
+        # This assumes, that the group_id and the corresponding namespace_id are identical. So far this has been true.
+        gl_groups = gl.groups.list(get_all=True)
+        # We also need the namespace list for the personal namespace.
+        gl_namespaces = gl.namespaces.list(get_all=True)
+        matching_namespace = [gl_group for gl_group in gl_groups + gl_namespaces
+                              if gl_group.full_path.lower() == namespace]
 
-        namespace_id = gl.namespaces.list(get_all=True, search=namespace)[0].id
+        if len(matching_namespace) == 0:
+            raise ValueError(f"Could not find namespace {namespace} "
+                             f"in {[gl_namespace.full_path for gl_namespace in gl_groups]}")
+        if len(matching_namespace) >= 2:
+            matching_namespace_id_set = set({group.id for group in matching_namespace})
+            if len(matching_namespace_id_set) > 1:
+                raise ValueError(f"Not unique namespace {namespace} "
+                                 f"in {[gl_namespace.full_path.lower() for gl_namespace in gl_groups]}")
+
+        namespace_id = matching_namespace[0].id
+
         response = gl.projects.create({"name": name, "namespace_id": namespace_id})
         return response
 
