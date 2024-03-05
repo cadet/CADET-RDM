@@ -67,12 +67,13 @@ def initialize_repo(path_to_repo: str | Path, output_folder_name: (str | bool) =
     create_readme()
     create_environment_yml()
 
-    ProjectRepo.add_jupytext_file()
+    ProjectRepo._add_jupytext_file()
 
     rdm_data = {
         "is_project_repo": True, "is_output_repo": False,
         "project_uuid": project_repo_uuid, "output_uuid": output_repo_uuid,
-        "cadet_rdm_version": cadetrdm.__version__
+        "cadet_rdm_version": cadetrdm.__version__,
+        "output_remotes": {"output_folder_name": output_folder_name, "output_remotes": {}}
     }
     with open(".cadet-rdm-data.json", "w") as f:
         json.dump(rdm_data, f, indent=2)
@@ -84,11 +85,6 @@ def initialize_repo(path_to_repo: str | Path, output_folder_name: (str | bool) =
             "branch_name": "output_from_master_3910c84_2023-10-25_00-17-23",
             "commit_hash": "6e3c26527999036e9490d2d86251258fe81d46dc"
         }}, f, indent=2)
-
-    with open("output_remotes.json", "w") as file_handle:
-        remotes_dict = {}
-        json_dict = {"output_folder_name": output_folder_name, "output_remotes": remotes_dict}
-        json.dump(json_dict, file_handle, indent=2)
 
     initialize_output_repo(output_folder_name, project_repo_uuid=project_repo_uuid,
                            output_repo_uuid=output_repo_uuid, **output_repo_kwargs)
@@ -103,7 +99,7 @@ def initialize_repo(path_to_repo: str | Path, output_folder_name: (str | bool) =
              ".gitattributes",
              "environment.yml",
              "jupytext.yml",
-             "output_remotes.json"]
+             ]
 
     for file in files:
         repo._git.add(file)
@@ -226,15 +222,16 @@ def clone(project_url, path_to_repo: str = None):
     path_to_repo = Path(path_to_repo)
 
     # Clone output repo from remotes
-    json_path = path_to_repo / "output_remotes.json"
+    json_path = path_to_repo / ".cadet-rdm-data.json"
     with open(json_path, "r") as file_handle:
         meta_dict = json.load(file_handle)
+        output_remotes = meta_dict["output_remotes"]
 
-    output_folder_name = path_to_repo / meta_dict["output_folder_name"]
-    ssh_remotes = list(meta_dict["output_remotes"].values())
+    output_folder_name = path_to_repo / output_remotes["output_folder_name"]
+    ssh_remotes = list(output_remotes["output_remotes"].values())
     http_remotes = [ssh_url_to_http_url(url) for url in ssh_remotes]
     if len(ssh_remotes + http_remotes) == 0:
-        raise RuntimeError("No output remotes configured in output_remotes.json")
+        raise RuntimeError("No output remotes configured in .cadet-rdm-data.json")
     for output_remote in ssh_remotes + http_remotes:
         try:
             print(f"Attempting to clone {output_remote} into {output_folder_name}")

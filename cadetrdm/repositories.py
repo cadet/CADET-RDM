@@ -572,6 +572,7 @@ class BaseRepo:
 
             with open(readme_filepath, "w") as file_handle:
                 file_handle.writelines(filelines)
+            self.add(readme_filepath)
 
 
 class ProjectRepo(BaseRepo):
@@ -597,32 +598,37 @@ class ProjectRepo(BaseRepo):
         """
         super().__init__(repository_path, search_parent_directories=search_parent_directories, *args, **kwargs)
 
-        with open(self.path / "output_remotes.json", "r") as handle:
-            try:
-                output_remotes = json.load(handle)
-            except FileNotFoundError:
-                raise RuntimeError(f"Folder {self.path} does not appear to be a CADET-RDM repository.")
-
         if output_folder is not None:
             print("Deprecation Warning. Setting the outputfolder manually during repo instantiation is deprecated"
                   " and will be removed in a future update.")
 
-        self._output_folder = output_remotes["output_folder_name"]
-        self._output_repo = OutputRepo(self.path / self._output_folder)
+        if not self.data_json_path.exists():
+            raise RuntimeError(f"Folder {self.path} does not appear to be a CADET-RDM repository.")
 
         with open(self.data_json_path, "r") as handle:
             metadata = json.load(handle)
-            repo_version = metadata["cadet_rdm_version"]
-            cadetrdm_version = cadetrdm.__version__
-            if cadetrdm_version != repo_version:
-                print(f"Repo version {repo_version} is outdated. Current CADET-RDM version is {cadetrdm_version}\n"
-                      "Updating the repository now.")
-                self.update_version(repo_version)
-                metadata["cadet_rdm_version"] = cadetrdm_version
-                with open(self.data_json_path, "w") as f:
-                    json.dump(metadata, f, indent=2)
-                self.add(self.data_json_path)
-                self.commit("update cadetrdm version", add_all=False)
+
+        if "output_remotes" not in metadata:
+            # this enables upgrades from v0.0.23 to v0.0.24.
+            output_remotes_path = self.path / "output_remotes.json"
+            with open(output_remotes_path, "r") as handle:
+                output_remotes = json.load(handle)
+            metadata["output_remotes"] = output_remotes
+
+        self._output_folder = metadata["output_remotes"]["output_folder_name"]
+        self._output_repo = OutputRepo(self.path / self._output_folder)
+
+        repo_version = metadata["cadet_rdm_version"]
+        cadetrdm_version = cadetrdm.__version__
+        if cadetrdm_version != repo_version:
+            print(f"Repo version {repo_version} is outdated. Current CADET-RDM version is {cadetrdm_version}\n"
+                  "Updating the repository now.")
+            self._update_version(repo_version)
+            metadata["cadet_rdm_version"] = cadetrdm_version
+            with open(self.data_json_path, "w") as f:
+                json.dump(metadata, f, indent=2)
+            self.add(self.data_json_path)
+            self.commit("update cadetrdm version", add_all=False)
 
         self._on_context_enter_commit_hash = None
         self._is_in_context_manager = False
@@ -634,17 +640,20 @@ class ProjectRepo(BaseRepo):
             raise ValueError("The output repo has not been set yet.")
         return self._output_repo
 
-    def update_version(self, current_version):
+    def _update_version(self, current_version):
         major, minor, patch = [int(x) for x in current_version.split(".")]
         version_sum = major * 1000 * 1000 + minor * 1000 + patch
         if version_sum < 9:
-            self.convert_csv_to_tsv_if_necessary()
-            self.add_jupytext_file(self.path)
+            self._convert_csv_to_tsv_if_necessary()
+            self._add_jupytext_file(self.path)
         if version_sum < 24:
-            self.expand_tsv_header()
+            self._expand_tsv_header()
+            output_remotes_path = self.path / "output_remotes.json"
+            delete_path(output_remotes_path)
+            self.add(output_remotes_path)
 
     @staticmethod
-    def add_jupytext_file(path_root: str | Path = "."):
+    def _add_jupytext_file(path_root: str | Path = "."):
         jupytext_lines = ['# Pair ipynb notebooks to py:percent text notebooks', 'formats: "ipynb,py:percent"']
         write_lines_to_file(Path(path_root) / "jupytext.yml", lines=jupytext_lines, open_type="w")
 
@@ -738,7 +747,7 @@ class ProjectRepo(BaseRepo):
     def print_results_log(self):
         self.output_repo.print_output_log()
 
-    def expand_tsv_header(self):
+    def _expand_tsv_header(self):
         if not self.results_log_file.exists():
             return
 
@@ -762,7 +771,7 @@ class ProjectRepo(BaseRepo):
         self.output_repo.add(self.results_log_file)
         self.output_repo.commit("Update tsv header", add_all=False)
 
-    def convert_csv_to_tsv_if_necessary(self):
+    def _convert_csv_to_tsv_if_necessary(self):
         """
         If not tsv log is found AND a csv log is found, convert the csv to tsv.
 
@@ -888,12 +897,17 @@ class ProjectRepo(BaseRepo):
     def update_output_remotes_json(self):
         output_repo_remotes = self.output_repo.remote_urls
         self.add_list_of_remotes_in_readme_file("output_repo", output_repo_remotes)
-        self.add(self.path / "README.md")
-        output_json_filepath = self.path / "output_remotes.json"
-        with open(output_json_filepath, "w") as file_handle:
-            remotes_dict = {remote.name: str(remote.url) for remote in self.output_repo.remotes}
-            json_dict = {"output_folder_name": self._output_folder, "output_remotes": remotes_dict}
-            json.dump(json_dict, file_handle, indent=2)
+
+        with open(self.data_json_path, "r") as file_handle:
+            metadata = json.load(file_handle)
+
+        remotes_dict = {remote.name: str(remote.url) for remote in self.output_repo.remotes}
+        metadata["output_remotes"] = {"output_folder_name": self._output_folder, "output_remotes": remotes_dict}
+
+        with open(self.data_json_path, "w") as file_handle:
+            json.dump(metadata, file_handle, indent=2)
+
+        self.add(self.data_json_path)
 
     def download_file(self, url, file_path):
         """
