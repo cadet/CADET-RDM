@@ -735,23 +735,20 @@ class ProjectRepo(BaseRepo):
                     source_repo_branch=repo_info["branch_name"])
 
     @property
-    def results_log_file(self):
+    def output_log_file(self):
         # note: if filename of "log.tsv" is changed,
         #  this also has to be changed in the gitattributes of the init repo func
         return self.output_repo.output_log_file_path
 
     @property
-    def results_log(self):
+    def output_log(self):
         return self.output_repo.output_log
 
-    def print_results_log(self):
-        self.output_repo.print_output_log()
-
     def _expand_tsv_header(self):
-        if not self.results_log_file.exists():
+        if not self.output_log_file.exists():
             return
 
-        with open(self.results_log_file, "r") as f:
+        with open(self.output_log_file, "r") as f:
             lines = f.readlines()
 
         new_header = [
@@ -764,11 +761,11 @@ class ProjectRepo(BaseRepo):
             "Python sys args",
             "Tags",
             "Options hash", ]
-        with open(self.results_log_file, "w") as f:
+        with open(self.output_log_file, "w") as f:
             f.writelines(["\t".join(new_header) + "\n"])
             f.writelines(lines[1:])
 
-        self.output_repo.add(self.results_log_file)
+        self.output_repo.add(self.output_log_file)
         self.output_repo.commit("Update tsv header", add_all=False)
 
     def _convert_csv_to_tsv_if_necessary(self):
@@ -778,7 +775,7 @@ class ProjectRepo(BaseRepo):
         :return:
         """
 
-        if self.results_log_file.exists():
+        if self.output_log_file.exists():
             return
 
         csv_filepath = self.path / self._output_folder / "log.csv"
@@ -791,7 +788,7 @@ class ProjectRepo(BaseRepo):
 
         tsv_lines = [line.replace(",", "\t") for line in csv_lines]
 
-        with open(self.results_log_file, "w") as f:
+        with open(self.output_log_file, "w") as f:
             f.writelines(tsv_lines)
 
         write_lines_to_file(path=self.path / ".gitattributes",
@@ -835,17 +832,17 @@ class ProjectRepo(BaseRepo):
         with open(json_filepath, "w") as f:
             json.dump(meta_info_dict, f, indent=2)
 
-        if not self.results_log_file.exists():
-            with open(self.results_log_file, "w") as f:
+        if not self.output_log_file.exists():
+            with open(self.output_log_file, "w") as f:
                 f.write(tsv_header + "\n")
                 # csv.writer(tsv_header + "\n")
 
-        with open(self.results_log_file, "r") as f:
+        with open(self.output_log_file, "r") as f:
             existing_header = f.readline().replace("\n", "")
             if existing_header != tsv_header:
                 raise ValueError("The used structure of the meta_dict doesn't match the header found in log.tsv")
 
-        with open(self.results_log_file, "a") as f:
+        with open(self.output_log_file, "a") as f:
             f.write(tsv_data + "\n")
 
         self.dump_package_list(logs_folderpath)
