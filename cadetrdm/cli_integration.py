@@ -184,4 +184,4 @@ def print_data_log():
         repo.print_output_log()
     else:
         repo = OutputRepo()
-        repo.print_data_log()
+        repo.print_output_log()

@@ -29,6 +29,7 @@ dependencies = [
     "click",
     "tabulate",
     "keyring",
+    "benedict"
 ]
 
 [project.scripts]

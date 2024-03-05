@@ -10,12 +10,11 @@ from pathlib import Path
 from stat import S_IREAD, S_IWRITE
 from urllib.request import urlretrieve
 
-from tabulate import tabulate
-
 import cadetrdm
 from cadetrdm.io_utils import recursive_chmod, write_lines_to_file, wait_for_user, init_lfs
 from cadetrdm.jupyter_functionality import Notebook
 from cadetrdm.remote_integration import GitHubRemote, GitLabRemote
+from cadetrdm.logging import OutputLog
 
 try:
     import git
@@ -175,13 +174,13 @@ class BaseRepo:
                 output_repo.checkout("main")
 
             output_repo.add_list_of_remotes_in_readme_file("project_repo", self.remote_urls)
-            output_repo.commit("Add remote for project repo")
+            output_repo.commit("Add remote for project repo", verbosity=0)
         if rdm_data["is_output_repo"]:
             # This folder is an output repo
             project_repo = ProjectRepo(self.path.parent)
             project_repo.update_output_remotes_json()
             project_repo.add_list_of_remotes_in_readme_file("output_repo", self.remote_urls)
-            project_repo.commit("Add remote for output repo")
+            project_repo.commit("Add remote for output repo", verbosity=0)
 
     def add_filetype_to_lfs(self, file_type):
         """
@@ -459,7 +458,7 @@ class BaseRepo:
         print("Dumping pip independent requirements.txt.")
         os.system(f"pip list --not-required --format freeze > {dump_path}/pip_independent_requirements.txt")
 
-    def commit(self, message: str, add_all=True):
+    def commit(self, message: str, add_all=True, verbosity=1):
         """
         Commit current state of the repository.
 
@@ -467,10 +466,13 @@ class BaseRepo:
             Commit message
         :param add_all:
             Option to add all changed and new files to git automatically.
+        :param verbosity:
+            Option to choose degree of printed feedback.
         """
 
         if not self.exist_uncomitted_changes:
-            print(f"No changes to commit in repo {self.path}")
+            if verbosity >= 1:
+                print(f"No changes to commit in repo {self.path}")
             return
 
         print(f"Commiting changes to repo {self.path}")
@@ -606,6 +608,7 @@ class ProjectRepo(BaseRepo):
                   " and will be removed in a future update.")
 
         self._output_folder = output_remotes["output_folder_name"]
+        self._output_repo = OutputRepo(self.path / self._output_folder)
 
         with open(self.data_json_path, "r") as handle:
             metadata = json.load(handle)
@@ -616,12 +619,14 @@ class ProjectRepo(BaseRepo):
                       "Updating the repository now.")
                 self.update_version(repo_version)
                 metadata["cadet_rdm_version"] = cadetrdm_version
-                with open(".cadet-rdm-data.json", "w") as f:
+                with open(self.data_json_path, "w") as f:
                     json.dump(metadata, f, indent=2)
+                self.add(self.data_json_path)
+                self.commit("update cadetrdm version", add_all=False)
 
-        self._output_repo = OutputRepo(self.path / self._output_folder)
         self._on_context_enter_commit_hash = None
         self._is_in_context_manager = False
+        self.options_hash = None
 
     @property
     def output_repo(self):
@@ -635,6 +640,8 @@ class ProjectRepo(BaseRepo):
         if version_sum < 9:
             self.convert_csv_to_tsv_if_necessary()
             self.add_jupytext_file(self.path)
+        if version_sum < 24:
+            self.expand_tsv_header()
 
     @staticmethod
     def add_jupytext_file(path_root: str | Path = "."):
@@ -686,7 +693,7 @@ class ProjectRepo(BaseRepo):
         self._output_repo._git.checkout(self._most_recent_branch)
 
     def print_output_log(self):
-        self.output_repo.print_data_log()
+        self.output_repo.print_output_log()
 
     def fill_data_from_cadet_rdm_json(self, re_load=False):
         """
@@ -722,17 +729,38 @@ class ProjectRepo(BaseRepo):
     def results_log_file(self):
         # note: if filename of "log.tsv" is changed,
         #  this also has to be changed in the gitattributes of the init repo func
-        return self.output_repo.path / "log.tsv"
+        return self.output_repo.output_log_file_path
 
     @property
     def results_log(self):
-        with open(self.results_log_file) as handle:
-            lines = handle.readlines()
-        lines = [line.split("\t") for line in lines]
-        return lines
+        return self.output_repo.output_log
 
     def print_results_log(self):
-        self.output_repo.print_data_log()
+        self.output_repo.print_output_log()
+
+    def expand_tsv_header(self):
+        if not self.results_log_file.exists():
+            return
+
+        with open(self.results_log_file, "r") as f:
+            lines = f.readlines()
+
+        new_header = [
+            "Output repo commit message",
+            "Output repo branch",
+            "Output repo commit hash",
+            "Project repo commit hash",
+            "Project repo folder name",
+            "Project repo remotes",
+            "Python sys args",
+            "Tags",
+            "Options hash", ]
+        with open(self.results_log_file, "w") as f:
+            f.writelines(["\t".join(new_header) + "\n"])
+            f.writelines(lines[1:])
+
+        self.output_repo.add(self.results_log_file)
+        self.output_repo.commit("Update tsv header", add_all=False)
 
     def convert_csv_to_tsv_if_necessary(self):
         """
@@ -790,6 +818,7 @@ class ProjectRepo(BaseRepo):
             "Project repo remotes": self.remote_urls,
             "Python sys args": str(sys.argv),
             "Tags": ", ".join(self.tags),
+            "Options hash": self.options_hash,
         }
         tsv_header = "\t".join(meta_info_dict.keys())
         tsv_data = "\t".join([str(x) for x in meta_info_dict.values()])
@@ -841,7 +870,7 @@ class ProjectRepo(BaseRepo):
 
         delete_path(code_tmp_folder)
 
-    def commit(self, message: str, add_all=True):
+    def commit(self, message: str, add_all=True, verbosity=1):
         """
         Commit current state of the repository.
 
@@ -849,15 +878,17 @@ class ProjectRepo(BaseRepo):
             Commit message
         :param add_all:
             Option to add all changed and new files to git automatically.
+        :param verbosity:
+            Option to choose degree of printed feedback.
         """
-
         self.update_output_remotes_json()
 
-        super().commit(message=message, add_all=add_all)
+        super().commit(message=message, add_all=add_all, verbosity=verbosity)
 
     def update_output_remotes_json(self):
         output_repo_remotes = self.output_repo.remote_urls
         self.add_list_of_remotes_in_readme_file("output_repo", output_repo_remotes)
+        self.add(self.path / "README.md")
         output_json_filepath = self.path / "output_remotes.json"
         with open(output_json_filepath, "w") as file_handle:
             remotes_dict = {remote.name: str(remote.url) for remote in self.output_repo.remotes}
@@ -985,7 +1016,7 @@ class ProjectRepo(BaseRepo):
         output_repo._git.checkout("main")
         project_repo_remotes = self.remote_urls
         output_repo.add_list_of_remotes_in_readme_file("project_repo", project_repo_remotes)
-        output_repo.commit("Update urls")
+        output_repo.commit("Update urls", verbosity=0)
 
         output_repo.prepare_new_branch(new_branch_name)
         return new_branch_name
@@ -1046,6 +1077,9 @@ class ProjectRepo(BaseRepo):
             commit_return = self.output_repo._git.commit("-m", message)
             self.copy_data_to_cache()
             self.update_output_main_logs()
+            main_cach_path = self.path / (self._output_folder + "_cached") / "main"
+            if main_cach_path.exists():
+                delete_path(main_cach_path)
             self.copy_data_to_cache("main")
             print("\n" + commit_return + "\n")
         except git.exc.GitCommandError as e:
@@ -1087,19 +1121,20 @@ class ProjectRepo(BaseRepo):
 
 
 class OutputRepo(BaseRepo):
+    @property
+    def output_log_file_path(self):
+        self.checkout("main")
+        return self.path / "log.tsv"
 
-    def print_data_log(self):
+    @property
+    def output_log(self):
+        return OutputLog(filepath=self.output_log_file_path)
+
+    def print_output_log(self):
         self.checkout("main")
 
-        tsv_filepath = self.path / "log.tsv"
-
-        with open(tsv_filepath, "r") as filehandle:
-            lines = filehandle.readlines()
-
-        line_array = [line.replace("\n", "").split("\t") for line in lines]
-
-        # Print
-        print(tabulate(line_array[1:], headers=line_array[0]))
+        output_log = self.output_log
+        print(output_log)
 
         self.checkout(self._most_recent_branch)
 
@@ -1133,14 +1168,25 @@ class OutputRepo(BaseRepo):
 
 
 class JupyterInterfaceRepo(ProjectRepo):
-    def commit(self, message: str, add_all=True):
+    def commit(self, message: str, add_all=True, verbosity=1):
+        """
+        Commit current state of the repository.
+
+        :param message:
+            Commit message
+        :param add_all:
+            Option to add all changed and new files to git automatically.
+        :param verbosity:
+            Option to choose degree of printed feedback.
+        """
+
         if "nbconvert_call" in sys.argv:
             print("Not committing during nbconvert.")
             return
 
         Notebook.save_ipynb()
 
-        super().commit(message, add_all)
+        super().commit(message, add_all, verbosity)
 
     def commit_nb_output(self, notebook_path: str, results_commit_message: str,
                          force_rerun=True, timeout=600, conversion_formats: list = None):

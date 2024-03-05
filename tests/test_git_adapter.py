@@ -6,10 +6,11 @@ import git
 import numpy as np
 import pytest
 
-from cadetrdm import initialize_repo, ProjectRepo, clone
+from cadetrdm import initialize_repo, ProjectRepo, clone, Options
 from cadetrdm.initialize_repo import init_lfs
 from cadetrdm.io_utils import delete_path
 from cadetrdm.repositories import OutputRepo, BaseRepo
+from cadetrdm.wrapper import tracks_results
 
 
 @pytest.fixture(scope="module")
@@ -35,6 +36,13 @@ def count_commit_number(repo):
 def example_generate_results_array(path_to_repo, output_folder):
     results_array = np.random.random((500, 3))
     np.savetxt(path_to_repo / output_folder / "result.csv", results_array, delimiter=",")
+    return results_array
+
+
+@tracks_results
+def example_generate_results_with_options(repo, options):
+    results_array = np.random.random((500, 3))
+    np.savetxt(repo.output_path / "result.csv", results_array, delimiter=",")
     return results_array
 
 
@@ -80,6 +88,24 @@ def try_commit_results_data(path_to_repo):
         example_generate_results_array(path_to_repo, output_folder=repo.output_path)
     updated_commit_number = count_commit_number(repo.output_repo)
     assert current_commit_number <= updated_commit_number
+    return str(repo.output_repo.active_branch)
+
+
+def try_commit_results_with_options(path_to_repo):
+    options = Options()
+    options.commit_message = "test with options"
+    options.debug = False
+    options.example = "123"
+    options.dont_push = True
+
+    repo = ProjectRepo(path_to_repo)
+    current_commit_number = count_commit_number(repo.output_repo)
+
+    example_generate_results_with_options(options, repo_path=repo.path)
+
+    updated_commit_number = count_commit_number(repo.output_repo)
+    assert current_commit_number <= updated_commit_number
+
     return str(repo.output_repo.active_branch)
 
 
@@ -244,8 +270,6 @@ def test_error_stack():
     error_line = '    raise ValueError("This is an error message with \\n a line break")\n'
     assert error_line in lines
 
-    delete_path(path_to_repo)
-
 
 def test_cadet_rdm(path_to_repo):
     # because these depend on one-another and there is no native support afaik for sequential tests
@@ -260,6 +284,7 @@ def test_cadet_rdm(path_to_repo):
     try_commit_results_with_uncommitted_code_changes(path_to_repo)
     try_output_function(path_to_repo)
 
+    try_commit_results_with_options(path_to_repo)
     results_branch_name = try_commit_results_data(path_to_repo)
     try_print_log(path_to_repo)
 
