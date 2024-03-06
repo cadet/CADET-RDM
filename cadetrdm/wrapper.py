@@ -15,6 +15,8 @@ def tracks_results(func):
             options = Options.load_json_file(options)
         elif type(options) is str:
             options = Options.load_json_str(options)
+        if type(options) is dict:
+            options = Options(options)
 
         for key in ["commit_message", "debug"]:
             if key not in options or options[key] is None:
