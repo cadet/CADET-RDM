@@ -1,3 +1,4 @@
+import hashlib
 import json
 
 from benedict import BeneDict, benedict_to_dict
@@ -51,11 +52,26 @@ class Options(BeneDict):
     def load_json_str(cls, string, **loader_kwargs):
         return cls.loads(string)
 
-    def __hash__(self):
-        return self.dumps().__hash__()
+    def __hash__(self, excluded_keys=None):
+        excluded_keys = {"commit_message", "push", "debug", "case"}
+        remaining_keys = set(self.keys()) - excluded_keys
+        remaining_dict = {key: self[key] for key in remaining_keys}
+        dump = json.dumps(
+            remaining_dict,
+            cls=NumpyEncoder,
+            ensure_ascii=False,
+            sort_keys=True,
+            indent=None,
+            separators=(',', ':'),
+        )
+        return int(hashlib.md5(dump.encode('utf-8')).hexdigest(), 16)
 
 
 if __name__ == '__main__':
     options = Options()
+    options.optimizer_options = 10
     options.commit_message = "Fuubar"
     options_rev = Options.load_json_str(options.dump_json_str())
+    print(options.dump_json_str())
+    options_rev.commit_message = "unfoo"
+    print(options.__hash__(), options_rev.__hash__())

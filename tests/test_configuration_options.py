@@ -9,11 +9,9 @@ def test_options_hash():
     opt["nested_dict"] = {"ba": "foo", "bb": "bar"}
     initial_hash = hash(opt)
     s = opt.dumps()
-    serialized_hash = hash(s)
     opt_recovered = Options.loads(s)
     post_serialization_hash = hash(opt_recovered)
-    assert initial_hash == serialized_hash
-    assert serialized_hash == post_serialization_hash
+    assert initial_hash == post_serialization_hash
 
 
 def test_options_file_io():
