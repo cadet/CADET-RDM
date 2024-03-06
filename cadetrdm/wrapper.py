@@ -25,13 +25,12 @@ def tracks_results(func):
 
         project_repo = ProjectRepo(repo_path)
 
-        function_options = deepcopy(options)
-        function_options.pop("commit_message")
-        project_repo.options_hash = hash(function_options)
+        project_repo.options_hash = hash(options)
 
         with project_repo.track_results(
                 options.commit_message,
                 debug=options.debug,
+                force=True
         ):
             options.dump_json_file(project_repo.output_path / "options.json")
             results = func(project_repo, options)

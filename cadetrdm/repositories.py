@@ -144,8 +144,9 @@ class BaseRepo:
             self.fetch()
 
             if self.has_changes_upstream:
-                print(f"New changes detected in {self.remotes[0].origin}, pulling updates...")
-                self.remotes[0].origin.pull()
+                print(f"New changes detected in {self.remotes[0]}, pulling updates...")
+                self.remotes[0].pull()
+                self._git.reset(["--hard", f"{self.remotes[0]}/{self.active_branch}"])
 
         except git.GitCommandError as e:
             traceback.print_exc()
