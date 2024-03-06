@@ -407,7 +407,7 @@ class BaseRepo:
         """
         self.add(".")
 
-    def reset_hard_to_head(self, force_entry=False):
+    def _reset_hard_to_head(self, force_entry=False):
         if not force_entry:
             proceed = wait_for_user(f'The output directory contains the following uncommitted changes:\n'
                                     f'{self.untracked_files + self.changed_files}\n'
@@ -1017,7 +1017,7 @@ class ProjectRepo(BaseRepo):
         output_repo = self.output_repo
 
         if output_repo.exist_uncomitted_changes:
-            output_repo.reset_hard_to_head(force_entry=force)
+            output_repo._reset_hard_to_head(force_entry=force)
 
         output_repo.delete_active_branch_if_branch_is_empty()
 
@@ -1134,11 +1134,14 @@ class ProjectRepo(BaseRepo):
 class OutputRepo(BaseRepo):
     @property
     def output_log_file_path(self):
-        self.checkout("main")
+        if not self.active_branch == "main":
+            self.checkout("main")
         return self.path / "log.tsv"
 
     @property
     def output_log(self):
+        self.checkout("main")
+        self._reset_hard_to_head(force_entry=True)
         return OutputLog(filepath=self.output_log_file_path)
 
     def print_output_log(self):

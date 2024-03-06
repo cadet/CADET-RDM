@@ -14,8 +14,22 @@ class OutputLog:
         self._entry_list = self._read_file(filepath)
         self.entries = self._entries_from_entry_list(self._entry_list)
 
+    def __iter__(self):
+        self._index = 1
+        return self
+
+    def __next__(self):
+        try:
+            entry = self.entries[self._index]
+            self._index += 1
+            return entry
+        except IndexError:
+            raise StopIteration
+
     def _entries_from_entry_list(self, entry_list):
         header = self._convert_header(entry_list[0])
+        if len(header) < 9:
+            header.append("options_hash")
         entry_list = entry_list[1:]
         entry_dictionaries = []
         for entry in entry_list:
