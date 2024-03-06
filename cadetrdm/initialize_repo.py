@@ -42,8 +42,8 @@ def initialize_repo(path_to_repo: str | Path, output_folder_name: (str | bool) =
     if gitignore is None:
         gitignore = get_default_gitignore() + ["*.ipynb"]
 
-    gitignore.append(output_folder_name)
-    gitignore.append(output_folder_name + "_cached")
+    gitignore.append(f"/{output_folder_name}/")
+    gitignore.append(f"/{output_folder_name}_cached/")
 
     if gitattributes is None:
         gitattributes = []
