@@ -225,7 +225,11 @@ def clone(project_url, path_to_repo: str = None):
     json_path = path_to_repo / ".cadet-rdm-data.json"
     with open(json_path, "r") as file_handle:
         meta_dict = json.load(file_handle)
-        output_remotes = meta_dict["output_remotes"]
+        if "output_remotes" in meta_dict:
+            output_remotes = meta_dict["output_remotes"]
+        else:
+            with open(path_to_repo / "output_remotes.json") as remotes_handle:
+                output_remotes = json.load(remotes_handle)
 
     output_folder_name = path_to_repo / output_remotes["output_folder_name"]
     ssh_remotes = list(output_remotes["output_remotes"].values())
