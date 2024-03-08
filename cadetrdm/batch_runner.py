@@ -1,6 +1,6 @@
 from pathlib import Path
 import sys
-import importlib
+from importlib.util import spec_from_file_location, module_from_spec
 
 from cadetrdm import clone, Options, ProjectRepo
 
@@ -99,8 +99,12 @@ class Case:
             return
 
         try:
-            sys.path.append(str(self.study.path))
-            module = importlib.import_module(self.study.name)
+            sys.path.append(str(self.study.path / self.study.name))
+
+            spec = spec_from_file_location("main", str(self.study.path / self.study.name / "main.py"))
+            module = module_from_spec(spec)
+
+            spec.loader.exec_module(module)
 
             self.status = 'running'
 
@@ -109,7 +113,7 @@ class Case:
             print("Command execution successful.")
             self.status = 'finished'
 
-            sys.path.remove(str(self.study.path))
+            sys.path.remove(str(self.study.path / self.study.name))
 
         except Exception as e:
             print(f"Command execution failed: {e}")
