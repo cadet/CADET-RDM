@@ -6,13 +6,15 @@ from cadetrdm import clone, Options, ProjectRepo
 
 
 class Study(ProjectRepo):
-    def __init__(self, path, url, *args, **kwargs):
+    def __init__(self, path, url, branch="main", *args, **kwargs):
         self.name = Path(path).parts[-1]
         self.url = url
 
         try:
             if not path.exists():
                 clone(self.url, path)
+                if branch != "main":
+                    ProjectRepo(path).checkout(branch)
         except Exception as e:
             print(f"Error processing study {self.name}: {e}")
             return

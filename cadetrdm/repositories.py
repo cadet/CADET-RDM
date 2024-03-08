@@ -125,9 +125,19 @@ class BaseRepo:
     @property
     def has_changes_upstream(self):
         try:
-            remote_hash = str(self.remotes[0].fetch()[0].commit)
+            remote_branches = self.remotes[0].fetch()
+            correct_remote_branches = [fetch_info for fetch_info in remote_branches
+                                       if self.active_branch.name in fetch_info.name]
+            if len(correct_remote_branches) > 1:
+                raise RuntimeError(f"Remote has multiple branches matching local branch {self.active_branch.name}: "
+                                   f"{[branch.name for branch in correct_remote_branches]}")
+            remote_hash = str(correct_remote_branches[0].commit)
 
             if self.current_commit_hash != remote_hash:
+                if remote_hash in self.log:
+                    raise RuntimeError(
+                        "Local repository is ahead of remote. This could be due to CADET-RDM version updates"
+                    )
                 return True
             else:
                 return False
