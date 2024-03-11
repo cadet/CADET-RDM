@@ -13,36 +13,36 @@ if __name__ == '__main__':
         "git@jugit.fz-juelich.de:r.jaepel/puetmann2013.git",
     )
 
-    clr = Study(
-        WORK_DIR / 'clr',
-        "git@jugit.fz-juelich.de:j.schmoelder/clr.git",
-        branch="adapt_to_cadetrdm_runner"
-    )
-
-    flip_flow = Study(
-        WORK_DIR / 'flip_flow',
-        "git@jugit.fz-juelich.de:j.schmoelder/flip_flow.git",
-        branch="adapt_to_cadetrdm_runner"
-    )
-
-    serial_columns = Study(
-        WORK_DIR / 'serial_columns',
-        "git@jugit.fz-juelich.de:j.schmoelder/serial_columns.git",
-        # branch="adapt_to_cadetrdm_runner"
-    )
-
-    smb = Study(
-        WORK_DIR / 'smb',
-        "git@jugit.fz-juelich.de:j.schmoelder/smb.git",
-        # branch="adapt_to_cadetrdm_runner"
-    )
+    # clr = Study(
+    #     WORK_DIR / 'clr',
+    #     "git@jugit.fz-juelich.de:j.schmoelder/clr.git",
+    #     branch="adapt_to_cadetrdm_runner"
+    # )
+    #
+    # flip_flow = Study(
+    #     WORK_DIR / 'flip_flow',
+    #     "git@jugit.fz-juelich.de:j.schmoelder/flip_flow.git",
+    #     branch="adapt_to_cadetrdm_runner"
+    # )
+    #
+    # serial_columns = Study(
+    #     WORK_DIR / 'serial_columns',
+    #     "git@jugit.fz-juelich.de:j.schmoelder/serial_columns.git",
+    #     # branch="adapt_to_cadetrdm_runner"
+    # )
+    #
+    # smb = Study(
+    #     WORK_DIR / 'smb',
+    #     "git@jugit.fz-juelich.de:j.schmoelder/smb.git",
+    #     # branch="adapt_to_cadetrdm_runner"
+    # )
 
     studies = [
-        # puetmann2013,
+        puetmann2013,
         # clr,
         # flip_flow,
         # serial_columns,
-        smb,
+        # smb,
     ]
 
     force = False

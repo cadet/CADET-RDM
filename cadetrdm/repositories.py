@@ -133,12 +133,11 @@ class BaseRepo:
                                    f"{[branch.name for branch in correct_remote_branches]}")
             remote_hash = str(correct_remote_branches[0].commit)
 
-            if self.current_commit_hash != remote_hash:
-                if remote_hash in self.log:
-                    raise RuntimeError(
-                        "Local repository is ahead of remote. This could be due to CADET-RDM version updates"
-                    )
+            if self.current_commit_hash != remote_hash and remote_hash not in self.log:
                 return True
+            elif self.current_commit_hash != remote_hash and remote_hash in self.log:
+                print("Local repository is ahead of remote. This could be due to CADET-RDM version updates.")
+                return False
             else:
                 return False
 
