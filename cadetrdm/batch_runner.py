@@ -94,7 +94,7 @@ class Case:
 
     def run_study(self, force=False):
         """Run specified study commands in the given repository."""
-        if self.is_running:
+        if self.is_running and not force:
             print(f"{self.study.name} is currently running. Skipping...")
             return
 
