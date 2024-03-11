@@ -53,7 +53,7 @@ class Options(BeneDict):
         return cls.loads(string)
 
     def __hash__(self, excluded_keys=None):
-        excluded_keys = {"commit_message", "push", "debug", "case"}
+        excluded_keys = {"commit_message", "push", "debug"}
         remaining_keys = set(self.keys()) - excluded_keys
         remaining_dict = {key: self[key] for key in remaining_keys}
         dump = json.dumps(
