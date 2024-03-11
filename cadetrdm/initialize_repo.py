@@ -189,7 +189,7 @@ def initialize_output_repo(output_folder_name, gitignore: list = None,
 
 
 def create_environment_yml():
-    file_lines = ["name: rdm_example", "channels:", "  - conda-forge", "dependencies:", "  - python=3.10", "  - conda",
+    file_lines = ["name: rdm_example", "channels:", "  - conda-forge", "dependencies:", "  - python=3.10",
                   "  - cadet", "  - pip", "  - pip:", "      - cadet-process", "      - cadet-rdm"]
     if not os.path.exists("environment.yml"):
         write_lines_to_file("environment.yml", file_lines, open_type="w")
