@@ -1,6 +1,6 @@
+import importlib
 from pathlib import Path
 import sys
-from importlib.util import spec_from_file_location, module_from_spec
 
 from cadetrdm import clone, Options, ProjectRepo
 
@@ -65,7 +65,14 @@ class Case:
 
         with open(self.status_file) as f:
             status = f.read().strip()
-            status, current_hash = status.split("@")
+            try:
+                status, current_hash = status.split("@")
+            except ValueError as e:
+                if status == '':
+                    return None, None
+                else:
+                    raise e
+
             return status, current_hash
 
     @property
@@ -92,19 +99,18 @@ class Case:
             return
 
         print(f"Running {self.name} in {self.study.path} with: {self.options}")
-        self.study.update()
+        if not self.options.debug:
+            self.study.update()
+        else:
+            print("WARNING: Not updating the repositories while in debug mode.")
 
         if self.has_results_for_this_run and not force:
             print(f"{self.study.path} has already been computed with these options. Skipping...")
             return
 
         try:
-            sys.path.append(str(self.study.path / self.study.name))
-
-            spec = spec_from_file_location("main", str(self.study.path / self.study.name / "main.py"))
-            module = module_from_spec(spec)
-
-            spec.loader.exec_module(module)
+            sys.path.append(str(self.study.path))
+            module = importlib.import_module(self.study.name)
 
             self.status = 'running'
 
@@ -113,9 +119,9 @@ class Case:
             print("Command execution successful.")
             self.status = 'finished'
 
-            sys.path.remove(str(self.study.path / self.study.name))
+            sys.path.remove(str(self.study.path))
 
-        except Exception as e:
+        except (KeyboardInterrupt, Exception) as e:
             print(f"Command execution failed: {e}")
             self.status = 'failed'
             return
