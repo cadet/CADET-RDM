@@ -1,7 +1,7 @@
 import hashlib
 import json
 
-from benedict import BeneDict, benedict_to_dict
+from benedict import benedict
 import benedict.data_format as df
 import numpy as np
 
@@ -29,9 +29,14 @@ class NumpyDecoder(json.JSONDecoder):
         return obj
 
 
-class Options(BeneDict):
+class Options(benedict):
+    def __init__(self, *args, **kwargs):
+        if "keyattr_dynamic" not in kwargs:
+            kwargs["keyattr_dynamic"] = True
+        super().__init__(*args, **kwargs)
+
     def dumps(self):
-        return json.dumps(benedict_to_dict(self), cls=NumpyEncoder)
+        return json.dumps(dict(self), cls=NumpyEncoder)
 
     @classmethod
     def loads(cls, string):
@@ -43,7 +48,7 @@ class Options(BeneDict):
         return cls(df.load_json_file(file_path, cls=NumpyDecoder, **loader_kwargs))
 
     def dump_json_file(self, file_path, **dumper_kwargs):
-        df.dump_json_file(benedict_to_dict(self), file_path, cls=NumpyEncoder, **dumper_kwargs)
+        df.dump_json_file(dict(self), file_path, cls=NumpyEncoder, **dumper_kwargs)
 
     def dump_json_str(self, **dumper_kwargs):
         return self.dumps()

@@ -29,7 +29,7 @@ dependencies = [
     "click",
     "tabulate",
     "keyring",
-    "benedict"
+    "python-benedict"
 ]
 
 [project.scripts]
