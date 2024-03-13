@@ -23,7 +23,10 @@ class Study(ProjectRepo):
 
 
 class Case:
-    def __init__(self, name, study: Study, options: Options):
+    def __init__(self, study: Study, options: Options, name: str = None):
+        if name is None:
+            name = options.hash
+
         self.name = name
         self.study = study
         self.options = options

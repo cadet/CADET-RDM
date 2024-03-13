@@ -68,32 +68,31 @@ if __name__ == '__main__':
     #     "n_max_gen": 2,
     # }
 
-    DEFAULT_SINGLE_OBJECTIVE = {
-        "purity_required": None,
-        "ranking": None,
-    }
-
-    cases = {
-        'single-objective': {
+    DEFAULT_OPTIONS = [
+        Options({
+            'objective': 'single-objective',
             'optimizer_options': DEFAULT_UNSGA_OPTIMIZER_OPTIONS,
-            'case_options': DEFAULT_SINGLE_OBJECTIVE,
-        },
-        # 'single-objective-ax': {
-        #     'case_options': DEFAULT_SINGLE_OBJECTIVE,
-        #     'optimizer_options': DEFAULT_AX_OPTIMIZER_OPTIONS,
-        # },
-        # 'single-objective-trust': {
-        #     'case_options': DEFAULT_SINGLE_OBJECTIVE,
-        #     'optimizer_options': DEFAULT_TRUST_OPTIMIZER_OPTIONS,
-        # }
-    }
+            'debug': debug,
+            'push': push,
+        }),
+        Options({
+            'objective': 'multi-objective-ranked',
+            'optimizer_options': DEFAULT_UNSGA_OPTIMIZER_OPTIONS,
+            'debug': debug,
+            'push': push,
+        }),
+        Options({
+            'objective': 'multi-objective',
+            'optimizer_options': DEFAULT_UNSGA_OPTIMIZER_OPTIONS,
+            'debug': debug,
+            'push': push,
+        }),
+    ]
 
     # Default cases
     for study in studies:
-        for case, options in cases.items():
-            options = Options(options)
-            options.case = case
-            options.commit_message = f"Test run {case}"
-            options.debug = False
-            case = Case(case, study, options)
+        for options in DEFAULT_OPTIONS:
+            options.commit_message = f"Trying new things."
+
+            case = Case(study, options)
             case.run_study(force=force)
