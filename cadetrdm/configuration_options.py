@@ -2,7 +2,6 @@ import hashlib
 import json
 
 from benedict import benedict
-import benedict.data_format as df
 import numpy as np
 
 
@@ -45,10 +44,13 @@ class Options(benedict):
 
     @classmethod
     def load_json_file(cls, file_path, **loader_kwargs):
-        return cls(df.load_json_file(file_path, cls=NumpyDecoder, **loader_kwargs))
+        with open(file_path, "r") as handle:
+            json_data = json.load(handle, cls=NumpyDecoder, **loader_kwargs)
+        return cls(json_data)
 
     def dump_json_file(self, file_path, **dumper_kwargs):
-        df.dump_json_file(dict(self), file_path, cls=NumpyEncoder, **dumper_kwargs)
+        with open(file_path, "w") as handle:
+            json.dump(dict(self), handle, cls=NumpyEncoder, **dumper_kwargs)
 
     def dump_json_str(self, **dumper_kwargs):
         return self.dumps()
