@@ -57,7 +57,8 @@ class Options(benedict):
     def load_json_str(cls, string, **loader_kwargs):
         return cls.loads(string)
 
-    def __hash__(self, excluded_keys=None):
+    @property
+    def hash(self):
         excluded_keys = {"commit_message", "push", "debug"}
         remaining_keys = set(self.keys()) - excluded_keys
         remaining_dict = {key: self[key] for key in remaining_keys}
@@ -69,7 +70,32 @@ class Options(benedict):
             indent=None,
             separators=(',', ':'),
         )
-        return int(hashlib.md5(dump.encode('utf-8')).hexdigest(), 16)
+
+        hash_alphabet = "abcdefghjkmnpqrstvwxyz0123456789"
+        hash_base = len(hash_alphabet)
+
+        def to_base(number, base):
+            result = ""
+            while number:
+                result += hash_alphabet[number % base]
+                number //= base
+            return result[::-1] or "0"
+
+        base_16_hash = hashlib.sha1(dump.encode('utf-8')).hexdigest()
+        base_10_hash = int(base_16_hash, 16)
+        base_32_hash = to_base(base_10_hash, hash_base)
+
+        return base_32_hash
+
+    def __eq__(self, other):
+        if not isinstance(other, Options):
+            try:
+                other = Options(other)
+            except TypeError:
+                print(f"TypeError when casting {other} to Options()")
+                return NotImplemented
+
+        return self.hash == other.hash
 
 
 if __name__ == '__main__':

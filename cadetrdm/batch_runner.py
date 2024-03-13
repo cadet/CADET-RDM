@@ -87,7 +87,7 @@ class Case:
         output_log = self.study.output_log
         for log_entry in output_log:
             if (self.study.current_commit_hash == log_entry.project_repo_commit_hash
-                    and str(hash(self.options)) == log_entry.options_hash):
+                    and self.options.hash == log_entry.options_hash):
                 return True
 
         return False
