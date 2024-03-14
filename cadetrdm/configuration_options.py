@@ -1,7 +1,7 @@
 import hashlib
 import json
 
-from benedict import benedict
+from addict import Dict
 import numpy as np
 
 
@@ -28,11 +28,11 @@ class NumpyDecoder(json.JSONDecoder):
         return obj
 
 
-class Options(benedict):
-    def __init__(self, *args, **kwargs):
-        if "keyattr_dynamic" not in kwargs:
-            kwargs["keyattr_dynamic"] = True
-        super().__init__(*args, **kwargs)
+class Options(Dict):
+    # def __init__(self, *args, **kwargs):
+    #     if "keyattr_dynamic" not in kwargs:
+    #         kwargs["keyattr_dynamic"] = True
+    #     super().__init__(*args, **kwargs)
 
     def dumps(self):
         return json.dumps(dict(self), cls=NumpyEncoder)
@@ -59,8 +59,7 @@ class Options(benedict):
     def load_json_str(cls, string, **loader_kwargs):
         return cls.loads(string)
 
-    @property
-    def hash(self):
+    def get_hash(self):
         excluded_keys = {"commit_message", "push", "debug"}
         remaining_keys = set(self.keys()) - excluded_keys
         remaining_dict = {key: self[key] for key in remaining_keys}
@@ -97,7 +96,7 @@ class Options(benedict):
                 print(f"TypeError when casting {other} to Options()")
                 return NotImplemented
 
-        return self.hash == other.hash
+        return self.get_hash() == other.get_hash()
 
 
 if __name__ == '__main__':

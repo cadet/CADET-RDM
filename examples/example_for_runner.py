@@ -53,7 +53,7 @@ if __name__ == '__main__':
         "optimizer": "U_NSGA3",
         "pop_size": 3,
         "n_cores": 3,
-        "n_max_gen": 2,
+        "n_max_gen": 1,
     }
     # DEFAULT_AX_OPTIMIZER_OPTIONS = {
     #     "optimizer": "AX",
@@ -96,3 +96,5 @@ if __name__ == '__main__':
 
             case = Case(study, options)
             case.run_study(force=force)
+            print(case.results_branch)
+            print(case.results_path)

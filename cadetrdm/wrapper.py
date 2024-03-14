@@ -22,12 +22,12 @@ def tracks_results(func):
             if key not in options or options[key] is None:
                 raise ValueError(f"Key {key} not found in options. Please supply options.{key}")
 
-        if options.hash != Options.load_json_str(options.dump_json_str()).hash:
+        if options.get_hash() != Options.load_json_str(options.dump_json_str()).get_hash():
             raise ValueError("Options are not serializable. Please only use python natives and numpy ndarrays.")
 
         project_repo = ProjectRepo(repo_path)
 
-        project_repo.options_hash = options.hash
+        project_repo.options_hash = options.get_hash()
 
         with project_repo.track_results(
                 options.commit_message,

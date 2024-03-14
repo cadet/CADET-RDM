@@ -25,7 +25,7 @@ class Study(ProjectRepo):
 class Case:
     def __init__(self, study: Study, options: Options, name: str = None):
         if name is None:
-            name = options.hash
+            name = options.get_hash()
 
         self.name = name
         self.study = study
@@ -88,26 +88,26 @@ class Case:
 
     @property
     def has_results_for_this_run(self):
-        if self.results_branch == "not found":
+        if self.results_branch is None:
             return False
         else:
             return True
 
     @property
     def results_branch(self):
-        if self._results_branch is None:
-            self._results_branch = self._get_results_branch()
+        # if self._results_branch is None:
+        #     self._results_branch = self._get_results_branch()
 
-        return self._results_branch
+        return self._get_results_branch()
 
     def _get_results_branch(self):
         output_log = self.study.output_log
         for log_entry in output_log:
             if (self.study.current_commit_hash == log_entry.project_repo_commit_hash
-                    and self.options.hash == log_entry.options_hash):
+                    and self.options.get_hash() == log_entry.options_hash):
                 return log_entry.output_repo_branch
 
-        return "not found"
+        return None
 
     def run_study(self, force=False):
         """Run specified study commands in the given repository."""
@@ -149,7 +149,7 @@ class Case:
 
     def load(self, ):
         if self.results_branch is None:
-            print(f"No results available for Case({self.study.path, self.options.hash[:7]})")
+            print(f"No results available for Case({self.study.path, self.options.get_hash()[:7]})")
             return None
 
         if self._results_path.exists():
@@ -161,4 +161,4 @@ class Case:
     def results_path(self):
         self.load()
 
-        return self._results_branch
+        return self._results_path
