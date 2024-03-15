@@ -37,6 +37,10 @@ class Options(Dict):
     def dumps(self):
         return json.dumps(dict(self), cls=NumpyEncoder)
 
+    def copy(self):
+        new = super().copy()
+        return Options(new)
+
     @classmethod
     def loads(cls, string):
         decoded = json.loads(string, cls=NumpyDecoder)
