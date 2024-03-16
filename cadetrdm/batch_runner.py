@@ -1,4 +1,5 @@
 import importlib
+import os
 from pathlib import Path
 import sys
 
@@ -126,6 +127,9 @@ class Case:
             return
 
         try:
+            cur_dir = os.getcwd()
+
+            os.chdir(self.study.path)
             sys.path.append(str(self.study.path))
             module = importlib.import_module(self.study.name)
 
@@ -137,6 +141,7 @@ class Case:
             self.status = 'finished'
 
             sys.path.remove(str(self.study.path))
+            os.chdir(cur_dir)
 
         except (KeyboardInterrupt, Exception) as e:
             print(f"Command execution failed: {e}")
