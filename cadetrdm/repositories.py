@@ -15,15 +15,14 @@ from cadetrdm.io_utils import recursive_chmod, write_lines_to_file, wait_for_use
 from cadetrdm.jupyter_functionality import Notebook
 from cadetrdm.remote_integration import GitHubRemote, GitLabRemote
 from cadetrdm.logging import OutputLog
+from cadetrdm.web_utils import ssh_url_to_http_url
+from cadetrdm.io_utils import delete_path
 
 try:
     import git
 except ImportError:
     # Adding this hint to save users the confusion of trying $pip install git
     raise ImportError("No module named git, please install the gitpython package")
-
-from cadetrdm.web_utils import ssh_url_to_http_url
-from cadetrdm.io_utils import delete_path
 
 
 def validate_is_output_repo(path_to_repo):
@@ -615,17 +614,12 @@ class ProjectRepo(BaseRepo):
         if not self.data_json_path.exists():
             raise RuntimeError(f"Folder {self.path} does not appear to be a CADET-RDM repository.")
 
-        with open(self.data_json_path, "r") as handle:
-            metadata = json.load(handle)
-
-        if "output_remotes" not in metadata:
-            # this enables upgrades from v0.0.23 to v0.0.24.
-            output_remotes_path = self.path / "output_remotes.json"
-            with open(output_remotes_path, "r") as handle:
-                output_remotes = json.load(handle)
-            metadata["output_remotes"] = output_remotes
+        metadata = self.load_metadata()
 
         self._output_folder = metadata["output_remotes"]["output_folder_name"]
+        if not (self.path / self._output_folder).exists():
+            print("Output repository was missing, cloning now.")
+            self._clone_output_repo()
         self._output_repo = OutputRepo(self.path / self._output_folder)
 
         if metadata["cadet_rdm_version"] != cadetrdm.__version__:
@@ -637,6 +631,17 @@ class ProjectRepo(BaseRepo):
         self._on_context_enter_commit_hash = None
         self._is_in_context_manager = False
         self.options_hash = None
+
+    def load_metadata(self):
+        with open(self.data_json_path, "r") as handle:
+            metadata = json.load(handle)
+        if "output_remotes" not in metadata:
+            # this enables upgrades from v0.0.23 to v0.0.24.
+            output_remotes_path = self.path / "output_remotes.json"
+            with open(output_remotes_path, "r") as handle:
+                output_remotes = json.load(handle)
+            metadata["output_remotes"] = output_remotes
+        return metadata
 
     @property
     def output_repo(self):
@@ -666,6 +671,23 @@ class ProjectRepo(BaseRepo):
                 json.dump(metadata, f, indent=2)
             self.add(self.data_json_path)
             self.commit("update cadetrdm version", add_all=False)
+
+    def _clone_output_repo(self):
+        metadata = self.load_metadata()
+        output_remotes = metadata["output_remotes"]
+        output_path = self.path / output_remotes["output_folder_name"]
+        ssh_remotes = list(output_remotes["output_remotes"].values())
+        http_remotes = [ssh_url_to_http_url(url) for url in ssh_remotes]
+        if len(ssh_remotes + http_remotes) == 0:
+            raise RuntimeError("No output remotes configured in .cadet-rdm-data.json")
+        for output_remote in ssh_remotes + http_remotes:
+            try:
+                print(f"Attempting to clone {output_remote} into {output_path}")
+                git.Repo.clone_from(output_remote, output_path)
+            except Exception as e:
+                print(e)
+            else:
+                break
 
     @staticmethod
     def _add_jupytext_file(path_root: str | Path = "."):

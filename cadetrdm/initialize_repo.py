@@ -219,35 +219,10 @@ def clone(project_url, path_to_repo: str = None):
     print(f"Cloning {project_url} into {path_to_repo}")
     git.Repo.clone_from(project_url, path_to_repo)
 
-    path_to_repo = Path(path_to_repo)
-
-    # Clone output repo from remotes
-    json_path = path_to_repo / ".cadet-rdm-data.json"
-    with open(json_path, "r") as file_handle:
-        meta_dict = json.load(file_handle)
-        if "output_remotes" in meta_dict:
-            output_remotes = meta_dict["output_remotes"]
-        else:
-            with open(path_to_repo / "output_remotes.json") as remotes_handle:
-                output_remotes = json.load(remotes_handle)
-
-    output_folder_name = path_to_repo / output_remotes["output_folder_name"]
-    ssh_remotes = list(output_remotes["output_remotes"].values())
-    http_remotes = [ssh_url_to_http_url(url) for url in ssh_remotes]
-    if len(ssh_remotes + http_remotes) == 0:
-        raise RuntimeError("No output remotes configured in .cadet-rdm-data.json")
-    for output_remote in ssh_remotes + http_remotes:
-        try:
-            print(f"Attempting to clone {output_remote} into {output_folder_name}")
-            git.Repo.clone_from(output_remote, output_folder_name)
-        except Exception as e:
-            print(e)
-        else:
-            break
-    environment_path = Path(os.getcwd()) / path_to_repo / "environment.yml"
-
+    # During class instantiation, the output repo is cloned.
     repo = ProjectRepo(path_to_repo)
+
     repo.fill_data_from_cadet_rdm_json()
 
     print("To set up the project conda environment please run this command:\n"
-          f"conda deactivate && conda env create -f '{environment_path}'")
+          f"conda deactivate && conda env create -f '{repo.path / 'environment.yml'}'")
