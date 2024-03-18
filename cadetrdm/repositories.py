@@ -628,17 +628,11 @@ class ProjectRepo(BaseRepo):
         self._output_folder = metadata["output_remotes"]["output_folder_name"]
         self._output_repo = OutputRepo(self.path / self._output_folder)
 
-        repo_version = metadata["cadet_rdm_version"]
-        cadetrdm_version = cadetrdm.__version__
-        if cadetrdm_version != repo_version:
-            print(f"Repo version {repo_version} is outdated. Current CADET-RDM version is {cadetrdm_version}\n"
+        if metadata["cadet_rdm_version"] != cadetrdm.__version__:
+            print(f"Repo version {metadata['cadet_rdm_version']} is outdated. "
+                  f"Current CADET-RDM version is {cadetrdm.__version__}\n"
                   "Updating the repository now.")
-            self._update_version(repo_version)
-            metadata["cadet_rdm_version"] = cadetrdm_version
-            with open(self.data_json_path, "w") as f:
-                json.dump(metadata, f, indent=2)
-            self.add(self.data_json_path)
-            self.commit("update cadetrdm version", add_all=False)
+            self._update_version(metadata, cadetrdm.__version__)
 
         self._on_context_enter_commit_hash = None
         self._is_in_context_manager = False
@@ -650,17 +644,28 @@ class ProjectRepo(BaseRepo):
             raise ValueError("The output repo has not been set yet.")
         return self._output_repo
 
-    def _update_version(self, current_version):
+    def _update_version(self, metadata, cadetrdm_version):
+        current_version = metadata["cadet_rdm_version"]
+        changes_were_made = False
         major, minor, patch = [int(x) for x in current_version.split(".")]
         version_sum = major * 1000 * 1000 + minor * 1000 + patch
         if version_sum < 9:
+            changes_were_made = True
             self._convert_csv_to_tsv_if_necessary()
             self._add_jupytext_file(self.path)
         if version_sum < 24:
+            changes_were_made = True
             self._expand_tsv_header()
             output_remotes_path = self.path / "output_remotes.json"
             delete_path(output_remotes_path)
             self.add(output_remotes_path)
+
+        if changes_were_made:
+            metadata["cadet_rdm_version"] = cadetrdm_version
+            with open(self.data_json_path, "w") as f:
+                json.dump(metadata, f, indent=2)
+            self.add(self.data_json_path)
+            self.commit("update cadetrdm version", add_all=False)
 
     @staticmethod
     def _add_jupytext_file(path_root: str | Path = "."):
