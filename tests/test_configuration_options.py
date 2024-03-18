@@ -25,3 +25,17 @@ def test_options_file_io():
     post_serialization_hash = opt_recovered.get_hash()
     assert initial_hash == post_serialization_hash
     assert opt == opt_recovered
+
+
+def test_excluded_keys():
+    opt1 = Options()
+    opt1["nested_dict"] = {"ba": "foo", "bb": "bar", "_tmp": 1}
+    opt1.answer = 42
+    opt1._n_cores = 9001
+
+    opt2 = Options()
+    opt2["nested_dict"] = {"ba": "foo", "bb": "bar", "_tmp": 2}
+    opt2.answer = 42
+    opt2._n_cores = 1
+
+    assert opt1 == opt2

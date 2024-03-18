@@ -75,18 +75,18 @@ if __name__ == '__main__':
             'debug': debug,
             'push': push,
         }),
-        Options({
-            'objective': 'multi-objective-ranked',
-            'optimizer_options': DEFAULT_UNSGA_OPTIMIZER_OPTIONS,
-            'debug': debug,
-            'push': push,
-        }),
-        Options({
-            'objective': 'multi-objective',
-            'optimizer_options': DEFAULT_UNSGA_OPTIMIZER_OPTIONS,
-            'debug': debug,
-            'push': push,
-        }),
+        # Options({
+        #     'objective': 'multi-objective-ranked',
+        #     'optimizer_options': DEFAULT_UNSGA_OPTIMIZER_OPTIONS,
+        #     'debug': debug,
+        #     'push': push,
+        # }),
+        # Options({
+        #     'objective': 'multi-objective',
+        #     'optimizer_options': DEFAULT_UNSGA_OPTIMIZER_OPTIONS,
+        #     'debug': debug,
+        #     'push': push,
+        # }),
     ]
 
     # Default cases

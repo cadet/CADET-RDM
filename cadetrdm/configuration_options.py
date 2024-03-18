@@ -29,11 +29,6 @@ class NumpyDecoder(json.JSONDecoder):
 
 
 class Options(Dict):
-    # def __init__(self, *args, **kwargs):
-    #     if "keyattr_dynamic" not in kwargs:
-    #         kwargs["keyattr_dynamic"] = True
-    #     super().__init__(*args, **kwargs)
-
     def dumps(self):
         return json.dumps(dict(self), cls=NumpyEncoder)
 
@@ -66,6 +61,7 @@ class Options(Dict):
     def get_hash(self):
         excluded_keys = {"commit_message", "push", "debug"}
         remaining_keys = set(self.keys()) - excluded_keys
+        remaining_keys = {key for key in remaining_keys if not key.startswith("_")}
         remaining_dict = {key: self[key] for key in remaining_keys}
         dump = json.dumps(
             remaining_dict,
