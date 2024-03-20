@@ -43,6 +43,8 @@ class Options(Dict):
         new = super().copy()
         return Options(new)
 
+    # super.update() already takes care of nested dictionaries, so we don't have to
+
     @classmethod
     def loads(cls, string):
         decoded = json.loads(string, cls=CustomDecoder)

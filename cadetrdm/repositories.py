@@ -623,9 +623,6 @@ class ProjectRepo(BaseRepo):
         self._output_repo = OutputRepo(self.path / self._output_folder)
 
         if metadata["cadet_rdm_version"] != cadetrdm.__version__:
-            print(f"Repo version {metadata['cadet_rdm_version']} is outdated. "
-                  f"Current CADET-RDM version is {cadetrdm.__version__}\n"
-                  "Updating the repository now.")
             self._update_version(metadata, cadetrdm.__version__)
 
         self._on_context_enter_commit_hash = None
@@ -666,6 +663,8 @@ class ProjectRepo(BaseRepo):
             self.add(output_remotes_path)
 
         if changes_were_made:
+            print(f"Repo version {metadata['cadet_rdm_version']} was outdated. "
+                  f"Current CADET-RDM version is {cadetrdm.__version__}.\n Repo has been updated")
             metadata["cadet_rdm_version"] = cadetrdm_version
             with open(self.data_json_path, "w") as f:
                 json.dump(metadata, f, indent=2)
