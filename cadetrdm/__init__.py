@@ -4,4 +4,4 @@ from .repositories import ProjectRepo, JupyterInterfaceRepo
 from .configuration_options import Options
 from .wrapper import tracks_results
 
-__version__ = "0.0.31"
+__version__ = "0.0.32"
