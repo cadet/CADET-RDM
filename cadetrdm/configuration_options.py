@@ -1,19 +1,24 @@
 import hashlib
 import json
+from pathlib import Path
 
 from addict import Dict
 import numpy as np
 
 
-class NumpyEncoder(json.JSONEncoder):
+class CustomEncoder(json.JSONEncoder):
+    """Custom encoder to serialize additional types (e.g. numpy arrays) to json."""
+
     def default(self, obj):
         if isinstance(obj, np.ndarray):
             return {"__class__": "numpy.ndarray", "value": obj.tolist()}
+        elif isinstance(obj, Path):
+            return {"__class__": "Path", "value": obj.as_posix()}
         return json.JSONEncoder.default(self, obj)
 
 
-class NumpyDecoder(json.JSONDecoder):
-    """Deserilize JSON object numpy arrays."""
+class CustomDecoder(json.JSONDecoder):
+    """Custom decoder to deserialize additional types (e.g. numpy arrays) from json."""
 
     def __init__(self, *args, **kwargs):
         json.JSONDecoder.__init__(self, object_hook=self.object_hook, *args, **kwargs)
@@ -25,12 +30,14 @@ class NumpyDecoder(json.JSONDecoder):
         match obj['__class__']:
             case 'numpy.ndarray':
                 return numpy.array(obj['value'])
+            case 'Path':
+                return Path(obj['value'])
         return obj
 
 
 class Options(Dict):
     def dumps(self):
-        return json.dumps(dict(self), cls=NumpyEncoder)
+        return json.dumps(dict(self), cls=CustomEncoder)
 
     def copy(self):
         new = super().copy()
@@ -38,18 +45,18 @@ class Options(Dict):
 
     @classmethod
     def loads(cls, string):
-        decoded = json.loads(string, cls=NumpyDecoder)
+        decoded = json.loads(string, cls=CustomDecoder)
         return cls(decoded)
 
     @classmethod
     def load_json_file(cls, file_path, **loader_kwargs):
         with open(file_path, "r") as handle:
-            json_data = json.load(handle, cls=NumpyDecoder, **loader_kwargs)
+            json_data = json.load(handle, cls=CustomDecoder, **loader_kwargs)
         return cls(json_data)
 
     def dump_json_file(self, file_path, **dumper_kwargs):
         with open(file_path, "w") as handle:
-            json.dump(dict(self), handle, cls=NumpyEncoder, **dumper_kwargs)
+            json.dump(dict(self), handle, cls=CustomEncoder, **dumper_kwargs)
 
     def dump_json_str(self, **dumper_kwargs):
         return self.dumps()
@@ -65,7 +72,7 @@ class Options(Dict):
         remaining_dict = {key: self[key] for key in remaining_keys}
         dump = json.dumps(
             remaining_dict,
-            cls=NumpyEncoder,
+            cls=CustomEncoder,
             ensure_ascii=False,
             sort_keys=True,
             indent=None,
