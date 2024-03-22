@@ -11,12 +11,12 @@ from stat import S_IREAD, S_IWRITE
 from urllib.request import urlretrieve
 
 import cadetrdm
+from cadetrdm.io_utils import delete_path
 from cadetrdm.io_utils import recursive_chmod, write_lines_to_file, wait_for_user, init_lfs
 from cadetrdm.jupyter_functionality import Notebook
-from cadetrdm.remote_integration import GitHubRemote, GitLabRemote
 from cadetrdm.logging import OutputLog
+from cadetrdm.remote_integration import GitHubRemote, GitLabRemote
 from cadetrdm.web_utils import ssh_url_to_http_url
-from cadetrdm.io_utils import delete_path
 
 try:
     import git
@@ -65,7 +65,23 @@ class BaseRepo:
 
     @property
     def active_branch(self):
-        return self._git_repo.active_branch
+        try:
+            active_branch = self._git_repo.active_branch
+            return active_branch
+        except TypeError as e:
+            if "HEAD is a detached" in str(e):
+                class DetachedHeadBranch:
+                    name = "detached_head"
+
+                    def __repr__(self):
+                        return "detached_head"
+
+                    def __str__(self):
+                        return "detached_head"
+
+                return DetachedHeadBranch()
+            else:
+                raise e
 
     @property
     def untracked_files(self):
@@ -1046,6 +1062,10 @@ class ProjectRepo(BaseRepo):
         :return:
             The name of the newly created output branch.
         """
+        if self.active_branch.name == "detached_head":
+            print("Repo is in detached HEAD state. Not tracking results")
+            return
+
         self.test_for_correct_repo_setup()
         self.test_for_uncommitted_changes()
         self._on_context_enter_commit_hash = self.current_commit_hash
@@ -1151,6 +1171,11 @@ class ProjectRepo(BaseRepo):
         """
         if debug:
             yield "debug"
+            return
+
+        if self.active_branch.name == "detached_head":
+            print("Repo is in detached HEAD state. Not tracking results")
+            yield "detached_head"
             return
 
         new_branch_name = self.enter_context(force=force)

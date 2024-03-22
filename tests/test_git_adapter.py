@@ -293,6 +293,27 @@ def test_cadet_rdm(path_to_repo):
     try_load_previous_output(path_to_repo, results_branch_name)
 
 
+def test_with_detached_head():
+    path_to_repo = Path("test_repo_2")
+    if path_to_repo.exists():
+        delete_path(path_to_repo)
+    os.makedirs(path_to_repo)
+    initialize_repo(path_to_repo)
+    os.chdir(path_to_repo)
+    for i in range(2):
+        with open("README.md", "a") as handle:
+            handle.write(f"Readme-line {i}\n")
+        os.system(f"git add .")
+        os.system(f"git commit -m foobar{i}")
+
+    os.system("git checkout HEAD~1")
+    repo = ProjectRepo(".")
+    with repo.track_results("foo"):
+        pass
+
+    os.chdir("..")
+
+
 def test_with_external_repos():
     path_to_repo = Path("test_repo_external_data")
     if path_to_repo.exists():
