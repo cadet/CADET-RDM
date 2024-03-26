@@ -391,17 +391,20 @@ class BaseRepo:
         if remote is None:
             if len(self._git_repo.remotes) == 0:
                 raise RuntimeError("No remote has been set for this repository yet.")
-            remote = [str(remote.name) for remote in self._git_repo.remotes][0]
-
-        remote_interface = self._git_repo.remotes[remote]
-
-        if push_all:
-            push_results = remote_interface.push(all=True)
+            remote_list = [str(remote.name) for remote in self._git_repo.remotes]
         else:
-            push_results = remote_interface.push(refspec=f'{local_branch}:{remote_branch}')
+            remote_list = [remote]
 
-        for push_res in push_results:
-            print(push_res.summary)
+        for remote in remote_list:
+            remote_interface = self._git_repo.remotes[remote]
+
+            if push_all:
+                push_results = remote_interface.push(all=True)
+            else:
+                push_results = remote_interface.push(refspec=f'{local_branch}:{remote_branch}')
+
+            for push_res in push_results:
+                print(push_res.summary)
 
         if hasattr(self, "output_repo") and push_all:
             self.output_repo.push()
