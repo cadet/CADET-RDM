@@ -509,7 +509,8 @@ class BaseRepo:
 
         try:
             commit_return = self._git.commit("-m", message)
-            print("\n" + commit_return + "\n")
+            if verbosity >= 1:
+                print("\n" + commit_return + "\n")
         except:
             pass
 
@@ -1151,7 +1152,7 @@ class ProjectRepo(BaseRepo):
             if main_cach_path.exists():
                 delete_path(main_cach_path)
             self.copy_data_to_cache("main")
-            print("\n" + commit_return + "\n")
+            # print("\n" + commit_return + "\n")
         except git.exc.GitCommandError as e:
             self.output_repo.delete_active_branch_if_branch_is_empty()
             raise e
