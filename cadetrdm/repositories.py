@@ -5,12 +5,14 @@ import os
 import shutil
 import sys
 import traceback
+import warnings
 from datetime import datetime
 from pathlib import Path
 from stat import S_IREAD, S_IWRITE
 from urllib.request import urlretrieve
 
 import cadetrdm
+from cadetrdm.initialize_repo import test_for_lfs
 from cadetrdm.io_utils import delete_path
 from cadetrdm.io_utils import recursive_chmod, write_lines_to_file, wait_for_user, init_lfs
 from cadetrdm.jupyter_functionality import Notebook
@@ -627,6 +629,8 @@ class ProjectRepo(BaseRepo):
         """
         super().__init__(repository_path, search_parent_directories=search_parent_directories, *args, **kwargs)
 
+        test_for_lfs()
+
         if output_folder is not None:
             print("Deprecation Warning. Setting the outputfolder manually during repo instantiation is deprecated"
                   " and will be removed in a future update.")
@@ -635,7 +639,8 @@ class ProjectRepo(BaseRepo):
             raise RuntimeError(f"Folder {self.path} does not appear to be a CADET-RDM repository.")
 
         metadata = self.load_metadata()
-
+        self._project_uuid = metadata["project_uuid"]
+        self._output_uuid = metadata["output_uuid"]
         self._output_folder = metadata["output_remotes"]["output_folder_name"]
         if not (self.path / self._output_folder).exists():
             print("Output repository was missing, cloning now.")
@@ -698,7 +703,7 @@ class ProjectRepo(BaseRepo):
         ssh_remotes = list(output_remotes["output_remotes"].values())
         http_remotes = [ssh_url_to_http_url(url) for url in ssh_remotes]
         if len(ssh_remotes + http_remotes) == 0:
-            raise RuntimeError("No output remotes configured in .cadet-rdm-data.json")
+            warnings.warn("No output remotes configured in .cadet-rdm-data.json")
         for output_remote in ssh_remotes + http_remotes:
             try:
                 print(f"Attempting to clone {output_remote} into {output_path}")

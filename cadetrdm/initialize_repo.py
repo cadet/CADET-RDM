@@ -11,7 +11,6 @@ except ImportError:
 
 import cadetrdm
 from cadetrdm.repositories import ProjectRepo, OutputRepo
-from cadetrdm.web_utils import ssh_url_to_http_url
 from cadetrdm.io_utils import write_lines_to_file, is_tool, wait_for_user, init_lfs
 
 
@@ -33,11 +32,7 @@ def initialize_repo(path_to_repo: str | Path, output_folder_name: (str | bool) =
         Include gitignore, gitattributes, and lfs_filetypes kwargs.
     :return:
     """
-    if not is_tool("git-lfs"):
-        raise RuntimeError("Git LFS is not installed. Please install it via e.g. apt-get install git-lfs or the "
-                           "instructions found below \n"
-                           "https://docs.github.com/en/repositories/working-with-files"
-                           "/managing-large-files/installing-git-large-file-storage")
+    test_for_lfs()
 
     if gitignore is None:
         gitignore = get_default_gitignore() + ["*.ipynb"]
@@ -107,6 +102,14 @@ def initialize_repo(path_to_repo: str | Path, output_folder_name: (str | bool) =
     repo.commit("initial commit", add_all=False)
 
     os.chdir(starting_directory)
+
+
+def test_for_lfs():
+    if not is_tool("git-lfs"):
+        raise RuntimeError("Git LFS is not installed. Please install it via e.g. apt-get install git-lfs or the "
+                           "instructions found below \n"
+                           "https://docs.github.com/en/repositories/working-with-files"
+                           "/managing-large-files/installing-git-large-file-storage")
 
 
 def initialize_git(folder="."):
