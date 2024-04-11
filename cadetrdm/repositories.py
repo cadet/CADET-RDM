@@ -12,8 +12,7 @@ from stat import S_IREAD, S_IWRITE
 from urllib.request import urlretrieve
 
 import cadetrdm
-from cadetrdm.initialize_repo import test_for_lfs
-from cadetrdm.io_utils import delete_path
+from cadetrdm.io_utils import delete_path, test_for_lfs
 from cadetrdm.io_utils import recursive_chmod, write_lines_to_file, wait_for_user, init_lfs
 from cadetrdm.jupyter_functionality import Notebook
 from cadetrdm.logging import OutputLog

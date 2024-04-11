@@ -11,7 +11,7 @@ except ImportError:
 
 import cadetrdm
 from cadetrdm.repositories import ProjectRepo, OutputRepo
-from cadetrdm.io_utils import write_lines_to_file, is_tool, wait_for_user, init_lfs
+from cadetrdm.io_utils import write_lines_to_file, wait_for_user, init_lfs, test_for_lfs
 
 
 def initialize_repo(path_to_repo: str | Path, output_folder_name: (str | bool) = "output", gitignore: list = None,
@@ -104,12 +104,22 @@ def initialize_repo(path_to_repo: str | Path, output_folder_name: (str | bool) =
     os.chdir(starting_directory)
 
 
-def test_for_lfs():
-    if not is_tool("git-lfs"):
-        raise RuntimeError("Git LFS is not installed. Please install it via e.g. apt-get install git-lfs or the "
-                           "instructions found below \n"
-                           "https://docs.github.com/en/repositories/working-with-files"
-                           "/managing-large-files/installing-git-large-file-storage")
+# def re_initialize_existing_repo(path_to_repo: str | Path, **output_repo_kwargs):
+#     path_to_repo = "."
+#     output_repo_kwargs = {}
+#
+#     starting_directory = os.getcwd()
+#     os.chdir(path_to_repo)
+#
+#     repo = ProjectRepo(".")
+#
+#     if Path(repo._output_folder).exists():
+#         raise RuntimeError(f"Output repo at {repo._output_folder} already exists.")
+#
+#     initialize_output_repo(repo._output_folder, project_repo_uuid=repo._project_uuid,
+#                            output_repo_uuid=repo._output_uuid, **output_repo_kwargs)
+#
+#     os.chdir(starting_directory)
 
 
 def initialize_git(folder="."):

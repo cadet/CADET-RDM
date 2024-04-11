@@ -1,7 +1,7 @@
 import importlib
 import os
-from pathlib import Path
 import sys
+from pathlib import Path
 
 from cadetrdm import clone, Options, ProjectRepo
 
@@ -21,6 +21,18 @@ class Study(ProjectRepo):
             return
 
         super().__init__(path, *args, **kwargs)
+
+    @property
+    def module(self):
+        cur_dir = os.getcwd()
+
+        os.chdir(self.path)
+        sys.path.append(str(self.path))
+        module = importlib.import_module(self.name)
+
+        sys.path.remove(str(self.path))
+        os.chdir(cur_dir)
+        return module
 
 
 class Case:
@@ -127,21 +139,12 @@ class Case:
             return
 
         try:
-            cur_dir = os.getcwd()
-
-            os.chdir(self.study.path)
-            sys.path.append(str(self.study.path))
-            module = importlib.import_module(self.study.name)
-
             self.status = 'running'
 
-            module.main(self.options, str(self.study.path))
+            self.study.module.main(self.options, str(self.study.path))
 
             print("Command execution successful.")
             self.status = 'finished'
-
-            sys.path.remove(str(self.study.path))
-            os.chdir(cur_dir)
 
         except (KeyboardInterrupt, Exception) as e:
             print(f"Command execution failed: {e}")

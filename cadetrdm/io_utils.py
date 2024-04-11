@@ -101,3 +101,11 @@ def init_lfs(lfs_filetypes: list, path: str | Path = None):
 
     if path is not None:
         os.chdir(previous_path)
+
+
+def test_for_lfs():
+    if not is_tool("git-lfs"):
+        raise RuntimeError("Git LFS is not installed. Please install it via e.g. apt-get install git-lfs or the "
+                           "instructions found below \n"
+                           "https://docs.github.com/en/repositories/working-with-files"
+                           "/managing-large-files/installing-git-large-file-storage")
