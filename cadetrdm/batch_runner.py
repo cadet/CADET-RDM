@@ -115,11 +115,42 @@ class Case:
 
     def _get_results_branch(self):
         output_log = self.study.output_log
+        study_options_hash = self.options.get_hash()
+        study_commit_hash = self.study.current_commit_hash
+        has_been_run_with_these_options = False
+        has_been_run_with_this_commit = False
+        semi_correct_hits = []
         for log_entry in output_log:
-            if (self.study.current_commit_hash == log_entry.project_repo_commit_hash
-                    and self.options.get_hash() == log_entry.options_hash):
+            entry_options_hash = log_entry.options_hash
+            entry_commit_hash = log_entry.project_repo_commit_hash
+            if study_commit_hash == entry_commit_hash and study_options_hash == entry_options_hash:
                 return log_entry.output_repo_branch
-
+            elif study_commit_hash == entry_commit_hash and study_options_hash != entry_options_hash:
+                has_been_run_with_this_commit = True
+                semi_correct_hits.append(
+                    f"Found matching study commit hash {study_commit_hash[:7]}, but incorrect options hash "
+                    f"(needs: {study_options_hash[:7]}, has: {entry_options_hash[:7]})"
+                )
+            elif study_commit_hash != entry_commit_hash and study_options_hash == entry_options_hash:
+                has_been_run_with_these_options = True
+                semi_correct_hits.append(
+                    f"Found matching options hash  {study_options_hash[:7]}, but incorrect study commit hash "
+                    f"(needs: {study_commit_hash[:7]}, has: {entry_commit_hash[:7]})"
+                )
+        if has_been_run_with_these_options:
+            [print(line) for line in semi_correct_hits]
+            print(
+                "No matching results were found for this study version, but results with these options were found for "
+                "other study versions. Did you recently update the study?"
+            )
+        elif has_been_run_with_this_commit:
+            [print(line) for line in semi_correct_hits]
+            print(
+                "No matching results were found for these options, but results with these options were found for "
+                "this study versions. Did you recently change the options?"
+            )
+        else:
+            print("No matching results were found for these options and study version.")
         return None
 
     def run_study(self, force=False):
