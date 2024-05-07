@@ -1080,6 +1080,9 @@ class ProjectRepo(BaseRepo):
         self._is_in_context_manager = True
         output_repo = self.output_repo
 
+        # ensure that LFS is properly initialized
+        os.system("git lfs install")
+
         if output_repo.exist_uncomitted_changes:
             output_repo._reset_hard_to_head(force_entry=force)
 
