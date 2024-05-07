@@ -15,7 +15,7 @@ class OutputLog:
         self.entries = self._entries_from_entry_list(self._entry_list)
 
     def __iter__(self):
-        self._index = 1
+        self._index = 0
         return self
 
     def __next__(self):

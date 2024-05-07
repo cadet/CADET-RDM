@@ -184,7 +184,11 @@ class Case:
 
     @property
     def _results_path(self):
-        return self.study.path / (self.study._output_folder + "_cached") / self.results_branch
+        results_branch = self.results_branch
+        if results_branch is None:
+            return None
+        else:
+            return self.study.path / (self.study._output_folder + "_cached") / results_branch
 
     def load(self, ):
         if self.results_branch is None:
