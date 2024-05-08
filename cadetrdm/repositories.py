@@ -323,7 +323,7 @@ class BaseRepo:
         if type(input_path) is str:
             input_path = Path(input_path)
 
-        if input_path.is_absolute:
+        if input_path.is_absolute():
             relative_path = input_path.relative_to(self.path)
         else:
             relative_path = input_path
@@ -745,7 +745,7 @@ class ProjectRepo(BaseRepo):
         """
         project_repo_hash = str(self.head.commit)
         timestamp = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
-        branch_name = "_".join([timestamp, self._output_folder, "from", str(self.active_branch), project_repo_hash[:7]])
+        branch_name = "_".join([timestamp, str(self.active_branch), project_repo_hash[:7]])
         return branch_name
 
     def check_results_main(self):
@@ -861,15 +861,15 @@ class ProjectRepo(BaseRepo):
         the commit hash and branch name of the ouput repository into the main branch of
         the output repository.
         """
-        output_branch_name = str(self._output_repo.active_branch)
+        output_branch_name = str(self.output_repo.active_branch)
 
-        output_repo_hash = str(self._output_repo.head.commit)
-        output_commit_message = self._output_repo.active_branch.commit.message
+        output_repo_hash = str(self.output_repo.head.commit)
+        output_commit_message = self.output_repo.active_branch.commit.message
         output_commit_message = output_commit_message.replace("\n", "; ")
 
-        self._output_repo._git.checkout("main")
+        self.output_repo._git.checkout("main")
 
-        logs_folderpath = self.path / self._output_folder / "run_history" / output_branch_name
+        logs_folderpath = self.output_repo.path / "run_history" / output_branch_name
         if not logs_folderpath.exists():
             os.makedirs(logs_folderpath)
 
@@ -1042,9 +1042,9 @@ class ProjectRepo(BaseRepo):
         :return:
         """
         if sub_path is None:
-            return self.path / self.output_repo.path
+            return self.output_repo.path.absolute()
         else:
-            return self.path / self.output_repo.path / sub_path
+            return self.output_repo.path.absolute() / sub_path
 
     def remove_cached_files(self):
         """
