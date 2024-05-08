@@ -396,6 +396,13 @@ class BaseRepo:
         else:
             remote_list = [remote]
 
+        if local_branch == "main" or push_all:
+            if push_all:
+                self.checkout("main")
+            for remote in remote_list:
+                remote_interface = self._git_repo.remotes[remote]
+                remote_interface.pull()
+
         for remote in remote_list:
             remote_interface = self._git_repo.remotes[remote]
 
