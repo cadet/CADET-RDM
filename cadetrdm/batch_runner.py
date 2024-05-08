@@ -7,8 +7,11 @@ from cadetrdm import clone, Options, ProjectRepo
 
 
 class Study(ProjectRepo):
-    def __init__(self, path, url, branch="main", *args, **kwargs):
-        self.name = Path(path).parts[-1]
+    def __init__(self, path, url, branch="main", name=None, *args, **kwargs):
+        if name is None:
+            self.name = Path(path).parts[-1]
+        else:
+            self.name = name
         self.url = url
 
         try:
