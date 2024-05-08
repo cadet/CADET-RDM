@@ -40,8 +40,8 @@ def initialize_repo(path_to_repo: str | Path, output_folder_name: (str | bool) =
     gitignore.append(f"/{output_folder_name}/")
     gitignore.append(f"/{output_folder_name}_cached/")
 
-    if gitattributes is None:
-        gitattributes = []
+    if gitattributes is not None:
+        write_lines_to_file(path=".gitattributes", lines=gitattributes, open_type="a")
 
     if output_repo_kwargs is None:
         output_repo_kwargs = {}
@@ -56,7 +56,6 @@ def initialize_repo(path_to_repo: str | Path, output_folder_name: (str | bool) =
 
     initialize_git()
 
-    write_lines_to_file(path=".gitattributes", lines=gitattributes, open_type="a")
     write_lines_to_file(path=".gitignore", lines=gitignore, open_type="a")
 
     create_readme()
@@ -91,10 +90,11 @@ def initialize_repo(path_to_repo: str | Path, output_folder_name: (str | bool) =
              "README.md",
              ".cadet-rdm-cache.json",
              ".cadet-rdm-data.json",
-             ".gitattributes",
              "environment.yml",
              "jupytext.yml",
              ]
+    if gitattributes is not None:
+        files.append(".gitattributes")
 
     for file in files:
         repo._git.add(file)
@@ -173,7 +173,7 @@ def initialize_output_repo(output_folder_name, gitignore: list = None,
         gitignore = get_default_gitignore()
 
     if gitattributes is None:
-        gitattributes = ["rdm-log.tsv merge=union"]
+        gitattributes = ["log.tsv merge=union"]
 
     if lfs_filetypes is None:
         lfs_filetypes = get_default_lfs_filetypes()

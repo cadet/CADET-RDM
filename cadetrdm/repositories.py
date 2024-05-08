@@ -685,6 +685,9 @@ class ProjectRepo(BaseRepo):
             output_remotes_path = self.path / "output_remotes.json"
             delete_path(output_remotes_path)
             self.add(output_remotes_path)
+        if version_sum < 34:
+            changes_were_made = True
+            self.fix_gitattributes_log_tsv()
 
         if changes_were_made:
             print(f"Repo version {metadata['cadet_rdm_version']} was outdated. "
@@ -694,6 +697,16 @@ class ProjectRepo(BaseRepo):
                 json.dump(metadata, f, indent=2)
             self.add(self.data_json_path)
             self.commit("update cadetrdm version", add_all=False)
+
+    def fix_gitattributes_log_tsv(self):
+        file = self.output_path / ".gitattributes"
+        with open(file) as handle:
+            lines = handle.readlines()
+        lines = [line.replace("rdm-log.tsv", "log.tsv") for line in lines]
+        with open(file, "w") as handle:
+            handle.writelines(lines)
+        self.output_repo.add(".gitattributes")
+        self.output_repo.commit("Update gitattributes")
 
     def _clone_output_repo(self):
         metadata = self.load_metadata()
