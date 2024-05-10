@@ -17,8 +17,7 @@ class Study(ProjectRepo):
         try:
             if not path.exists():
                 clone(self.url, path)
-                if branch != "main":
-                    ProjectRepo(path).checkout(branch)
+            ProjectRepo(path).checkout(branch)
         except Exception as e:
             print(f"Error processing study {self.name}: {e}")
             return
