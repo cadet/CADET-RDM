@@ -148,7 +148,7 @@ class Case:
         elif has_been_run_with_this_commit:
             [print(line) for line in semi_correct_hits]
             print(
-                "No matching results were found for these options, but results with these options were found for "
+                "No matching results were found for these options, but results with other options were found for "
                 "this study versions. Did you recently change the options?"
             )
         else:
