@@ -1144,7 +1144,7 @@ class ProjectRepo(BaseRepo):
 
             target_folder = self.path / (self._output_folder + "_cached") / branch_name
 
-            shutil.copytree(source_filepath, target_folder)
+            shutil.copytree(str(source_filepath), str(target_folder), ignore=lambda dir, names: [".git"])
 
             # Set all files to read only
             for filename in glob.iglob(f"{target_folder}/**/*", recursive=True):
