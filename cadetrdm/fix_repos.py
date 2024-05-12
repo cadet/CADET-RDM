@@ -1,10 +1,11 @@
 import os
-from git import Repo
+
 import git
+from git import Repo
 
 n_commits = 60
 
-os.chdir(r"C:\Users\ronal\PycharmProjects\benchmarking-cadet-optimization\benchmarking-eval\tmp\puetmann2013\output")
+os.chdir(r"C:\Users\ronal\PycharmProjects\benchmarking-cadet-optimization\benchmarking-runner\tmp\puetmann2013\output")
 repo = Repo(".")
 repo.git.checkout("main")
 commits = list(repo.iter_commits("main", max_count=n_commits + 1))
@@ -32,12 +33,10 @@ for commit in commits[::-1]:
     if "Changes not staged for commit:" in status:
         os.system("git lfs fsck --pointers & git add . & git commit --amend --no-edit")
 
-
 if False:
     repo.git.checkout("main")
     repo.git.branch("-D", "patched_main")
     repo.git.branch("-D", "unpatched_main")
-
 
 repo.git.checkout("main")
 repo.git.reset("--hard", "patched_main")
@@ -47,14 +46,16 @@ os.system("git push --force-with-lease")
 # print(repo.git.status())
 # print(repo.git.log())
 
-# branches = repo.git.branch("-r").split("\n")
-# branches = [branch.replace("  origin/", "") for branch in branches if "origin/main" not in branch]
+branches = repo.git.branch("-r").split("\n")
+branches = [branch.replace("  origin/", "") for branch in branches if "origin/main" not in branch]
 # remote = repo.remotes[0]
 
 
-# for branch in branches:
-#     repo.git.checkout(branch)
-#     print(repo.git.status())
-#     os.system("git lfs fsck --pointers & git add . & git commit --amend --no-edit")
+for branch in branches:
+    print(branch)
+    repo.git.checkout(branch)
+    status = repo.git.status()
+    if "Changes not staged for commit:" in status:
+        os.system("git lfs fsck --pointers & git add . & git commit --amend --no-edit")
 
-# os.system("git push --all --force-with-lease")
+os.system("git push --all --force-with-lease")
