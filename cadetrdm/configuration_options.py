@@ -69,8 +69,10 @@ class Options(Dict):
 
     def get_hash(self):
         excluded_keys = {"commit_message", "push", "debug"}
-        remaining_keys = set(self.keys()) - excluded_keys
-        remaining_keys = {key for key in remaining_keys if not key.startswith("_")}
+        included_keys = {"study_options", "optimizer_options"}
+        # remaining_keys = set(self.keys()) - excluded_keys
+        remaining_keys = included_keys
+        remaining_keys = {key for key in remaining_keys if not key.startswith("_") or "__" in key}
         remaining_dict = {key: self[key] for key in remaining_keys}
         dump = json.dumps(
             remaining_dict,
