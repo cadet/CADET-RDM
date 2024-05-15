@@ -1236,8 +1236,10 @@ class OutputRepo(BaseRepo):
 
     @property
     def output_log(self):
-        self.checkout("main")
-        self._reset_hard_to_head(force_entry=True)
+        if self.active_branch != "main":
+            self.checkout("main")
+        if " working tree clean" not in self.status:
+            self._reset_hard_to_head(force_entry=True)
         return OutputLog(filepath=self.output_log_file_path)
 
     def print_output_log(self):
