@@ -1139,7 +1139,7 @@ class ProjectRepo(BaseRepo):
             if branch_name is None:
                 branch_name = self.output_repo.active_branch.name
             else:
-                output_repo.stash_all_changes()
+                self.output_repo.stash_all_changes()
                 previous_branch = self.output_repo.active_branch.name
                 self.output_repo.checkout(branch_name)
 
@@ -1159,7 +1159,7 @@ class ProjectRepo(BaseRepo):
         finally:
             if previous_branch is not None:
                 self.output_repo.checkout(previous_branch)
-                output_repo.apply_stashed_changes()
+                self.output_repo.apply_stashed_changes()
 
     def exit_context(self, message):
         """
