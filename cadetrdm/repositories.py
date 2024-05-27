@@ -1132,31 +1132,32 @@ class ProjectRepo(BaseRepo):
 
         :return:
         """
+        previous_branch = None
         try:
             source_filepath = self.output_repo.path
 
             if branch_name is None:
                 branch_name = self.output_repo.active_branch.name
-                previous_branch = None
             else:
                 previous_branch = self.output_repo.active_branch.name
                 self.output_repo.checkout(branch_name)
 
             target_folder = self.path / (self._output_folder + "_cached") / branch_name
 
-            shutil.copytree(str(source_filepath), str(target_folder), ignore=lambda dir, names: [".git"])
+            if not target_folder.exists():
+                shutil.copytree(str(source_filepath), str(target_folder), ignore=lambda dir, names: [".git"])
 
-            # Set all files to read only
-            for filename in glob.iglob(f"{target_folder}/**/*", recursive=True):
-                absolute_path = os.path.abspath(filename)
-                if os.path.isdir(absolute_path):
-                    continue
-                os.chmod(os.path.abspath(filename), S_IREAD)
-
-            if previous_branch is not None:
-                self.output_repo.checkout(previous_branch)
+                # Set all files to read only
+                for filename in glob.iglob(f"{target_folder}/**/*", recursive=True):
+                    absolute_path = os.path.abspath(filename)
+                    if os.path.isdir(absolute_path):
+                        continue
+                    os.chmod(os.path.abspath(filename), S_IREAD)
         except:
             traceback.print_exc()
+        finally:
+            if previous_branch is not None:
+                self.output_repo.checkout(previous_branch)
 
     def exit_context(self, message):
         """
@@ -1236,10 +1237,8 @@ class OutputRepo(BaseRepo):
 
     @property
     def output_log(self):
-        if self.active_branch != "main":
-            self.checkout("main")
-        if " working tree clean" not in self.status:
-            self._reset_hard_to_head(force_entry=True)
+        self.checkout("main")
+        self._reset_hard_to_head(force_entry=True)
         return OutputLog(filepath=self.output_log_file_path)
 
     def print_output_log(self):
