@@ -561,7 +561,8 @@ class BaseRepo:
         Will raise a RuntimeError if no changes are found.
         """
         if not self.exist_uncomitted_changes:
-            raise RuntimeError("No changes in repo to stash.")
+            warnings.warn("No changes in repo to stash.")
+            return
         self.add(".")
         self._git.stash()
 
@@ -1159,7 +1160,10 @@ class ProjectRepo(BaseRepo):
         finally:
             if previous_branch is not None:
                 self.output_repo.checkout(previous_branch)
-                self.output_repo.apply_stashed_changes()
+                try:
+                    self.output_repo.apply_stashed_changes()
+                except:
+                    pass
 
     def exit_context(self, message):
         """
