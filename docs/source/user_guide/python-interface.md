@@ -22,12 +22,10 @@ if __name__ == '__main__':
     # The method repo.output_data() generates full paths to within your output_folder
     with repo.track_results(results_commit_message="Generate and analyse example data"):
         data = generate_data()
-        output_filepath = repo.output_data(sub_path="raw_data/data.csv")
-        write_data_to_file(data, output_filepath)
+        write_data_to_file(data, output_folder=repo.output_folder)
 
         analysis_results = analyse_data(data)
-        figure_path = repo.output_data("analysis/regression.png")
-        plot_analysis_results(analysis_results, figure_path)
+        plot_analysis_results(analysis_results, figure_path=repo.output_folder / "analysis" / "regression.png")
 
 ```
 
