@@ -146,7 +146,7 @@ def get_default_gitignore():
 
 
 def get_default_lfs_filetypes():
-    return ["*.jpg", "*.png", "*.xlsx", "*.h5", "*.ipynb", "*.pdf", "*.docx", "*.zip", "*.html"]
+    return ["*.jpg", "*.png", "*.xlsx", "*.h5", "*.ipynb", "*.pdf", "*.docx", "*.zip", "*.html", "*.csv"]
 
 
 def initialize_output_repo(output_folder_name, gitignore: list = None,
