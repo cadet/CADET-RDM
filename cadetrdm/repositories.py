@@ -206,7 +206,9 @@ class BaseRepo:
             project_repo = ProjectRepo(self.path.parent)
             project_repo.update_output_remotes_json()
             project_repo.add_list_of_remotes_in_readme_file("output_repo", self.remote_urls)
-            project_repo.commit("Add remote for output repo", verbosity=0)
+            project_repo.add(project_repo.data_json_path)
+            project_repo.add("README.md")
+            project_repo.commit("Add remote for output repo", verbosity=0, add_all=False)
 
     def add_filetype_to_lfs(self, file_type):
         """
@@ -759,9 +761,21 @@ class ProjectRepo(BaseRepo):
 
         response_project = remote.create_remote(url=url, namespace=namespace, name=name, username=username)
         response_output = remote.create_remote(url=url, namespace=namespace, name=name + "_output", username=username)
-        self.add_remote(response_project.ssh_url_to_repo)
-        self.output_repo.add_remote(response_output.ssh_url_to_repo)
-        self.push(push_all=True)
+        errors_encountered = 0
+        try:
+            self.add_remote(response_project.ssh_url_to_repo)
+        except RuntimeError as e:
+            errors_encountered += 1
+            print(e)
+            print("Please fix the error above and re-run repo.add_remote()")
+        try:
+            self.output_repo.add_remote(response_output.ssh_url_to_repo)
+        except RuntimeError as e:
+            errors_encountered += 1
+            print(e)
+            print("Please fix the error above and re-run repo.output_repo.add_remote()")
+        if errors_encountered == 0:
+            self.push(push_all=True)
 
     def get_new_output_branch_name(self):
         """
