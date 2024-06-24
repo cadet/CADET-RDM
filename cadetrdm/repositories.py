@@ -198,9 +198,9 @@ class BaseRepo:
                 if output_repo.exist_uncomitted_changes:
                     output_repo.stash_all_changes()
                 output_repo.checkout("main")
-
             output_repo.add_list_of_remotes_in_readme_file("project_repo", self.remote_urls)
-            output_repo.commit("Add remote for project repo", verbosity=0)
+            output_repo.add("README.md")
+            output_repo.commit("Add remote for project repo", verbosity=0, add_all=False)
         if rdm_data["is_output_repo"]:
             # This folder is an output repo
             project_repo = ProjectRepo(self.path.parent)
