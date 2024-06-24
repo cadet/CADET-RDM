@@ -31,6 +31,8 @@ def test_gitlab_create():
 
     remote.delete_remote(url=url, namespace=namespace, name=name, username="r.jaepel")
 
+    sleep(3)
+
     with pytest.raises(git.exc.GitCommandError):
         git.Repo.clone_from(response.ssh_url_to_repo, "test_repo_remote")
 
