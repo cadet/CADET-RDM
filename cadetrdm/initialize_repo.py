@@ -99,7 +99,7 @@ def initialize_repo(path_to_repo: str | Path, output_folder_name: (str | bool) =
     for file in files:
         repo._git.add(file)
 
-    repo.commit("initial commit", add_all=False)
+    repo.commit("initial CADET RDM commit", add_all=False)
 
     os.chdir(starting_directory)
 
