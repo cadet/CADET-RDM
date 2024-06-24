@@ -35,7 +35,7 @@ def initialize_repo(path_to_repo: str | Path, output_folder_name: (str | bool) =
     test_for_lfs()
 
     if gitignore is None:
-        gitignore = get_default_gitignore() + ["*.ipynb"]
+        gitignore = get_default_gitignore() + ["*.ipynb", "*.h5"]
 
     gitignore.append(f"/{output_folder_name}/")
     gitignore.append(f"/{output_folder_name}_cached/")
