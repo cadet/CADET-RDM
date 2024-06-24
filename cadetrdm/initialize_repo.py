@@ -130,7 +130,7 @@ def initialize_git(folder="."):
     try:
         repo = git.Repo(".")
         proceed = wait_for_user('The target directory already contains a git repo.\n'
-                                'Please back up or push all changes to the repo before continuing.\n'
+                                'Please commit or stash all changes to the repo before continuing.\n'
                                 'Proceed?')
         if not proceed:
             raise KeyboardInterrupt
