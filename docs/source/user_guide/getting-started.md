@@ -33,7 +33,7 @@ import keyring
 keyring.set_password("e.g. https://jugit.fz-juelich.de/", username, token)
 ```
 
-or 
+or in a command line
 
 ````commandline
 keyring set system username
@@ -42,6 +42,10 @@ keyring set system username
 Then you can run:
 
 ```python
+from cadetrdm import ProjectRepo
+
+repo = ProjectRepo()
+
 repo.create_remotes(
     name="e.g. API_test_project",
     namespace="e.g. r.jaepel",
@@ -50,7 +54,7 @@ repo.create_remotes(
 )
 ```
 
-or
+or in a command line
 
 ```bash
 rdm remote create url namespace name username
@@ -66,11 +70,15 @@ Several common datatypes are included in GIT-LFS by default. These currently are
 You can add datatypes you require by running:
 
 ````python
+from cadetrdm import ProjectRepo
+
+repo = ProjectRepo()
+
 repo.output_repo.add_filetype_to_lfs("*.npy")
 ````
 
 
-or from within the output folder:
+or from within the output folder in a command line:
 
 ```bash
 rdm lfs add *.npy
