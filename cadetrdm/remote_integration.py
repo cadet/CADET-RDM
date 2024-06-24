@@ -8,12 +8,12 @@ class Remote:
     @staticmethod
     def load_token(url_options, username):
         token = None
-        url_options = iter(url_options)
+        url_options_iter = iter(url_options)
         try:
             while token is None:
-                token = keyring.get_password(next(url_options), username)
+                token = keyring.get_password(next(url_options_iter), username)
         except StopIteration:
-            raise RuntimeError(f"No token found in keyring for url {url_options[0]} and username {username}")
+            raise RuntimeError(f"No token found in keyring for url {url_options} and username {username}")
 
         return token
 
