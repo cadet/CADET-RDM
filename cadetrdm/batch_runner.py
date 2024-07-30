@@ -104,7 +104,8 @@ class Case:
 
     @property
     def has_results_for_this_run(self):
-        if self.results_branch is None:
+        self._results_branch = self._get_results_branch()
+        if self._results_branch is None:
             return False
         else:
             return True

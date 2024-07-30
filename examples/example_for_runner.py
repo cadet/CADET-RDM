@@ -96,5 +96,4 @@ if __name__ == '__main__':
 
             case = Case(study, options)
             case.run_study(force=force)
-            print(case.results_branch)
             print(case.results_path)
