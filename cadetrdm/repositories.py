@@ -500,7 +500,7 @@ class BaseRepo:
         print("Dumping pip independent requirements.txt.")
         os.system(f"pip list --not-required --format freeze > {dump_path}/pip_independent_requirements.txt")
 
-    def commit(self, message: str, add_all=True, verbosity=1):
+    def commit(self, message: str | None = None, add_all=True, verbosity=1):
         """
         Commit current state of the repository.
 
@@ -516,6 +516,15 @@ class BaseRepo:
             if verbosity >= 1:
                 print(f"No changes to commit in repo {self.path}")
             return
+
+        print("Found changes in these files:")
+        for file in [self.untracked_files + self.changed_files]:
+            print(" -", file)
+
+        if message is None:
+            message = input("Please enter a commit message for these code changes or 'N' to cancel.\n")
+            if message.upper().replace(" ", "") == "N" or message.upper().replace(" ", "") == "":
+                raise KeyboardInterrupt
 
         print(f"Commiting changes to repo {self.path}")
         if add_all:
