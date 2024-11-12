@@ -1157,13 +1157,16 @@ class ProjectRepo(BaseRepo):
         :return:
         """
         previous_branch = None
+        has_stashed_changes = False
         try:
             source_filepath = self.output_repo.path
 
             if branch_name is None:
                 branch_name = self.output_repo.active_branch.name
             else:
-                self.output_repo.stash_all_changes()
+                if self.test_for_uncommitted_changes():
+                    self.output_repo.stash_all_changes()
+                    has_stashed_changes = True
                 previous_branch = self.output_repo.active_branch.name
                 self.output_repo.checkout(branch_name)
 
@@ -1183,10 +1186,11 @@ class ProjectRepo(BaseRepo):
         finally:
             if previous_branch is not None:
                 self.output_repo.checkout(previous_branch)
-                try:
-                    self.output_repo.apply_stashed_changes()
-                except:
-                    pass
+                if has_stashed_changes:
+                    try:
+                        self.output_repo.apply_stashed_changes()
+                    except:
+                        pass
 
     def exit_context(self, message):
         """
