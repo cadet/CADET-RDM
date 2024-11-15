@@ -37,9 +37,9 @@ rdm = "cadetrdm.cli_integration:cli"
 
 
 [project.urls]
-homepage = "https://jugit.fz-juelich.de/IBG-1/ModSim/cadet/CADET-RDM"
+homepage = "https://github.com/cadet/CADET-RDM"
 documentation = "https://cadet-rdm.readthedocs.io/en/latest/index.html"
-"Bug Tracker" = "https://jugit.fz-juelich.de/IBG-1/ModSim/cadet/CADET-RDM/Issues"
+"Bug Tracker" = "https://github.com/cadet/CADET-RDM/issues"
 
 
 [project.optional-dependencies]
