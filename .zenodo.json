@@ -1,0 +1,30 @@
+{
+  "title": "CADET-RDM: Version 0.0.42",
+  "upload_type": "software",
+  "creators": [
+    {
+      "name": "Jäpel, Ronald",
+      "orcid": "0000-0002-4912-5176",
+      "affiliation": "Forschungszentrum Jülich"
+    },
+    {
+      "name": "Schmölder, Johannes",
+      "orcid": "0000-0003-0446-7209",
+      "affiliation": "Forschungszentrum Jülich"
+    },
+    {
+      "name": "von Lieres, Eric",
+      "orcid": "0000-0002-0309-8408",
+      "affiliation": "Forschungszentrum Jülich"
+    }
+  ],
+  "license": "GPL-3.0",
+  "keywords": [
+   "research data management", "simulation", "reproducibility", "containerization"
+  ],
+  "version": "0.0.42",
+  "access_right": "open",
+  "communities": [
+    { "identifier": "open-source" }
+  ]
+}
