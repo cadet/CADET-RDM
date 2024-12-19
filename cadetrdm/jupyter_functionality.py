@@ -1,6 +1,7 @@
 import sys
 import time
 import os
+import traceback
 from pathlib import Path
 from cadetrdm.io_utils import wait_for_user
 
@@ -17,7 +18,7 @@ class Notebook:
             self.ExecutePreprocessor = ExecutePreprocessor
             self.NbConvertApp = NbConvertApp
         except ModuleNotFoundError as e:
-            # traceback.print_exc()
+            traceback.print_exc()
             print("No working nbconvert installation found OR a conflict in your packages found.")
             print("For more information, import nbconvert and check the error.")
 
@@ -146,7 +147,7 @@ class Notebook:
 
     def convert_ipynb(self, output_dir, formats: list = None):
         if formats is None:
-            formats = ["html", ]
+            formats = ["html", "ipynb"]
         app = self.NbConvertApp()
         app.initialize()
         output_root_directory = os.path.join(output_dir, self.notebook_name)
