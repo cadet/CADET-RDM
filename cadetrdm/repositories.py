@@ -9,6 +9,7 @@ import warnings
 from datetime import datetime
 from pathlib import Path
 from stat import S_IREAD, S_IWRITE
+from typing import List
 from urllib.request import urlretrieve
 
 import cadetrdm
@@ -731,7 +732,7 @@ class ProjectRepo(BaseRepo):
         self.output_repo.add(".gitattributes")
         self.output_repo.commit("Update gitattributes")
 
-    def _clone_output_repo(self):
+    def _clone_output_repo(self, multi_options: List[str] = None):
         metadata = self.load_metadata()
         output_remotes = metadata["output_remotes"]
         output_path = self.path / output_remotes["output_folder_name"]
@@ -742,7 +743,7 @@ class ProjectRepo(BaseRepo):
         for output_remote in ssh_remotes + http_remotes:
             try:
                 print(f"Attempting to clone {output_remote} into {output_path}")
-                git.Repo.clone_from(output_remote, output_path)
+                git.Repo.clone_from(output_remote, output_path, multi_options=multi_options)
             except Exception as e:
                 print(e)
             else:

@@ -2,6 +2,7 @@ import json
 import os
 import uuid
 from pathlib import Path
+from typing import List
 
 try:
     import git
@@ -225,12 +226,23 @@ def create_output_readme():
     write_lines_to_file("README.md", readme_lines, open_type="a")
 
 
-def clone(project_url, path_to_repo: str = None):
+def clone(project_url, path_to_repo: str = None, multi_options: List[str] = None):
+    """
+    Clone a remote repository
+
+    :param project_url:
+    :param path_to_repo:
+    :param multi_options: A list of Clone options that can be provided multiple times.
+        One option per list item which is passed exactly as specified to clone.
+        For example: ['--config core.filemode=false', '--config core.ignorecase',
+        '--recurse-submodule=repo1_path', '--recurse-submodule=repo2_path']
+    :return:
+    """
     if path_to_repo is None:
         path_to_repo = project_url.split("/")[-1]
         path_to_repo = path_to_repo.replace(".git", "")
     print(f"Cloning {project_url} into {path_to_repo}")
-    git.Repo.clone_from(project_url, path_to_repo)
+    git.Repo.clone_from(project_url, path_to_repo, multi_options=multi_options)
 
     # During class instantiation, the output repo is cloned.
     repo = ProjectRepo(path_to_repo)
