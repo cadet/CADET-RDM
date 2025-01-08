@@ -1,4 +1,5 @@
 import contextlib
+import csv
 import glob
 import json
 import os
@@ -904,11 +905,13 @@ class ProjectRepo(BaseRepo):
                             lines=["rdm-log.tsv merge=union"],
                             open_type="a")
 
-    def update_output_main_logs(self, ):
+    def update_output_main_logs(self, output_dict: dict = None):
         """
         Dumps all the metadata information about the project repositories state and
         the commit hash and branch name of the ouput repository into the main branch of
         the output repository.
+        :param output_dict:
+        Dictionary containing key-value pairs to be added to the log.
         """
         output_branch_name = str(self.output_repo.active_branch)
 
@@ -935,24 +938,27 @@ class ProjectRepo(BaseRepo):
             "Tags": ", ".join(self.tags),
             "Options hash": self.options_hash,
         }
-        tsv_header = "\t".join(meta_info_dict.keys())
-        tsv_data = "\t".join([str(x) for x in meta_info_dict.values()])
+        if output_dict is not None:
+            meta_info_dict.update(output_dict)
 
         with open(json_filepath, "w") as f:
             json.dump(meta_info_dict, f, indent=2)
 
-        if not self.output_log_file.exists():
-            with open(self.output_log_file, "w") as f:
-                f.write(tsv_header + "\n")
-                # csv.writer(tsv_header + "\n")
+        if self.output_log_file.exists():
+            with open(self.output_log_file) as tsv_file_handle:
+                reader = csv.DictReader(tsv_file_handle, delimiter="\t")
+                rows: List[dict] = [row for row in reader]
+        else:
+            rows = []
 
-        with open(self.output_log_file, "r") as f:
-            existing_header = f.readline().replace("\n", "")
-            if existing_header != tsv_header:
-                raise ValueError("The used structure of the meta_dict doesn't match the header found in log.tsv")
+        rows.append(meta_info_dict)
+        fieldnames = list(rows[0].keys()) + list(set(meta_info_dict.keys()) - set(rows[0].keys()))
 
-        with open(self.output_log_file, "a") as f:
-            f.write(tsv_data + "\n")
+        with open(self.output_log_file, "w", newline="") as tsv_file_handle:
+            writer = csv.DictWriter(tsv_file_handle, fieldnames=fieldnames, delimiter="\t")
+            writer.writeheader()
+            for row in rows:
+                writer.writerow(row)
 
         self.dump_package_list(logs_folderpath)
 
@@ -985,7 +991,7 @@ class ProjectRepo(BaseRepo):
 
         delete_path(code_tmp_folder)
 
-    def commit(self, message: str, add_all=True, verbosity=1):
+    def commit(self, message: str | None = None, add_all=True, verbosity=1):
         """
         Commit current state of the repository.
 
@@ -1313,7 +1319,7 @@ class OutputRepo(BaseRepo):
 
 
 class JupyterInterfaceRepo(ProjectRepo):
-    def commit(self, message: str, add_all=True, verbosity=1):
+    def commit(self, message: str | None = None, add_all=True, verbosity=1):
         """
         Commit current state of the repository.
 
