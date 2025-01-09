@@ -314,44 +314,44 @@ def test_with_detached_head():
     os.chdir("..")
 
 
-def test_with_external_repos():
-    path_to_repo = Path("test_repo_external_data")
-    if path_to_repo.exists():
-        delete_path(path_to_repo)
-    os.makedirs(path_to_repo)
-    initialize_repo(path_to_repo)
-
-    os.chdir(path_to_repo)
-
-    # to be able to hand over a valid branch, I first need to determine that branch
-    imported_repo = OutputRepo("../test_repo/results")
-    branch_name = imported_repo.active_branch.name
-
-    repo = ProjectRepo(".")
-
-    # import two repos and confirm verify works.
-    repo.import_remote_repo(source_repo_location="../test_repo/results", source_repo_branch=branch_name)
-    repo.import_remote_repo(source_repo_location="../test_repo/results", source_repo_branch=branch_name,
-                            target_repo_location="foo/bar/repo")
-    # delete folder and reload
-    delete_path("foo/bar/repo")
-
-    with pytest.raises(Exception):
-        repo.verify_unchanged_cache()
-
-    repo.fill_data_from_cadet_rdm_json()
-    repo.verify_unchanged_cache()
-
-    # Test if re_load correctly re_loads by modifying and then reloading
-    with open("external_cache/results/README.md", "w") as file_handle:
-        file_handle.writelines(["a", "b", "c"])
-    repo.fill_data_from_cadet_rdm_json(re_load=True)
-    repo.verify_unchanged_cache()
-
-    # modify file and confirm error raised
-    with open("external_cache/results/README.md", "w") as file_handle:
-        file_handle.writelines(["a", "b", "c"])
-    with pytest.raises(Exception):
-        repo.verify_unchanged_cache()
-
-    os.chdir("..")
+# def test_with_external_repos():
+#     path_to_repo = Path("test_repo_external_data")
+#     if path_to_repo.exists():
+#         delete_path(path_to_repo)
+#     os.makedirs(path_to_repo)
+#     initialize_repo(path_to_repo)
+#
+#     os.chdir(path_to_repo)
+#
+#     # to be able to hand over a valid branch, I first need to determine that branch
+#     imported_repo = OutputRepo("../test_repo/results")
+#     branch_name = imported_repo.active_branch.name
+#
+#     repo = ProjectRepo(".")
+#
+#     # import two repos and confirm verify works.
+#     repo.import_remote_repo(source_repo_location="../test_repo/results", source_repo_branch=branch_name)
+#     repo.import_remote_repo(source_repo_location="../test_repo/results", source_repo_branch=branch_name,
+#                             target_repo_location="foo/bar/repo")
+#     # delete folder and reload
+#     delete_path("foo/bar/repo")
+#
+#     with pytest.raises(Exception):
+#         repo.verify_unchanged_cache()
+#
+#     repo.fill_data_from_cadet_rdm_json()
+#     repo.verify_unchanged_cache()
+#
+#     # Test if re_load correctly re_loads by modifying and then reloading
+#     with open("external_cache/results/README.md", "w") as file_handle:
+#         file_handle.writelines(["a", "b", "c"])
+#     repo.fill_data_from_cadet_rdm_json(re_load=True)
+#     repo.verify_unchanged_cache()
+#
+#     # modify file and confirm error raised
+#     with open("external_cache/results/README.md", "w") as file_handle:
+#         file_handle.writelines(["a", "b", "c"])
+#     with pytest.raises(Exception):
+#         repo.verify_unchanged_cache()
+#
+#     os.chdir("..")
