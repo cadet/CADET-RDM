@@ -1199,7 +1199,7 @@ class ProjectRepo(BaseRepo):
                     except:
                         pass
 
-    def exit_context(self, message):
+    def exit_context(self, message, output_dict: dict = None):
         """
         After running all project code, this prepares the commit of the results to the output repository. This includes
          - Ensure no uncommitted changes in the project repository
@@ -1208,6 +1208,8 @@ class ProjectRepo(BaseRepo):
          - Update the log files in the main branch of the output repository.
         :param message:
             Commit message for the output repository commit.
+        :param output_dict:
+            Dictionary containing optional output tracking parameters
         """
         self.test_for_uncommitted_changes()
         if self._on_context_enter_commit_hash != self.current_commit_hash:
@@ -1219,7 +1221,7 @@ class ProjectRepo(BaseRepo):
             # This has to be using ._git.commit to raise an error if no results have been written.
             commit_return = self.output_repo._git.commit("-m", message)
             self.copy_data_to_cache()
-            self.update_output_main_logs()
+            self.update_output_main_logs(output_dict)
             main_cach_path = self.path / (self._output_folder + "_cached") / "main"
             if main_cach_path.exists():
                 delete_path(main_cach_path)

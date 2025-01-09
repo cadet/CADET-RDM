@@ -72,7 +72,7 @@ def run_python_file(file_name, results_commit_message):
     repo = ProjectRepo(".")
     repo.enter_context()
     subprocess.run(["python", file_name])
-    repo.exit_context(results_commit_message)
+    repo.exit_context(results_commit_message, {"command": f"python {file_name}"})
 
 
 @run.command(name="command")
@@ -83,7 +83,7 @@ def run_command(command, results_commit_message):
     repo = ProjectRepo(".")
     repo.enter_context()
     subprocess.run(command)
-    repo.exit_context(results_commit_message)
+    repo.exit_context(results_commit_message, {"command": command})
 
 
 @cli.group(help="Create, add, and manage remotes.")
