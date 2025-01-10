@@ -59,6 +59,7 @@ jupyter = [
     "ipylab",
     "junix",
     "jupytext",
+    "jupyterlab",
 ]
 docs = [
     "sphinx>=5.3.0",
