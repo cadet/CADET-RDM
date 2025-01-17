@@ -57,7 +57,7 @@ class OutputLog:
 class LogEntry:
     def __init__(self, output_repo_commit_message, output_repo_branch, output_repo_commit_hash,
                  project_repo_commit_hash, project_repo_folder_name, project_repo_remotes, python_sys_args, tags,
-                 options_hash):
+                 options_hash, **kwargs):
         self.output_repo_commit_message = output_repo_commit_message
         self.output_repo_branch = output_repo_branch
         self.output_repo_commit_hash = output_repo_commit_hash
@@ -67,6 +67,8 @@ class LogEntry:
         self.python_sys_args = python_sys_args
         self.tags = tags
         self.options_hash = options_hash
+        for key, value in kwargs:
+            setattr(self, key, value)
 
     def __repr__(self):
         return f"OutputEntry('{self.output_repo_commit_message}', '{self.output_repo_branch}')"
