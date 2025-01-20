@@ -19,8 +19,7 @@ class Study(ProjectRepo):
                 clone(self.url, path)
             ProjectRepo(path).checkout(branch)
         except Exception as e:
-            print(f"Error processing study {self.name}: {e}")
-            return
+            raise Exception(f"Error processing study {self.name}") from e
 
         super().__init__(path, *args, **kwargs)
 
