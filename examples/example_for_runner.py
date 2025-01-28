@@ -1,6 +1,6 @@
 from pathlib import Path
 
-from cadetrdm import Options
+from cadetrdm import Options, Study, Case
 from cadetrdm.batch_runner import Study, Case
 
 if __name__ == '__main__':
@@ -90,10 +90,10 @@ if __name__ == '__main__':
     ]
 
     # Default cases
-    for study in studies:
-        for options in DEFAULT_OPTIONS:
-            options.commit_message = f"Trying new things."
-
-            case = Case(study, options)
-            case.run_study(force=force)
-            print(case.results_path)
+    # for study in studies:
+    #     for options in DEFAULT_OPTIONS:
+    #         options.commit_message = f"Trying new things."
+    #
+    #         case = Case(study, options)
+    #         case.run_study(force=force)
+    #         print(case.results_path)

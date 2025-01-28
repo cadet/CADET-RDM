@@ -3,7 +3,7 @@ from pathlib import Path
 from copy import deepcopy
 
 from cadetrdm.repositories import ProjectRepo
-from cadetrdm.configuration_options import Options
+from cadetrdm.batch_running import Options
 
 
 def tracks_results(func):
