@@ -1327,8 +1327,10 @@ class OutputRepo(BaseRepo):
 
     @property
     def output_log(self):
-        self.checkout(self.main_branch)
-        self._reset_hard_to_head(force_entry=True)
+        if not self.active_branch == self.main_branch:
+            self.checkout(self.main_branch)
+        if self.exist_uncomitted_changes:
+            self._reset_hard_to_head(force_entry=True)
         return OutputLog(filepath=self.output_log_file_path)
 
     def print_output_log(self):
