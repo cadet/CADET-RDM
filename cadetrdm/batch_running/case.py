@@ -1,3 +1,4 @@
+import traceback
 from pathlib import Path
 
 from .study import Study
@@ -141,7 +142,7 @@ class Case:
             self.status = 'finished'
 
         except (KeyboardInterrupt, Exception) as e:
-            print(f"Command execution failed: {e}")
+            traceback.print_exc()
             self.status = 'failed'
             return
 
