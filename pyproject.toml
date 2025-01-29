@@ -12,7 +12,7 @@ authors = [
 ]
 description = "A Python toolbox for research data management."
 readme = "README.md"
-requires-python = ">3.7"
+requires-python = ">=3.11"
 keywords = ["research data management"]
 license = { text = "GPLv3" }
 classifiers = [
