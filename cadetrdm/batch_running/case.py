@@ -1,17 +1,22 @@
 import traceback
 from pathlib import Path
+from typing import Dict
 
 from .study import Study
 from .options import Options
+from cadetrdm.environment import Environment
+from ..logging import LogEntry
+
 
 class Case:
-    def __init__(self, study: Study, options: Options, name: str = None):
+    def __init__(self, study: Study, options: Options, environment: Environment = None, name: str = None):
         if name is None:
             name = options.get_hash()
 
         self.name = name
         self.study = study
         self.options = options
+        self.environment = environment
         self._options_hash = options.get_hash()
         self._results_branch = None
 
@@ -78,41 +83,69 @@ class Case:
             return True
 
     def _get_results_branch(self):
-        output_log = self.study.output_log
-        study_options_hash = self.options.get_hash()
-        study_commit_hash = self.study.current_commit_hash
-        has_been_run_with_these_options = False
-        has_been_run_with_this_commit = False
+        """
+        Search the output log for an entry (i.e. a results branch) with matching study commit hash and options hash.
+        If environment is given, the environment is also enforced.
+
+        :return:
+        str: name of the results branch or None.
+        """
+        output_log: Dict[str, LogEntry] = self.study.output_log.entries
+        options_hash = self.options.get_hash()
+        study_hash = self.study.current_commit_hash
+
+        found_results_with_incorrect_study_hash = False
+        found_results_with_incorrect_options = False
+        found_results_with_incorrect_environment = False
+
         semi_correct_hits = []
-        for log_entry in output_log:
-            entry_options_hash = log_entry.options_hash
-            entry_commit_hash = log_entry.project_repo_commit_hash
-            if study_commit_hash == entry_commit_hash and study_options_hash == entry_options_hash:
+        for output_branch, log_entry in output_log.items():
+            matches_study_hash = log_entry.matches_study_hash(study_hash)
+            matches_options_hash = log_entry.matches_options_hash(options_hash)
+            matches_environment = log_entry.fulfils_environment(self.environment)
+
+            if matches_study_hash and matches_options_hash and matches_environment:
                 return log_entry.output_repo_branch
-            elif study_commit_hash == entry_commit_hash and study_options_hash != entry_options_hash:
-                has_been_run_with_this_commit = True
+
+            elif matches_study_hash and not matches_options_hash and matches_environment:
+                found_results_with_incorrect_options = True
                 semi_correct_hits.append(
-                    f"Found matching study commit hash {study_commit_hash[:7]}, but incorrect options hash "
-                    f"(needs: {study_options_hash[:7]}, has: {entry_options_hash[:7]})"
+                    f"Found matching study commit hash {study_hash[:7]}, but incorrect options hash "
+                    f"(needs: {options_hash[:7]}, has: {log_entry.options_hash[:7]})"
                 )
-            elif study_commit_hash != entry_commit_hash and study_options_hash == entry_options_hash:
-                has_been_run_with_these_options = True
+
+            elif not matches_study_hash and matches_options_hash and matches_environment:
+                found_results_with_incorrect_study_hash = True
                 semi_correct_hits.append(
-                    f"Found matching options hash  {study_options_hash[:7]}, but incorrect study commit hash "
-                    f"(needs: {study_commit_hash[:7]}, has: {entry_commit_hash[:7]})"
+                    f"Found matching options hash  {options_hash[:7]}, but incorrect study commit hash "
+                    f"(needs: {study_hash[:7]}, has: {log_entry.project_repo_commit_hash[:7]})"
                 )
-        if has_been_run_with_these_options:
+            elif matches_study_hash and matches_options_hash and not matches_environment:
+                found_results_with_incorrect_environment = True
+                semi_correct_hits.append(
+                    f"Found matching options hash  {options_hash[:7]}, matching study commit hash "
+                    f"{study_hash[:7]}, but wrong environment specification."
+                )
+
+        if found_results_with_incorrect_study_hash:
             [print(line) for line in semi_correct_hits]
             print(
                 "No matching results were found for this study version, but results with these options were found for "
                 "other study versions. Did you recently update the study?"
             )
-        elif has_been_run_with_this_commit:
+        elif found_results_with_incorrect_options:
             [print(line) for line in semi_correct_hits]
             print(
                 "No matching results were found for these options, but results with other options were found for "
                 "this study versions. Did you recently change the options?"
             )
+        elif found_results_with_incorrect_environment:
+            [print(line) for line in semi_correct_hits]
+            print(
+                "No matching results were found for this environment, but results with other environments were "
+                "found for this study versions."
+            )
+
         else:
             print("No matching results were found for these options and study version.")
         return None

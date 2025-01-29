@@ -76,6 +76,21 @@ def test_environment_from_yml():
     assert environment.package_version("cadet") == "4.4.0"
     assert environment.fulfils("cadet", "~4.4.0")
     assert not environment.fulfils("cadet", ">4.4.0")
+    assert environment.fulfils_environment(environment)
+
+    requirements = {
+        "text-unidecode": "1.3"
+    }
+    fulfilled_requirements = Environment(cadet=">=4.4.0", xarray="<=2024.2.0", zipp="==3.18", **requirements)
+    fulfilled_requirements["scikit-learn"] = "~1.4.1"
+
+    assert environment.fulfils_environment(fulfilled_requirements)
+
+    not_fulfilled_requirements = Environment(cadet=">4.4.0", xarray="2024.2.0")
+
+    assert not environment.fulfils_environment(not_fulfilled_requirements)
+
+    assert environment.fulfils_environment(None)
 
 
 def test_environment():
