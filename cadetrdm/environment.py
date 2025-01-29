@@ -1,8 +1,9 @@
 import re
+from typing import Self
 
 from addict import Dict
 import yaml
-import semantic_version
+from semantic_version import Version, SimpleSpec
 
 
 class Environment(Dict):
@@ -68,12 +69,44 @@ class Environment(Dict):
 
         Examples:
             check_package_version("conda", ">=0.1.1") -> true if larger or equal
-            check_package_version("conda", "~0.1.1") -> true if approximately equal (excluding pre-release suffixes)
-            check_package_version("conda", "0.1.1") -> true if exactly equal
+            check_package_version("conda", "~0.1.1") -> true if approximately equal (tolerant of pre-release suffixes)
+            check_package_version("conda", "0.1.1") -> true if exactly equal (must match pre-release suffixes)
 
         Uses semantic versioning to compare the versions.
         """
+        try:
+            spec = SimpleSpec(version)
+        except ValueError as e:
+            spec = SimpleSpec(str(Version.coerce(version)))
+            print(f"Warning: {e} when processing {package}={version}. Using {str(Version.coerce(version))} instead.")
 
-        package_version = self[package]
+        # Use .coerce instead of .parse to ensure non-standard version strings are converted.
+        # Rules are:
+        #   - If no minor or patch component, and partial is False, replace them with zeroes
+        #   - Any character outside of a-zA-Z0-9.+- is replaced with a -
+        #   - If more than 3 dot-separated numerical components,
+        #       everything from the fourth component belongs to the build part
+        #   - Any extra + in the build part will be replaced with dots
+        installed_version = Version.coerce(self.package_version(package))
 
-        return semantic_version.match(version, package_version)
+        match = spec.match(installed_version)
+
+        return match
+
+    def fulfils_environment(self, environment: Self):
+        """
+        Checks if this environment fulfils the requirements in a given environment.
+
+        :param environment:
+            Instance of Environment class, with requirements as key: value pairs.
+        :return:
+        """
+
+        if environment is None:
+            return True
+
+        for package, version in environment.items():
+            if not self.fulfils(package, version):
+                return False
+
+        return True
