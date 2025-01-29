@@ -166,7 +166,7 @@ def test_init_over_existing_repo(monkeypatch):
         delete_path(path_to_repo)
     os.makedirs(path_to_repo)
     os.chdir(path_to_repo)
-    os.system(f"git init")
+    os.system(f"git init --initial-branch=master")
     with open("README.md", "w") as handle:
         handle.write("Readme-line 1\n")
     with open(".gitignore", "w") as handle:

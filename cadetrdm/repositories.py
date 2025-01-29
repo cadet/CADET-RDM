@@ -64,6 +64,12 @@ class BaseRepo:
         self._most_recent_branch = self.active_branch.name
         self._earliest_commit = None
 
+        existing_branches = [branch.name for branch in self._git_repo.branches]
+        if len(existing_branches) != 0 and "main" not in existing_branches and "master" in existing_branches:
+            self.main_branch = "master"
+        else:
+            self.main_branch = "main"
+
         self.add = self._git.add
 
     @property
@@ -196,10 +202,10 @@ class BaseRepo:
             # This folder is a project repo. Use a project repo class to easily access the output repo.
             output_repo = ProjectRepo(self.path).output_repo
 
-            if output_repo.active_branch != "main":
+            if output_repo.active_branch != output_repo.main_branch:
                 if output_repo.exist_uncomitted_changes:
                     output_repo.stash_all_changes()
-                output_repo.checkout("main")
+                output_repo.checkout(output_repo.main_branch)
             output_repo.add_list_of_remotes_in_readme_file("project_repo", self.remote_urls)
             output_repo.add("README.md")
             output_repo.commit("Add remote for project repo", verbosity=0, add_all=False)
@@ -400,9 +406,9 @@ class BaseRepo:
         else:
             remote_list = [remote]
 
-        if local_branch == "main" or push_all:
+        if local_branch == self.main_branch or push_all:
             if push_all:
-                self.checkout("main")
+                self.checkout(self.main_branch)
             for remote in remote_list:
                 remote_interface = self._git_repo.remotes[remote]
                 try:
@@ -431,14 +437,14 @@ class BaseRepo:
         :return:
         """
         previous_branch = self.active_branch.name
-        if previous_branch == "main":
+        if previous_branch == self.main_branch:
             return
 
-        commit_of_current_main = str(self._git.rev_parse("main"))
+        commit_of_current_main = str(self._git.rev_parse(self.main_branch))
         commit_of_current_branch = str(self.head.commit)
         if commit_of_current_branch == commit_of_current_main:
             print("Removing empty branch", previous_branch)
-            self._git.checkout("main")
+            self._git.checkout(self.main_branch)
             self._git.branch("-d", previous_branch)
 
     def add_all_files(self, automatically_add_new_files=True):
@@ -803,7 +809,7 @@ class ProjectRepo(BaseRepo):
         Checkout the main branch, which contains all the log files.
         """
         self._most_recent_branch = self._output_repo.active_branch.name
-        self._output_repo._git.checkout("main")
+        self._output_repo._git.checkout(self._output_repo.main_branch)
 
     def reload_recent_results(self):
         """
@@ -919,7 +925,7 @@ class ProjectRepo(BaseRepo):
         output_commit_message = self.output_repo.active_branch.commit.message
         output_commit_message = output_commit_message.replace("\n", "; ")
 
-        self.output_repo._git.checkout("main")
+        self.output_repo._git.checkout(self._output_repo.main_branch)
 
         logs_folderpath = self.output_repo.path / "run_history" / output_branch_name
         if not logs_folderpath.exists():
@@ -1146,7 +1152,7 @@ class ProjectRepo(BaseRepo):
         new_branch_name = self.get_new_output_branch_name()
 
         # update urls in main branch of output_repo
-        output_repo._git.checkout("main")
+        output_repo._git.checkout(output_repo.main_branch)
         project_repo_remotes = self.remote_urls
         output_repo.add_list_of_remotes_in_readme_file("project_repo", project_repo_remotes)
         output_repo.commit("Update urls", verbosity=0)
@@ -1222,10 +1228,10 @@ class ProjectRepo(BaseRepo):
             commit_return = self.output_repo._git.commit("-m", message)
             self.copy_data_to_cache()
             self.update_output_main_logs(output_dict)
-            main_cach_path = self.path / (self._output_folder + "_cached") / "main"
+            main_cach_path = self.path / (self._output_folder + "_cached") / self._output_repo.main_branch
             if main_cach_path.exists():
                 delete_path(main_cach_path)
-            self.copy_data_to_cache("main")
+            self.copy_data_to_cache(self._output_repo.main_branch)
             # print("\n" + commit_return + "\n")
         except git.exc.GitCommandError as e:
             self.output_repo.delete_active_branch_if_branch_is_empty()
@@ -1273,18 +1279,18 @@ class ProjectRepo(BaseRepo):
 class OutputRepo(BaseRepo):
     @property
     def output_log_file_path(self):
-        if not self.active_branch == "main":
-            self.checkout("main")
+        if not self.active_branch == self.main_branch:
+            self.checkout(self.main_branch)
         return self.path / "log.tsv"
 
     @property
     def output_log(self):
-        self.checkout("main")
+        self.checkout(self.main_branch)
         self._reset_hard_to_head(force_entry=True)
         return OutputLog(filepath=self.output_log_file_path)
 
     def print_output_log(self):
-        self.checkout("main")
+        self.checkout(self.main_branch)
 
         output_log = self.output_log
         print(output_log)
@@ -1301,7 +1307,7 @@ class OutputRepo(BaseRepo):
         :param branch_name:
             Name of the new branch.
         """
-        self._git.checkout("main")
+        self._git.checkout(self.main_branch)
         self._git.checkout('-b', branch_name)  # equivalent to $ git checkout -b %branch_name
         code_backup_path = self.path / "run_history"
         logs_path = self.path / "log.tsv"
