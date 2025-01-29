@@ -118,7 +118,7 @@ class Case:
 
     def run_study(self, force=False):
         """Run specified study commands in the given repository."""
-        if self.is_running and not force:
+        if not force and self.is_running:
             print(f"{self.study.name} is currently running. Skipping...")
             return
 
@@ -128,7 +128,7 @@ class Case:
         else:
             print("WARNING: Not updating the repositories while in debug mode.")
 
-        if self.has_results_for_this_run and not force:
+        if not force and self.has_results_for_this_run:
             print(f"{self.study.path} has already been computed with these options. Skipping...")
             return
 
