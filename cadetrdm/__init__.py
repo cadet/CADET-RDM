@@ -4,4 +4,4 @@ from .repositories import ProjectRepo, JupyterInterfaceRepo
 from .batch_running import Options, Study, Case
 from .wrapper import tracks_results
 
-__version__ = "0.0.43"
+__version__ = "0.0.44"
