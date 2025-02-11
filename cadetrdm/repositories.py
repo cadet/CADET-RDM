@@ -192,11 +192,10 @@ class BaseRepo:
         try:
             git.Repo.clone_from(url, to_path, multi_options=multi_options, **kwargs)
         except git.exc.GitCommandError as e:
-            if "Host key verification failed." in e.stderr or "Permission denied (publickey)" in e.stderr:
-                try:
-                    git.Repo.clone_from(ssh_url_to_http_url(url), to_path, multi_options=multi_options, **kwargs)
-                except Exception as e_inner:
-                    raise e_inner
+            try:
+                git.Repo.clone_from(ssh_url_to_http_url(url), to_path, multi_options=multi_options, **kwargs)
+            except Exception as e_inner:
+                raise e_inner
             else:
                 raise e
         instance = cls(to_path)
