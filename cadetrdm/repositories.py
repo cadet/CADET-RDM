@@ -192,11 +192,12 @@ class BaseRepo:
         try:
             git.Repo.clone_from(url, to_path, multi_options=multi_options, **kwargs)
         except git.exc.GitCommandError as e:
+            print(f"Clone from {url} failed with {e, e.stderr, e.stdout}.")
+            print(f"Retrying with {ssh_url_to_http_url(url)}.")
             try:
                 git.Repo.clone_from(ssh_url_to_http_url(url), to_path, multi_options=multi_options, **kwargs)
             except Exception as e_inner:
-                print(f"Clone from {url} failed with {e, e.stderr, e.stdout}")
-                print(f"and clone from {ssh_url_to_http_url(url)} failed with: ")
+                print(f"Clone from {ssh_url_to_http_url(url)} failed with: ")
                 raise e_inner
         finally:
             cls._git_environ_reset(previous_environment_variables)
