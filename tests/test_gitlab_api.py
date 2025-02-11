@@ -6,6 +6,7 @@ import pytest
 from cadetrdm import initialize_repo, ProjectRepo
 from cadetrdm.io_utils import delete_path
 from cadetrdm.remote_integration import GitHubRemote, GitLabRemote
+from cadetrdm.repositories import BaseRepo
 
 
 @pytest.mark.server_api
@@ -26,7 +27,7 @@ def test_gitlab_create():
 
     response = remote.create_remote(url=url, namespace=namespace, name=name, username="r.jaepel")
 
-    git.Repo.clone_from(response.ssh_url_to_repo, "test_repo_remote")
+    BaseRepo.clone_from(response.ssh_url_to_repo, "test_repo_remote")
     delete_path("test_repo_remote")
 
     remote.delete_remote(url=url, namespace=namespace, name=name, username="r.jaepel")
@@ -34,7 +35,7 @@ def test_gitlab_create():
     sleep(3)
 
     with pytest.raises(git.exc.GitCommandError):
-        git.Repo.clone_from(response.ssh_url_to_repo, "test_repo_remote")
+        BaseRepo.clone_from(response.ssh_url_to_repo, "test_repo_remote")
 
 
 @pytest.mark.server_api
@@ -60,13 +61,13 @@ def test_github_create():
 
     sleep(3)
 
-    git.Repo.clone_from(response.html_url, "test_repo_remote")
+    BaseRepo.clone_from(response.html_url, "test_repo_remote")
     delete_path("test_repo_remote")
 
     remote.delete_remote(namespace=namespace, name=name, username="r.jaepel")
 
     with pytest.raises(git.exc.GitCommandError):
-        git.Repo.clone_from(response.ssh_url, "test_repo_remote")
+        BaseRepo.clone_from(response.ssh_url, "test_repo_remote")
 
 
 @pytest.mark.server_api

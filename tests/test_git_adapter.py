@@ -155,9 +155,12 @@ def try_add_remote(path_to_repo):
 def try_initialize_from_remote():
     if Path("test_repo_from_remote").exists():
         delete_path("test_repo_from_remote")
-    clone("https://jugit.fz-juelich.de/IBG-1/ModSim/cadet/rdm-examples-fraunhofer-ime-aachen",
+    clone("git@github.com:ronald-jaepel/rdm_testing_template.git",
           "test_repo_from_remote")
     assert try_init_gitpython_repo("test_repo_from_remote")
+
+    repo = ProjectRepo("test_repo_from_remote")
+    assert hasattr(repo, "output_path")
 
 
 def test_init_over_existing_repo(monkeypatch):
@@ -275,7 +278,7 @@ def test_cadet_rdm(path_to_repo):
     # because these depend on one-another and there is no native support afaik for sequential tests
     # these tests are called sequentially here as try_ functions.
     try_initialize_git_repo(path_to_repo)
-    # try_initialize_from_remote()
+    try_initialize_from_remote()
 
     try_add_remote(path_to_repo)
     # try_add_submodule(path_to_repo)

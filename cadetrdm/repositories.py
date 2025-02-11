@@ -10,7 +10,7 @@ import warnings
 from datetime import datetime
 from pathlib import Path
 from stat import S_IREAD, S_IWRITE
-from typing import List
+from typing import List, Optional
 from urllib.request import urlretrieve
 
 import cadetrdm
@@ -33,7 +33,6 @@ def validate_is_output_repo(path_to_repo):
         rdm_data = json.load(file_handle)
         if rdm_data["is_project_repo"]:
             raise ValueError("Please use the URL to the output repository.")
-
 
 class BaseRepo:
     def __init__(self, repository_path=None, search_parent_directories=True, *args, **kwargs):
@@ -185,6 +184,24 @@ class BaseRepo:
             traceback.print_exc()
             print(f"Git command error in {self.path}: {e}")
 
+    @classmethod
+    def clone_from(cls, url, to_path, multi_options: Optional[List[str]] = None, **kwargs):
+        # prevent git terminal prompts from interrupting the process.
+        os.environ["GIT_TERMINAL_PROMPT"] = "0"
+
+        try:
+            git.Repo.clone_from(url, to_path, multi_options=multi_options, **kwargs)
+        except git.exc.GitCommandError as e:
+            if "Host key verification failed." in e.stderr or "Permission denied (publickey)" in e.stderr:
+                try:
+                    git.Repo.clone_from(ssh_url_to_http_url(url), to_path, multi_options=multi_options, **kwargs)
+                except Exception as e_inner:
+                    raise e_inner
+            else:
+                raise e
+        instance = cls(to_path)
+        return instance
+
     def add_remote(self, remote_url, remote_name=None):
         """
         Add a remote to the repository.
@@ -261,9 +278,10 @@ class BaseRepo:
 
         print(f"Cloning from {source_repo_location} into {target_repo_location}")
         multi_options = ["--filter=blob:none", "--branch", source_repo_branch, "--single-branch"]
-        repo = git.Repo.clone_from(source_repo_location, target_repo_location, multi_options=multi_options)
-        repo.git.clear_cache()
-        repo.close()
+        repo = self.clone_from(url=source_repo_location, to_path=target_repo_location,
+                               multi_options=multi_options)
+        repo._git.clear_cache()
+        repo._git_repo.close()
 
         self.update_cadet_rdm_cache_json(source_repo_branch=source_repo_branch,
                                          target_repo_location=target_repo_location,
@@ -750,7 +768,7 @@ class ProjectRepo(BaseRepo):
         for output_remote in ssh_remotes + http_remotes:
             try:
                 print(f"Attempting to clone {output_remote} into {output_path}")
-                git.Repo.clone_from(output_remote, output_path, multi_options=multi_options)
+                _ = self.clone_from(output_remote, output_path, multi_options=multi_options)
             except Exception as e:
                 print(e)
             else:

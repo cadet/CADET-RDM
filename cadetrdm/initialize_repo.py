@@ -242,10 +242,8 @@ def clone(project_url, path_to_repo: str = None, multi_options: List[str] = None
         path_to_repo = project_url.split("/")[-1]
         path_to_repo = path_to_repo.replace(".git", "")
     print(f"Cloning {project_url} into {path_to_repo}")
-    git.Repo.clone_from(project_url, path_to_repo, multi_options=multi_options)
-
     # During class instantiation, the output repo is cloned.
-    repo = ProjectRepo(path_to_repo)
+    repo = ProjectRepo.clone_from(to_path=path_to_repo, url=project_url, multi_options=multi_options)
 
     repo.fill_data_from_cadet_rdm_json()
 
