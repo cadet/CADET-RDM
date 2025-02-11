@@ -187,20 +187,46 @@ class BaseRepo:
     @classmethod
     def clone_from(cls, url, to_path, multi_options: Optional[List[str]] = None, **kwargs):
         # prevent git terminal prompts from interrupting the process.
-        os.environ["GIT_TERMINAL_PROMPT"] = "0"
+        previous_environment_variables = cls._git_environ_setup()
 
         try:
             git.Repo.clone_from(url, to_path, multi_options=multi_options, **kwargs)
         except git.exc.GitCommandError as e:
-            if "Host key verification failed." in e.stderr or "Permission denied (publickey)" in e.stderr:
-                try:
-                    git.Repo.clone_from(ssh_url_to_http_url(url), to_path, multi_options=multi_options, **kwargs)
-                except Exception as e_inner:
-                    raise e_inner
-            else:
-                raise e
+            print(f"Clone from {url} failed with {e, e.stderr, e.stdout}.")
+            print(f"Retrying with {ssh_url_to_http_url(url)}.")
+            try:
+                git.Repo.clone_from(ssh_url_to_http_url(url), to_path, multi_options=multi_options, **kwargs)
+            except Exception as e_inner:
+                print(f"Clone from {ssh_url_to_http_url(url)} failed with: ")
+                raise e_inner
+        finally:
+            cls._git_environ_reset(previous_environment_variables)
+
         instance = cls(to_path)
         return instance
+
+    @staticmethod
+    def _git_environ_setup():
+        environment_variables = {
+            "GIT_TERMINAL_PROMPT": "0",
+            "GIT_SSH_COMMAND": "ssh -o StrictHostKeyChecking=yes",
+            "GIT_CLONE_PROTECTION_ACTIVE": "0",
+        }
+        previous_environment_variables = {key: None for key in environment_variables.keys()}
+        for key, value in environment_variables.items():
+            if key in os.environ:
+                previous_environment_variables[key] = os.environ[key]
+            os.environ[key] = value
+
+        return previous_environment_variables
+
+    @staticmethod
+    def _git_environ_reset(previous_environment_variables):
+        for key, previous_value in previous_environment_variables.items():
+            if previous_value is None:
+                os.environ.pop(key)
+            else:
+                os.environ[key] = previous_value
 
     def add_remote(self, remote_url, remote_name=None):
         """
@@ -762,17 +788,15 @@ class ProjectRepo(BaseRepo):
         output_remotes = metadata["output_remotes"]
         output_path = self.path / output_remotes["output_folder_name"]
         ssh_remotes = list(output_remotes["output_remotes"].values())
-        http_remotes = [ssh_url_to_http_url(url) for url in ssh_remotes]
-        if len(ssh_remotes + http_remotes) == 0:
+        if len(ssh_remotes) == 0:
             warnings.warn("No output remotes configured in .cadet-rdm-data.json")
-        for output_remote in ssh_remotes + http_remotes:
+        for output_remote in ssh_remotes:
             try:
                 print(f"Attempting to clone {output_remote} into {output_path}")
-                _ = self.clone_from(output_remote, output_path, multi_options=multi_options)
-            except Exception as e:
-                print(e)
-            else:
+                _ = OutputRepo.clone_from(output_remote, output_path, multi_options=multi_options)
                 break
+            except Exception:
+                traceback.print_exc()
 
     @staticmethod
     def _add_jupytext_file(path_root: str | Path = "."):
