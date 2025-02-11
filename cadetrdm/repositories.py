@@ -187,46 +187,48 @@ class BaseRepo:
     @classmethod
     def clone_from(cls, url, to_path, multi_options: Optional[List[str]] = None, **kwargs):
         # prevent git terminal prompts from interrupting the process.
-        previous_git_ssh_command, previous_git_terminal_prompt = cls.git_environ_setup()
+        previous_environment_variables = cls._git_environ_setup()
 
         print("Cloning", url)
 
         try:
             git.Repo.clone_from(url, to_path, multi_options=multi_options, **kwargs)
         except git.exc.GitCommandError as e:
-            print(f"Clone from {url} failed. Trying clone from {ssh_url_to_http_url(url)} with {e, e.stderr, e.stdout}")
             try:
                 git.Repo.clone_from(ssh_url_to_http_url(url), to_path, multi_options=multi_options, **kwargs)
             except Exception as e_inner:
+                print(f"Clone from {url} failed with {e, e.stderr, e.stdout}")
+                print(f"and clone from {ssh_url_to_http_url(url)} failed with: ")
                 raise e_inner
+            finally:
+                cls._git_environ_reset(previous_environment_variables)
         finally:
-            cls.git_environ_reset(previous_git_ssh_command, previous_git_terminal_prompt)
+            cls._git_environ_reset(previous_environment_variables)
 
         instance = cls(to_path)
         return instance
 
-    @classmethod
-    def git_environ_setup(cls):
-        previous_git_terminal_prompt = None
+    @staticmethod
+    def _git_environ_setup():
+        environment_variables = {
+            "GIT_TERMINAL_PROMPT": None,
+            "GIT_SSH_COMMAND": None
+        }
         if "GIT_TERMINAL_PROMPT" in os.environ:
-            previous_git_terminal_prompt = os.environ["GIT_TERMINAL_PROMPT"]
-        previous_git_ssh_command = None
+            environment_variables["GIT_TERMINAL_PROMPT"] = os.environ["GIT_TERMINAL_PROMPT"]
         if "GIT_SSH_COMMAND" in os.environ:
-            previous_git_ssh_command = os.environ["GIT_SSH_COMMAND"]
+            environment_variables["GIT_SSH_COMMAND"] = os.environ["GIT_SSH_COMMAND"]
         os.environ["GIT_TERMINAL_PROMPT"] = "0"
         os.environ["GIT_SSH_COMMAND"] = "ssh -o StrictHostKeyChecking=yes"
-        return previous_git_ssh_command, previous_git_terminal_prompt
+        return environment_variables
 
-    @classmethod
-    def git_environ_reset(cls, previous_git_ssh_command, previous_git_terminal_prompt):
-        if previous_git_terminal_prompt is None:
-            os.environ.pop("GIT_TERMINAL_PROMPT")
-        else:
-            os.environ["GIT_TERMINAL_PROMPT"] = previous_git_terminal_prompt
-        if previous_git_ssh_command is None:
-            os.environ.pop("GIT_SSH_COMMAND")
-        else:
-            os.environ["GIT_SSH_COMMAND"] = previous_git_ssh_command
+    @staticmethod
+    def _git_environ_reset(previous_environment_variables):
+        for key, previous_value in previous_environment_variables.items():
+            if previous_value is None:
+                os.environ.pop(key)
+            else:
+                os.environ[key] = previous_value
 
     def add_remote(self, remote_url, remote_name=None):
         """
