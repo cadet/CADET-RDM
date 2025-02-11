@@ -187,7 +187,16 @@ class BaseRepo:
     @classmethod
     def clone_from(cls, url, to_path, multi_options: Optional[List[str]] = None, **kwargs):
         # prevent git terminal prompts from interrupting the process.
+        previous_git_terminal_prompt = None
+        if "GIT_TERMINAL_PROMPT" in os.environ:
+            previous_git_terminal_prompt = os.environ["GIT_TERMINAL_PROMPT"]
+
+        previous_git_ssh_command = None
+        if "GIT_SSH_COMMAND" in os.environ:
+            previous_git_ssh_command = os.environ["GIT_SSH_COMMAND"]
+
         os.environ["GIT_TERMINAL_PROMPT"] = "0"
+        os.environ["GIT_SSH_COMMAND"] = "ssh -o StrictHostKeyChecking=yes"
 
         try:
             git.Repo.clone_from(url, to_path, multi_options=multi_options, **kwargs)
@@ -198,8 +207,16 @@ class BaseRepo:
                 git.Repo.clone_from(ssh_url_to_http_url(url), to_path, multi_options=multi_options, **kwargs)
             except Exception as e_inner:
                 raise e_inner
+        finally:
+            if previous_git_terminal_prompt is None:
+                os.environ.pop("GIT_TERMINAL_PROMPT")
             else:
-                raise e
+                os.environ["GIT_TERMINAL_PROMPT"] = previous_git_terminal_prompt
+            if previous_git_ssh_command is None:
+                os.environ.pop("GIT_SSH_COMMAND")
+            else:
+                os.environ["GIT_SSH_COMMAND"] = previous_git_ssh_command
+
         instance = cls(to_path)
         return instance
 
