@@ -192,6 +192,8 @@ class BaseRepo:
         try:
             git.Repo.clone_from(url, to_path, multi_options=multi_options, **kwargs)
         except git.exc.GitCommandError as e:
+            print(f"Clone from {url} failed. Trying clone from {ssh_url_to_http_url(url)}")
+            traceback.print_exc()
             try:
                 git.Repo.clone_from(ssh_url_to_http_url(url), to_path, multi_options=multi_options, **kwargs)
             except Exception as e_inner:
