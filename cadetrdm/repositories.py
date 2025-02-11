@@ -189,8 +189,6 @@ class BaseRepo:
         # prevent git terminal prompts from interrupting the process.
         previous_environment_variables = cls._git_environ_setup()
 
-        print("Cloning", url)
-
         try:
             git.Repo.clone_from(url, to_path, multi_options=multi_options, **kwargs)
         except git.exc.GitCommandError as e:
@@ -209,16 +207,17 @@ class BaseRepo:
     @staticmethod
     def _git_environ_setup():
         environment_variables = {
-            "GIT_TERMINAL_PROMPT": None,
-            "GIT_SSH_COMMAND": None
+            "GIT_TERMINAL_PROMPT": "0",
+            "GIT_SSH_COMMAND": "ssh -o StrictHostKeyChecking=yes",
+            "GIT_CLONE_PROTECTION_ACTIVE": "0",
         }
-        if "GIT_TERMINAL_PROMPT" in os.environ:
-            environment_variables["GIT_TERMINAL_PROMPT"] = os.environ["GIT_TERMINAL_PROMPT"]
-        if "GIT_SSH_COMMAND" in os.environ:
-            environment_variables["GIT_SSH_COMMAND"] = os.environ["GIT_SSH_COMMAND"]
-        os.environ["GIT_TERMINAL_PROMPT"] = "0"
-        os.environ["GIT_SSH_COMMAND"] = "ssh -o StrictHostKeyChecking=yes"
-        return environment_variables
+        previous_environment_variables = {key: None for key in environment_variables.keys()}
+        for key, value in environment_variables.items():
+            if key in os.environ:
+                previous_environment_variables[key] = os.environ[key]
+            os.environ[key] = value
+
+        return previous_environment_variables
 
     @staticmethod
     def _git_environ_reset(previous_environment_variables):
@@ -788,17 +787,15 @@ class ProjectRepo(BaseRepo):
         output_remotes = metadata["output_remotes"]
         output_path = self.path / output_remotes["output_folder_name"]
         ssh_remotes = list(output_remotes["output_remotes"].values())
-        http_remotes = [ssh_url_to_http_url(url) for url in ssh_remotes]
-        if len(ssh_remotes + http_remotes) == 0:
+        if len(ssh_remotes) == 0:
             warnings.warn("No output remotes configured in .cadet-rdm-data.json")
-        for output_remote in ssh_remotes + http_remotes:
+        for output_remote in ssh_remotes:
             try:
                 print(f"Attempting to clone {output_remote} into {output_path}")
-                _ = self.clone_from(output_remote, output_path, multi_options=multi_options)
-            except Exception as e:
-                print(e)
-            else:
+                _ = OutputRepo.clone_from(output_remote, output_path, multi_options=multi_options)
                 break
+            except Exception:
+                traceback.print_exc()
 
     @staticmethod
     def _add_jupytext_file(path_root: str | Path = "."):

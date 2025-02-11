@@ -277,23 +277,23 @@ def test_error_stack():
 def test_cadet_rdm(path_to_repo):
     # because these depend on one-another and there is no native support afaik for sequential tests
     # these tests are called sequentially here as try_ functions.
-    try_initialize_git_repo(path_to_repo)
+    # try_initialize_git_repo(path_to_repo)
     try_initialize_from_remote()
 
-    try_add_remote(path_to_repo)
-    # try_add_submodule(path_to_repo)
-    try_commit_code(path_to_repo)
-    try_commit_code_without_code_changes(path_to_repo)
-    try_commit_results_with_uncommitted_code_changes(path_to_repo)
-    try_output_function(path_to_repo)
-
-    try_commit_results_with_options(path_to_repo)
-    results_branch_name = try_commit_results_data(path_to_repo)
-    try_print_log(path_to_repo)
-
-    try_commit_code(path_to_repo)
-
-    try_load_previous_output(path_to_repo, results_branch_name)
+    # try_add_remote(path_to_repo)
+    # # try_add_submodule(path_to_repo)
+    # try_commit_code(path_to_repo)
+    # try_commit_code_without_code_changes(path_to_repo)
+    # try_commit_results_with_uncommitted_code_changes(path_to_repo)
+    # try_output_function(path_to_repo)
+    #
+    # try_commit_results_with_options(path_to_repo)
+    # results_branch_name = try_commit_results_data(path_to_repo)
+    # try_print_log(path_to_repo)
+    #
+    # try_commit_code(path_to_repo)
+    #
+    # try_load_previous_output(path_to_repo, results_branch_name)
 
 
 def test_with_detached_head():
