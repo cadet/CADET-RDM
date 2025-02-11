@@ -200,8 +200,6 @@ class BaseRepo:
                 print(f"Clone from {url} failed with {e, e.stderr, e.stdout}")
                 print(f"and clone from {ssh_url_to_http_url(url)} failed with: ")
                 raise e_inner
-            finally:
-                cls._git_environ_reset(previous_environment_variables)
         finally:
             cls._git_environ_reset(previous_environment_variables)
 
