@@ -195,8 +195,10 @@ class BaseRepo:
         if "GIT_SSH_COMMAND" in os.environ:
             previous_git_ssh_command = os.environ["GIT_SSH_COMMAND"]
 
-        os.environ["GIT_TERMINAL_PROMPT"] = "0"
+        # os.environ["GIT_TERMINAL_PROMPT"] = "0"
         os.environ["GIT_SSH_COMMAND"] = "ssh -o StrictHostKeyChecking=yes"
+
+        print("Cloning", url)
 
         try:
             git.Repo.clone_from(url, to_path, multi_options=multi_options, **kwargs)
