@@ -32,6 +32,7 @@ dependencies = [
     "numpy",
     "pyyaml",
     "semantic-version",
+    "docker"  # python-docker interface
 ]
 
 [project.scripts]
@@ -73,11 +74,11 @@ docs = [
     "myst-nb>=0.17.1",
 ]
 
-
 [tool.pytest.ini_options]
 markers = [
     "slow: marks tests as slow (deselect with '-m \"not slow\"')",
-    "server_api: marks tests as using the GitLab/GitHub API"
+    "server_api: marks tests as using the GitLab/GitHub API",
+    "docker: marks tests as using the Docker API"
 ]
 
 [tool.setuptools.dynamic]
