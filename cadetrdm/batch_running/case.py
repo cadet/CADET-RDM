@@ -155,7 +155,7 @@ class Case:
             print("No matching results were found for these options and study version.")
         return None
 
-    def run_study(self, force=False) -> bool:
+    def run_study(self, force=False, container_adapter: "DockerAdapter" = None) -> bool:
         """
         Run specified study commands in the given repository.
 
@@ -177,7 +177,7 @@ class Case:
             print(f"{self.study.path} has already been computed with these options. Skipping...")
             return True
 
-        if not self.can_run_study:
+        if container_adapter is None and self.can_run_study is False:
             print(f"Current environment does not match required environment. Skipping...")
             self.status = 'failed'
             return False
@@ -185,7 +185,10 @@ class Case:
         try:
             self.status = 'running'
 
-            self.study.module.main(self.options, str(self.study.path))
+            if container_adapter is not None:
+                container_adapter.run_case(self)
+            else:
+                self.study.module.main(self.options, str(self.study.path))
 
             print("Command execution successful.")
             self.status = 'finished'
