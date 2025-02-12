@@ -8,11 +8,25 @@ import yaml
 from semantic_version import Version, SimpleSpec
 
 
-class Environment(Dict):
+class Environment:
 
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
+    def __init__(self, *args, conda_packages: DictType[str, str] = None, pip_packages: DictType[str, str] = None,
+                 name: str = None, channels: List[str] = None):
+        if args:
+            raise TypeError(
+                "Environment.__init__() does not take positional arguments. "
+                "Please specify conda_packages and/or pip_packages."
+            )
+        self.conda_packages = conda_packages
+        self.pip_packages = pip_packages
+        self.packages = dict()
+        if conda_packages:
+            self.packages.update(conda_packages)
+        if pip_packages:
+            self.packages.update(pip_packages)
 
+        self.name = name
+        self.channels = channels
 
     @classmethod
     def from_yml(cls, yml_path):
@@ -45,19 +59,76 @@ class Environment(Dict):
 
         instance = cls()
 
+        instance.name = packages["name"]
+        instance.channels = packages["channels"]
+
         conda_packages = packages["dependencies"]
         conda_packages = {line.split("=")[0]: line.split("=")[1] for line in conda_packages if isinstance(line, str)}
-        instance.update(conda_packages)
+        instance.packages.update(conda_packages)
+        instance.conda_packages = conda_packages
 
-        if "pip" in packages["dependencies"][-1].keys():
+        if isinstance(packages["dependencies"][-1], dict):
             pip_packages = packages["dependencies"][-1]["pip"]
             pip_packages = {line.split("==")[0]: line.split("==")[1] for line in pip_packages}
-            instance.update(pip_packages)
+            instance.packages.update(pip_packages)
+            instance.pip_packages = pip_packages
 
         return instance
 
+    def to_yml(self, yml_path):
+        """
+        Create an environment.yml file from an Environment instance.
+
+        :param yml_path:
+        :return:
+        """
+        yml_dict = self._to_yml_dict()
+
+        with open(yml_path, "w") as handle:
+            yaml.safe_dump(yml_dict, handle)
+
+    def _to_yml_dict(self):
+        """
+        Create an environment.yml type yml dict from an Environment instance.
+
+        :return: yml dict
+        """
+        dependency_list = []
+        for package, spec in self.conda_packages.items():
+            if ">" in spec or "<" in spec or "=" in spec:
+                dependency_list.append(f"{package}{spec}")
+            else:
+                dependency_list.append(f"{package}={spec}")
+
+        pip_list = []
+        for package, spec in self.pip_packages.items():
+            if ">" in spec or "<" in spec or "=" in spec:
+                pip_list.append(f"{package}{spec}")
+            else:
+                pip_list.append(f"{package}=={spec}")
+
+        dependency_list.append({"pip": pip_list})
+
+        yml_dict = {
+            "name": self.name,
+            "channels": self.channels,
+            "dependencies": dependency_list,
+        }
+        return yml_dict
+
+    def update(self, environment: Self):
+        if environment.name is not None:
+            self.name = environment.name
+        if environment.channels is not None:
+            self.channels = environment.channels
+        self.conda_packages.update(environment.conda_packages)
+        self.pip_packages.update(environment.pip_packages)
+
     def package_version(self, package):
-        return self[package]
+        if package not in self.packages:
+            return None
+
+        return self.packages[package]
 
     def fulfils(self, package, version):
         """
@@ -77,11 +148,10 @@ class Environment(Dict):
 
         Uses semantic versioning to compare the versions.
         """
-        try:
-            spec = SimpleSpec(version)
-        except ValueError as e:
-            spec = SimpleSpec(str(Version.coerce(version)))
-            print(f"Warning: {e} when processing {package}={version}. Using {str(Version.coerce(version))} instead.")
+
+        installed_version = self.package_version(package)
+        if installed_version is None:
+            return False
 
         # Use .coerce instead of .parse to ensure non-standard version strings are converted.
         # Rules are:
@@ -90,7 +160,13 @@ class Environment(Dict):
         #   - If more than 3 dot-separated numerical components,
         #       everything from the fourth component belongs to the build part
         #   - Any extra + in the build part will be replaced with dots
-        installed_version = Version.coerce(self.package_version(package))
+        installed_version = Version.coerce(installed_version)
+
+        try:
+            spec = SimpleSpec(version)
+        except ValueError as e:
+            spec = SimpleSpec(str(Version.coerce(version)))
+            print(f"Warning: {e} when processing {package}={version}. Using {str(Version.coerce(version))} instead.")
 
         match = spec.match(installed_version)
 
@@ -110,7 +186,7 @@ class Environment(Dict):
 
         mismatches = []
 
-        for package, version in environment.items():
+        for package, version in environment.packages.items():
             if not self.fulfils(package, version):
                 mismatches.append((package, version, self.package_version(package)))
 
@@ -120,3 +196,35 @@ class Environment(Dict):
             return False
 
         return True
+
+    def prepare_install_instructions(self):
+        conda_command = "conda install -y"
+        for package, spec in self.conda_packages.items():
+            if "~" in spec:
+                conda_command += f" {package}={spec.replace('~', '').replace('=', '')}"
+            elif ">" in spec or "<" in spec or "=" in spec:
+                conda_command += f" {package}{spec}"
+            else:
+                conda_command += f" {package}={spec}"
+
+        pip_command = "pip install"
+        for package, spec in self.pip_packages.items():
+            if "~" in spec:
+                pip_command += f" {package}={spec.replace('~', '').replace('=', '')}"
+            elif ">" in spec or "<" in spec or "=" in spec:
+                pip_command += f" {package}{spec}"
+            else:
+                pip_command += f" {package}=={spec}"
+
+        return conda_command, pip_command
+
+    def __repr__(self):
+        return (f"Environment("
+                f"conda_packages = {repr(self.conda_packages)},  "
+                f"pip_packages = {repr(self.pip_packages)}"
+                f")")
+
+    def __str__(self):
+        handle = io.StringIO()
+        yaml.safe_dump(self._to_yml_dict(), handle)
+        return "Environment:\n" + handle.getvalue()

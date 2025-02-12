@@ -1,3 +1,7 @@
+import subprocess
+
+import pytest
+
 from cadetrdm import Environment
 from cadetrdm.logging import OutputLog
 
@@ -78,33 +82,71 @@ def test_environment_from_yml():
     assert not environment.fulfils("cadet", ">4.4.0")
     assert environment.fulfils_environment(environment)
 
+    environment.prepare_install_instructions()
+
     requirements = {
-        "text-unidecode": "1.3"
+        "text-unidecode": "1.3",
+        "xarray": "<=2024.2.0",
+        "zipp": "==3.18"
     }
-    fulfilled_requirements = Environment(cadet=">=4.4.0", xarray="<=2024.2.0", zipp="==3.18", **requirements)
-    fulfilled_requirements["scikit-learn"] = "~1.4.1"
+    fulfilled_requirements = Environment(conda_packages={"cadet": ">=4.4.0"}, pip_packages=requirements)
+    fulfilled_requirements.pip_packages["scikit-learn"] = "~1.4.1"
 
     assert environment.fulfils_environment(fulfilled_requirements)
 
-    not_fulfilled_requirements = Environment(cadet=">4.4.0", xarray="2024.2.0")
+    not_fulfilled_requirements = Environment(conda_packages={"cadet": ">=4.4.0"}, pip_packages={"xarray": ">=2026.2.0"})
 
     assert not environment.fulfils_environment(not_fulfilled_requirements)
 
+    # test that the no-requirements case is always fulfilled.
     assert environment.fulfils_environment(None)
+
+    # test eval() reproducibility
+    assert environment.fulfils_environment(eval(repr(environment)))
+    assert eval(repr(environment)).fulfils_environment(environment)
 
 
 def test_environment():
-    environment = Environment(cadet="4.4.0", xarray="2024.2.0")
+    environment = Environment(conda_packages={"cadet": "4.4.0", "tbb": "2024.0.0"}, pip_packages={"xarray": "2024.2.0"})
     assert environment.package_version("cadet") == "4.4.0"
     assert environment.fulfils("cadet", "~4.4.0")
     assert not environment.fulfils("cadet", ">4.4.0")
 
+    complex_environment = Environment(
+        conda_packages={"cadet": ">4.4.0", "tbb": ">=2024.0.0", "mkl": "~2024.0.0"},
+        pip_packages={"xarray": ">2024.2.0", "pydantic": "<=2.6.4", }
+    )
 
-def test_environment_check():
-    output_log = OutputLog(filepath=r".\test_repo\results\log.tsv")
-    assert len(output_log.entries) == 3
-    assert len(output_log.entries[1].package_version("cadet")) >= 0
+    install_instructions = ('conda install -y cadet=4.4.0 tbb=2024.0.0', 'pip install xarray==2024.2.0')
+    assert environment.prepare_install_instructions() == install_instructions
 
-    output_log = OutputLog(
-        filepath=r"C:\Users\ronal\PycharmProjects\CADET-RDM\tests\test_repo\results\lognonexistant.tsv")
-    assert len(output_log.entries) == 0
+
+@pytest.mark.slow
+def test_update_environment():
+    subprocess.run(f'conda env remove -n testing_env_cadet_rdm  -y', shell=True)
+    subprocess.run(f'conda create -n testing_env_cadet_rdm python=3.12 -y', shell=True)
+    target_env = Environment(
+        conda_packages={"libiconv": "1.17", "openssl": ">=3.3"},
+        pip_packages={"cadet-rdm": "0.0.44"}
+    )
+    current_env = Environment.from_yml_string(subprocess.check_output(
+        "conda activate testing_env_cadet_rdm & conda env export",
+        shell=True
+    ).decode())
+    assert not current_env.fulfils_environment(target_env)
+
+    conda_instructions, pip_instructions = target_env.prepare_install_instructions()
+    conda_instructions = "conda activate testing_env_cadet_rdm && " + conda_instructions
+    pip_instructions = "conda activate testing_env_cadet_rdm && " + pip_instructions
+    print(conda_instructions)
+    print(pip_instructions)
+    subprocess.run(conda_instructions, shell=True)
+    subprocess.run(pip_instructions, shell=True)
+
+    current_env = Environment.from_yml_string(subprocess.check_output(
+        f"conda activate testing_env_cadet_rdm && conda env export",
+        shell=True
+    ).decode())
+    assert current_env.fulfils_environment(target_env)
+
+

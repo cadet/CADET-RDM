@@ -1,5 +1,5 @@
 from pathlib import Path
-from typing import Dict
+from typing import Dict, List
 
 from tabulate import tabulate
 
@@ -29,6 +29,8 @@ class LogEntry:
 
     @property
     def environment(self):
+        if self._filepath is None:
+            raise ValueError("OutputLog was initialized without a filepath, can not load Environment data.")
         if self._environment is None:
             self._load_environment()
 
@@ -75,7 +77,7 @@ class LogEntry:
         if self._environment is None:
             self._load_environment()
 
-        return self._environment[package]
+        return self._environment.packages[package]
 
     def fulfils(self, package: str, version: str):
         """
@@ -103,7 +105,8 @@ class LogEntry:
 
 class OutputLog:
     def __init__(self, filepath=None):
-        if not Path(filepath).exists():
+        if filepath is None or not Path(filepath).exists():
+            self._filepath = None
             self._entry_list = [[], []]
             self.entries = []
             return
@@ -111,6 +114,13 @@ class OutputLog:
         self._filepath = filepath
         self._entry_list = self._read_file(filepath)
         self.entries: Dict[str, LogEntry] = self._entries_from_entry_list(self._entry_list)
+
+    @classmethod
+    def from_list(cls, entry_list: List[List[str]]):
+        instance = cls()
+        instance._entry_list = entry_list
+        instance.entries: Dict[str, LogEntry] = instance._entries_from_entry_list(instance._entry_list)
+        return instance
 
     def _entries_from_entry_list(self, entry_list) -> Dict[str, LogEntry]:
         header = self._convert_header(entry_list[0])
@@ -138,3 +148,6 @@ class OutputLog:
 
     def __str__(self):
         return tabulate(self._entry_list[1:], headers=self._entry_list[0])
+
+    def __repr__(self):
+        return f"OutputLog.from_list({self._entry_list})"

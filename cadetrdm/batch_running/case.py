@@ -12,7 +12,7 @@ from cadetrdm.logging import LogEntry
 class Case:
     def __init__(self, study: Study, options: Options, environment: Environment = None, name: str = None):
         if name is None:
-            name = options.get_hash()
+            name = study.current_commit_hash + "_" + options.get_hash()
 
         self.name = name
         self.study = study
@@ -21,6 +21,9 @@ class Case:
         self._options_hash = options.get_hash()
         self._results_branch = None
         self._current_environment = None
+
+    def __str__(self):
+        return self.name
 
     @property
     def status_file(self):
