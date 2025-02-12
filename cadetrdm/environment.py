@@ -23,10 +23,6 @@ class Environment(Dict):
         with open(yml_path) as handle:
             yml_string = "".join(handle.readlines())
 
-        # Remove special formatting characters from the string
-        ansi_escape_pattern = re.compile(r'\x1b\[[0-9;]*[a-zA-Z]')
-        yml_string = re.sub(ansi_escape_pattern, "", yml_string)
-
         instance = cls.from_yml_string(yml_string)
         return instance
 
@@ -38,6 +34,11 @@ class Environment(Dict):
         :param yml_string:
         :return:
         """
+
+        # Remove special formatting characters from the string
+        ansi_escape_pattern = re.compile(r'\x1b\[[0-9;]*[a-zA-Z]')
+        yml_string = re.sub(ansi_escape_pattern, "", yml_string)
+
         packages = yaml.safe_load(yml_string)
 
         instance = cls()
@@ -105,8 +106,15 @@ class Environment(Dict):
         if environment is None:
             return True
 
+        mismatches = []
+
         for package, version in environment.items():
             if not self.fulfils(package, version):
-                return False
+                mismatches.append((package, version, self.package_version(package)))
+
+        if mismatches:
+            for package, version, existing_version in mismatches:
+                print(f"Package {package}: {existing_version} does not fulfil requirements: {version}")
+            return False
 
         return True
