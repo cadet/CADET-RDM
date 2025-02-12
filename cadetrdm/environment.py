@@ -1,7 +1,9 @@
+import io
 import re
-from typing import Self
+from typing import Self, List
+from typing import Dict as DictType
+import subprocess
 
-from addict import Dict
 import yaml
 from semantic_version import Version, SimpleSpec
 

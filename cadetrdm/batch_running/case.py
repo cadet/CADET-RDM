@@ -3,10 +3,10 @@ from pathlib import Path
 import subprocess
 from typing import Dict
 
-from .study import Study
-from .options import Options
+from cadetrdm.batch_running import Study
+from cadetrdm.batch_running import Options
 from cadetrdm.environment import Environment
-from ..logging import LogEntry
+from cadetrdm.logging import LogEntry
 
 
 class Case:
