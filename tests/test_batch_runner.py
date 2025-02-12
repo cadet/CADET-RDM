@@ -21,6 +21,46 @@ def test_module_import():
 
 
 @pytest.mark.server_api
+def test_run_with_non_matching_env():
+    WORK_DIR = Path.cwd() / "tmp"
+    WORK_DIR.mkdir(parents=True, exist_ok=True)
+
+    rdm_example = Study(
+        WORK_DIR / 'template',
+        "git@jugit.fz-juelich.de:r.jaepel/rdm_example.git",
+    )
+
+    options = Options()
+    options.debug = True
+    options.push = False
+    options.commit_message = 'Trying out new things'
+    options.optimizer_options = {
+        "optimizer": "U_NSGA3",
+        "pop_size": 2,
+        "n_cores": 2,
+        "n_max_gen": 1,
+    }
+
+    matching_environment = Environment(
+        {
+            "cadet": ">1.0.0"
+        }
+    )
+
+    case = Case(study=rdm_example, options=options, environment=matching_environment)
+    assert case.can_run_study is True
+
+    non_matching_environment = Environment(
+        {
+            "cadet": "17.0.0"
+        }
+    )
+
+    case = Case(study=rdm_example, options=options, environment=non_matching_environment)
+    assert case.can_run_study is False
+
+
+@pytest.mark.server_api
 def test_results_loading():
     WORK_DIR = Path.cwd() / "tmp"
     WORK_DIR.mkdir(parents=True, exist_ok=True)

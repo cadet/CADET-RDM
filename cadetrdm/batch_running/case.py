@@ -1,5 +1,6 @@
 import traceback
 from pathlib import Path
+import subprocess
 from typing import Dict
 
 from .study import Study
@@ -19,6 +20,7 @@ class Case:
         self.environment = environment
         self._options_hash = options.get_hash()
         self._results_branch = None
+        self._current_environment = None
 
     @property
     def status_file(self):
@@ -150,11 +152,17 @@ class Case:
             print("No matching results were found for these options and study version.")
         return None
 
-    def run_study(self, force=False):
-        """Run specified study commands in the given repository."""
+    def run_study(self, force=False) -> bool:
+        """
+        Run specified study commands in the given repository.
+
+        :returns
+            boolean indicating if the results for this case are available, either pre-computed or computed now.
+
+        """
         if not force and self.is_running:
             print(f"{self.study.name} is currently running. Skipping...")
-            return
+            return False
 
         print(f"Running {self.name} in {self.study.path} with: {self.options}")
         if not self.options.debug:
@@ -164,7 +172,12 @@ class Case:
 
         if not force and self.has_results_for_this_run:
             print(f"{self.study.path} has already been computed with these options. Skipping...")
-            return
+            return True
+
+        if not self.can_run_study:
+            print(f"Current environment does not match required environment. Skipping...")
+            self.status = 'failed'
+            return False
 
         try:
             self.status = 'running'
@@ -173,11 +186,23 @@ class Case:
 
             print("Command execution successful.")
             self.status = 'finished'
+            return True
 
         except (KeyboardInterrupt, Exception) as e:
             traceback.print_exc()
             self.status = 'failed'
-            return
+            return False
+
+    @property
+    def can_run_study(self) -> bool:
+        return self.environment is None or self._check_execution_environment()
+
+    def _check_execution_environment(self):
+        if self._current_environment is None:
+            existing_environment = subprocess.check_output(f"conda env export", shell=True).decode()
+            self._current_environment = Environment.from_yml_string(existing_environment)
+
+        return self._current_environment.fulfils_environment(self.environment)
 
     @property
     def _results_path(self):
