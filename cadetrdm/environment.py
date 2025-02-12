@@ -95,14 +95,18 @@ class Environment:
         """
         dependency_list = []
         for package, spec in self.conda_packages.items():
-            if ">" in spec or "<" in spec or "=" in spec:
+            if "git+" in spec:
+                raise ValueError(f"Conda can not use git+ dependencies for {package} {spec}")
+            elif ">" in spec or "<" in spec or "=" in spec:
                 dependency_list.append(f"{package}{spec}")
             else:
                 dependency_list.append(f"{package}={spec}")
 
         pip_list = []
         for package, spec in self.pip_packages.items():
-            if ">" in spec or "<" in spec or "=" in spec:
+            if "git+" in spec:
+                pip_list.append(spec)
+            elif ">" in spec or "<" in spec or "=" in spec:
                 pip_list.append(f"{package}{spec}")
             else:
                 pip_list.append(f"{package}=={spec}")
@@ -153,6 +157,9 @@ class Environment:
         if installed_version is None:
             return False
 
+        if "git+" in installed_version:
+            return False
+
         # Use .coerce instead of .parse to ensure non-standard version strings are converted.
         # Rules are:
         #   - If no minor or patch component, and partial is False, replace them with zeroes
@@ -198,23 +205,33 @@ class Environment:
         return True
 
     def prepare_install_instructions(self):
-        conda_command = "conda install -y"
-        for package, spec in self.conda_packages.items():
-            if "~" in spec:
-                conda_command += f" {package}={spec.replace('~', '').replace('=', '')}"
-            elif ">" in spec or "<" in spec or "=" in spec:
-                conda_command += f" {package}{spec}"
-            else:
-                conda_command += f" {package}={spec}"
 
-        pip_command = "pip install"
-        for package, spec in self.pip_packages.items():
-            if "~" in spec:
-                pip_command += f" {package}={spec.replace('~', '').replace('=', '')}"
-            elif ">" in spec or "<" in spec or "=" in spec:
-                pip_command += f" {package}{spec}"
-            else:
-                pip_command += f" {package}=={spec}"
+        conda_command = ""
+        pip_command = ""
+
+        if self.conda_packages is not None:
+            conda_command = "conda install -y"
+            for package, spec in self.conda_packages.items():
+                if "git+" in spec:
+                    raise ValueError(f"Conda can not use git+ dependencies for {package} {spec}")
+                elif "~" in spec:
+                    conda_command += f" '{package}={spec.replace('~', '').replace('=', '')}'"
+                elif ">" in spec or "<" in spec or "=" in spec:
+                    conda_command += f" '{package}{spec}'"
+                else:
+                    conda_command += f" '{package}={spec}'"
+
+        if self.pip_packages is not None:
+            pip_command = "pip install"
+            for package, spec in self.pip_packages.items():
+                if "git+" in spec:
+                    pip_command += f" '{spec}'"
+                elif "~" in spec:
+                    pip_command += f" '{package}={spec.replace('~', '').replace('=', '')}'"
+                elif ">" in spec or "<" in spec or "=" in spec:
+                    pip_command += f" '{package}{spec}'"
+                else:
+                    pip_command += f" '{package}=={spec}'"
 
         return conda_command, pip_command
 
