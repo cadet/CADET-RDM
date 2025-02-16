@@ -215,11 +215,11 @@ class Environment:
                 if "git+" in spec:
                     raise ValueError(f"Conda can not use git+ dependencies for {package} {spec}")
                 elif "~" in spec:
-                    conda_command += f" '{package}={spec.replace('~', '').replace('=', '')}'"
+                    conda_command += f" {package}={spec.replace('~', '').replace('=', '')}"
                 elif ">" in spec or "<" in spec or "=" in spec:
-                    conda_command += f" '{package}{spec}'"
+                    conda_command += f" {package}{spec}"
                 else:
-                    conda_command += f" '{package}={spec}'"
+                    conda_command += f" {package}={spec}"
 
         if self.pip_packages is not None:
             pip_command = "pip install"
