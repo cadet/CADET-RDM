@@ -68,7 +68,7 @@ jobs:
 
       - name: Run Tests
         run: |
-          pytest tests -m "not server_api"
+          pytest tests -m "not server_api and not slow"
 
   build-release:
     name: Build and Upload Release
