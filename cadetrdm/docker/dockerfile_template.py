@@ -1,3 +1,4 @@
+dockerfile_template = """
 # syntax=docker/dockerfile:1
 
 # Comments are provided throughout this file to help you get started.
@@ -29,3 +30,4 @@ RUN apt-get update && apt-get install -y git git-lfs ssh && \
 COPY environment.yml /tmp/environment.yml
 
 RUN conda env update -n base --file /tmp/environment.yml
+"""
