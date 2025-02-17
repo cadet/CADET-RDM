@@ -803,7 +803,7 @@ class ProjectRepo(BaseRepo):
         jupytext_lines = ['# Pair ipynb notebooks to py:percent text notebooks', 'formats: "ipynb,py:percent"']
         write_lines_to_file(Path(path_root) / "jupytext.yml", lines=jupytext_lines, open_type="w")
 
-    def create_remotes(self, name, namespace, url=None, username=None):
+    def create_remotes(self, name, namespace, url=None, username=None, push=True):
         """
         Create project in gitlab and add the projects as remotes to the project and output repositories
 
@@ -833,7 +833,7 @@ class ProjectRepo(BaseRepo):
             errors_encountered += 1
             print(e)
             print("Please fix the error above and re-run repo.output_repo.add_remote()")
-        if errors_encountered == 0:
+        if errors_encountered == 0 and push:
             self.push(push_all=True)
 
     def get_new_output_branch_name(self):

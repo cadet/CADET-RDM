@@ -106,13 +106,14 @@ def add_remote(name: str = None, remote_url: str = None):
 @click.argument('namespace')
 @click.argument('name')
 @click.argument('username', required=False)
-def create_remotes(url, namespace, name, username=None):
+@click.argument('push', required=False)
+def create_remotes(url, namespace, name, username=None, push=True):
     if username is None:
         username = namespace
 
     from cadetrdm.repositories import ProjectRepo
     repo = ProjectRepo(".")
-    repo.create_remotes(name=name, namespace=namespace, url=url, username=username)
+    repo.create_remotes(name=name, namespace=namespace, url=url, username=username, push=push)
 
 
 @remote.command(name="list")
