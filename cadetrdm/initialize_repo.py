@@ -13,7 +13,7 @@ except ImportError:
 import cadetrdm
 from cadetrdm.repositories import ProjectRepo, OutputRepo
 from cadetrdm.io_utils import write_lines_to_file, wait_for_user, init_lfs, test_for_lfs
-
+from cadetrdm.docker import dockerfile_template
 
 def initialize_repo(path_to_repo: str | Path, output_folder_name: (str | bool) = "output", gitignore: list = None,
                     gitattributes: list = None, output_repo_kwargs: dict = None):
@@ -61,6 +61,7 @@ def initialize_repo(path_to_repo: str | Path, output_folder_name: (str | bool) =
 
     create_readme()
     create_environment_yml()
+    create_dockerfile()
 
     ProjectRepo._add_jupytext_file()
 
@@ -225,6 +226,9 @@ def create_output_readme():
                     "[project_repo]() (not actually set yet because no remote has been configured at this moment"]
     write_lines_to_file("README.md", readme_lines, open_type="a")
 
+
+def create_dockerfile():
+    write_lines_to_file("Dockerfile", dockerfile_template, open_type="w")
 
 def clone(project_url, path_to_repo: str = None, multi_options: List[str] = None):
     """

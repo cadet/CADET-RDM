@@ -3,9 +3,11 @@ import subprocess
 import tempfile
 from pathlib import Path
 
-import docker
-from docker.types import Mount
-from docker.models.images import Image
+try:
+    import docker
+    from docker.models.images import Image
+except ImportError:
+    print("Warning: no python-docker-interface installation found.")
 
 from cadetrdm.docker import ContainerAdapter
 
