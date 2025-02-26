@@ -1,0 +1,19 @@
+Study:
+  path: tmp/template
+  url: git@github.com:ronald-jaepel/rdm_testing_template.git
+  branch: main
+  name: null
+Options:
+  commit_message: Trying out new things
+  debug: false
+  optimizer_options:
+    n_cores: 2
+    n_max_gen: 1
+    optimizer: U_NSGA3
+    pop_size: 2
+  push: false
+Environment:
+  conda_packages: null
+  pip_packages:
+    cadet-rdm: git+https://github.com/cadet/CADET-RDM.git@3e073dd85c5e54d95422c0cdcc1190d80da9e138
+Command: null

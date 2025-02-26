@@ -88,6 +88,14 @@ def run_command(command, results_commit_message):
     repo.exit_context(results_commit_message, {"command": command})
 
 
+@run.command(name="dockered")
+@click.argument('yaml_path')
+def run_dockered(yaml_path):
+    from cadetrdm.docker import DockerAdapter
+    docker_adapter = DockerAdapter()
+    docker_adapter.run(yaml_path)
+
+
 @cli.group(help="Create, add, and manage remotes.")
 def remote():
     pass

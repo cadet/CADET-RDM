@@ -12,7 +12,7 @@ from cadetrdm.logging import LogEntry
 class Case:
     def __init__(self, study: Study, options: Options, environment: Environment = None, name: str = None):
         if name is None:
-            name = study.current_commit_hash + "_" + options.get_hash()
+            name = study.name + "_" + options.get_hash()
 
         self.name = name
         self.study = study
@@ -186,7 +186,10 @@ class Case:
             self.status = 'running'
 
             if container_adapter is not None:
-                container_adapter.run_case(self)
+                log, return_code = container_adapter.run_case(self)
+                if return_code != 0:
+                    self.status = "failed"
+                    return False
             else:
                 self.study.module.main(self.options, str(self.study.path))
 

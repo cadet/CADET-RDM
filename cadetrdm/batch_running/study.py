@@ -5,9 +5,8 @@ from pathlib import Path
 
 from cadetrdm import ProjectRepo, clone
 
-
 class Study(ProjectRepo):
-    def __init__(self, path, url, branch="main", name=None, *args, **kwargs):
+    def __init__(self, path, url, branch="main", name=None, suppress_lfs_warning=False, *args, **kwargs):
         if name is None:
             self.name = Path(path).parts[-1]
         else:
@@ -15,13 +14,16 @@ class Study(ProjectRepo):
         self.url = url
 
         try:
+            if not isinstance(path, Path):
+                path = Path(path)
             if not path.exists():
                 clone(self.url, path)
-            ProjectRepo(path).checkout(branch)
         except Exception as e:
             raise Exception(f"Error processing study {self.name}") from e
 
-        super().__init__(path, *args, **kwargs)
+        super().__init__(path, suppress_lfs_warning=suppress_lfs_warning, *args, **kwargs)
+
+        self.checkout(branch)
 
     @property
     def module(self):

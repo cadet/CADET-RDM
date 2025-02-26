@@ -682,7 +682,7 @@ class BaseRepo:
 
 class ProjectRepo(BaseRepo):
     def __init__(self, repository_path=None, output_folder=None,
-                 search_parent_directories=True, *args, **kwargs):
+                 search_parent_directories=True, suppress_lfs_warning=False, *args, **kwargs):
         """
         Class for Project-Repositories. Handles interaction between the project repo and
         the output (i.e. results) repo.
@@ -696,6 +696,9 @@ class ProjectRepo(BaseRepo):
 
             Please note that this was the default behaviour in older versions of GitPython,
             which is considered a bug though.
+        :param suppress_lfs_warning:
+            Option to not test for git-lfs installation. Used if running a study in a Docker container
+            from a system without git-lfs
         :param args:
             Additional args to be handed to BaseRepo.
         :param kwargs:
@@ -703,7 +706,8 @@ class ProjectRepo(BaseRepo):
         """
         super().__init__(repository_path, search_parent_directories=search_parent_directories, *args, **kwargs)
 
-        test_for_lfs()
+        if not suppress_lfs_warning:
+            test_for_lfs()
 
         if output_folder is not None:
             print("Deprecation Warning. Setting the outputfolder manually during repo instantiation is deprecated"

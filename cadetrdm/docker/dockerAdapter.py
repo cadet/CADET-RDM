@@ -8,8 +8,11 @@ try:
     from docker.models.images import Image
 except ImportError:
     print("Warning: no python-docker-interface installation found.")
+import yaml
 
 from cadetrdm.docker import ContainerAdapter
+from cadetrdm.batch_running import Study, Case, Options
+from cadetrdm import Environment
 
 
 class DockerAdapter(ContainerAdapter):
@@ -18,7 +21,20 @@ class DockerAdapter(ContainerAdapter):
         self.client = docker.from_env()
         self.image = None
 
-    def run_case(self, case: "Case", command: str = None):
+    def run(self, yml_path):
+        with open(yml_path, "r") as stream:
+            instructions = yaml.safe_load(stream)
+
+        instructions = {key.lower(): value for key, value in instructions.items()}
+
+        study = Study(**instructions["study"], suppress_lfs_warning=True)
+        options = Options(**instructions["options"])
+        environment = Environment(**instructions["environment"])
+        case = Case(study, options, environment)
+
+        return self.run_case(case, command=instructions["command"])
+
+    def run_case(self, case: Case, command: str = None):
 
         if case.environment is not None:
             self._update_Dockerfile_with_env_reqs(case)
@@ -37,14 +53,14 @@ class DockerAdapter(ContainerAdapter):
             container_tmp_filename=container_tmp_filename
         )
 
-        full_log = self._run_command(
+        log, return_code = self._run_command(
             container_tmp_filename=container_tmp_filename,
             full_command=full_command,
             image=image,
             options_tmp_filename=options_tmp_filename
         )
 
-        return full_log
+        return log, return_code
 
     def _run_command(self, container_tmp_filename, full_command, image, options_tmp_filename):
 
@@ -60,26 +76,32 @@ class DockerAdapter(ContainerAdapter):
                 options_tmp_filename.absolute().as_posix(): {'bind': container_tmp_filename, 'mode': 'ro'}
             },
             detach=True,
-            remove=True
+            remove=False
         )
 
         full_log = []
-        # Step 2: Attach to the container's logsu
+        # Step 2: Attach to the container's logs
         for log in container.logs(stream=True):
             full_log.append(log.decode("utf-8"))
             print(log.decode("utf-8"), end="")
-        # Wait for the container to finish execution
-        container.wait()
-        print("Done.")
 
-        return full_log
+        # Wait for the container to finish execution
+        result = container.wait()
+        exit_code = result["StatusCode"]
+
+        container.remove()
+
+        return full_log, exit_code
 
     def _prepare_command(self, case, command, container_tmp_filename):
         # ensure ssh in the container knows where to look for known_hosts and that .ssh/config is read-only
         command_ssh = 'cp -r /root/.ssh_host_os /root/.ssh && chmod 600 /root/.ssh/*'
 
         # copy over git config
-        git_config_list = subprocess.check_output("git config --list --show-origin --global").decode().split("\n")
+        git_config_list = subprocess.check_output(
+            "git config --list --show-origin --global",
+            shell=True
+        ).decode().split("\n")
         git_config = {
             "user.name": None,
             "user.email": None,
