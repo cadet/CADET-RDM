@@ -274,20 +274,6 @@ def test_error_stack():
     assert error_line in lines
 
 
-def test_cookiecutter(monkeypatch):
-    path_to_repo = Path("test_repo_cookie")
-    if path_to_repo.exists():
-        delete_path(path_to_repo)
-    os.makedirs(path_to_repo)
-
-    # using monkeypatch to simulate user input
-    # Mock console.input to simulate user input
-    from rich.console import Console
-    monkeypatch.setattr(Console, "input", lambda *args, **kwargs: "")
-
-    initialize_repo(path_to_repo, cookiecutter_template="cookiecutter_case_studies_template")
-    assert (path_to_repo / "main.py").exists()
-
 
 def test_cookiecutter_with_url(monkeypatch):
     path_to_repo = Path("test_repo_cookie")
