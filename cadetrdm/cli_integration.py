@@ -17,14 +17,16 @@ def cli():
               help='List of files to be added to the gitignore file. Optional.')
 @click.option('--gitattributes', default=None,
               help='List of files to be added to the gitattributes file. Optional.')
+@click.option('--cookiecutter', default=None,
+              help='URL or path to cookiecutter template. Optional.')
 @click.argument('path_to_repo', required=False)
 def init(path_to_repo: str = None, output_repo_name: (str | bool) = "output", gitignore: list = None,
-         gitattributes: list = None, output_repo_kwargs: dict = None):
+         gitattributes: list = None, cookiecutter: str = None, output_repo_kwargs: dict = None):
     if path_to_repo is None:
         path_to_repo = "."
     from cadetrdm.initialize_repo import initialize_repo as initialize_git_repo_implementation
     initialize_git_repo_implementation(path_to_repo, output_repo_name, gitignore,
-                                       gitattributes, output_repo_kwargs)
+                                       gitattributes, output_repo_kwargs, cookiecutter)
 
 
 @cli.command(help="Clone a repository into a new directory.")

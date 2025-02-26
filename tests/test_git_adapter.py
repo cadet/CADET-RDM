@@ -274,6 +274,39 @@ def test_error_stack():
     assert error_line in lines
 
 
+def test_cookiecutter(monkeypatch):
+    path_to_repo = Path("test_repo_cookie")
+    if path_to_repo.exists():
+        delete_path(path_to_repo)
+    os.makedirs(path_to_repo)
+
+    # using monkeypatch to simulate user input
+    # Mock console.input to simulate user input
+    from rich.console import Console
+    monkeypatch.setattr(Console, "input", lambda *args, **kwargs: "")
+
+    initialize_repo(path_to_repo, cookiecutter_template="cookiecutter_case_studies_template")
+    assert (path_to_repo / "main.py").exists()
+
+
+def test_cookiecutter_with_url(monkeypatch):
+    path_to_repo = Path("test_repo_cookie")
+    if path_to_repo.exists():
+        delete_path(path_to_repo)
+    os.makedirs(path_to_repo)
+
+    # using monkeypatch to simulate user input
+    # Mock console.input to simulate user input
+    from rich.console import Console
+    monkeypatch.setattr(Console, "input", lambda *args, **kwargs: "")
+
+    initialize_repo(
+        path_to_repo,
+        cookiecutter_template="https://github.com/cadet/RDM-Cookiecutter-Example-Template.git"
+    )
+    assert (path_to_repo / "main.py").exists()
+
+
 def test_cadet_rdm(path_to_repo):
     # because these depend on one-another and there is no native support afaik for sequential tests
     # these tests are called sequentially here as try_ functions.

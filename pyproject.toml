@@ -32,7 +32,8 @@ dependencies = [
     "numpy",
     "pyyaml",
     "semantic-version",
-    "docker"  # python-docker interface
+    "docker", # python-docker interface
+    "cookiecutter",
 ]
 
 [project.scripts]

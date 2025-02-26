@@ -19,6 +19,24 @@ initialize_repo(path_to_repo)
 
 The `output_folder_name` can be given optionally. It defaults to `output`.
 
+## Cookiecutter support
+
+[Cookiecutter](https://github.com/cookiecutter/cookiecutter) can be used to set a template as a starting position for the repository initialization.
+
+
+```bash
+rdm init <path-to-repo> --cookiecutter template_url
+```
+
+or from python
+
+```python
+from cadetrdm import initialize_repo
+
+initialize_repo(path_to_repo, cookiecutter_template="template_url")
+```
+
+
 ## Creating and adding remotes
 
 You can create remotes for both the project and the output repository with one command, using the GitLab or GitHub API.

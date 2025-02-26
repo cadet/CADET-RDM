@@ -1,8 +1,11 @@
 import json
 import os
+import shutil
 import uuid
 from pathlib import Path
 from typing import List
+
+from cookiecutter.main import cookiecutter
 
 try:
     import git
@@ -16,7 +19,7 @@ from cadetrdm.io_utils import write_lines_to_file, wait_for_user, init_lfs, test
 from cadetrdm.docker import dockerfile_template
 
 def initialize_repo(path_to_repo: str | Path, output_folder_name: (str | bool) = "output", gitignore: list = None,
-                    gitattributes: list = None, output_repo_kwargs: dict = None):
+                    gitattributes: list = None, output_repo_kwargs: dict = None, cookiecutter_template: str = None):
     """
     Initialize a git repository at the given path with an optional included output results repository.
 
@@ -34,6 +37,9 @@ def initialize_repo(path_to_repo: str | Path, output_folder_name: (str | bool) =
     :return:
     """
     test_for_lfs()
+
+    if cookiecutter_template is not None:
+        init_cookiecutter(cookiecutter_template, path_to_repo)
 
     if gitignore is None:
         gitignore = get_default_gitignore() + ["*.ipynb", "*.h5"]
@@ -105,6 +111,23 @@ def initialize_repo(path_to_repo: str | Path, output_folder_name: (str | bool) =
     repo.commit("initial CADET RDM commit", add_all=False)
 
     os.chdir(starting_directory)
+
+
+def init_cookiecutter(cookiecutter_template, path_to_repo):
+    """
+    Initialize from cookiecutter template. Because cookiecutter can only create the files in a sub-directory
+    but cadet-rdm init can be called from within a folder with "path_to_repo" == ".", we copy the files from the
+    generated_dir folder into the path_to_repo folder afterwards.
+
+    :param cookiecutter_template:
+    :param path_to_repo:
+    :return:
+    """
+    generated_dir = cookiecutter(cookiecutter_template, output_dir=path_to_repo)
+    file_names = os.listdir(generated_dir)
+    for file_name in file_names:
+        shutil.move(os.path.join(generated_dir, file_name), path_to_repo)
+    shutil.rmtree(generated_dir)
 
 
 # def re_initialize_existing_repo(path_to_repo: str | Path, **output_repo_kwargs):
