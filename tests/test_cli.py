@@ -112,6 +112,16 @@ def test_08_data_import():
     print(result.output)
     assert result.exit_code == 0
 
+
+@pytest.mark.docker
+def test_run_dockered():
+    result = runner.invoke(
+        cli,
+        ["run", "dockered", (Path(__file__).parent.resolve() / "case.yml").as_posix()]
+    )
+    print(result.output)
+    assert result.exit_code == 0
+
 # def test_09_data_verify():
 #     with open()
 #     result = runner.invoke(cli, ["data", "verify"])

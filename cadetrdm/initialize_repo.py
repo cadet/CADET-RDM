@@ -16,7 +16,7 @@ except ImportError:
 import cadetrdm
 from cadetrdm.repositories import ProjectRepo, OutputRepo
 from cadetrdm.io_utils import write_lines_to_file, wait_for_user, init_lfs, test_for_lfs
-from cadetrdm.docker import dockerfile_template
+import cadetrdm.templates.dockerfile_template as dockerfile_template
 
 def initialize_repo(path_to_repo: str | Path, output_folder_name: (str | bool) = "output", gitignore: list = None,
                     gitattributes: list = None, output_repo_kwargs: dict = None, cookiecutter_template: str = None):

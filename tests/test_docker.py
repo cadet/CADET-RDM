@@ -13,6 +13,7 @@ def test_run_dockered():
     rdm_example = Study(
         WORK_DIR / 'template',
         "git@github.com:ronald-jaepel/rdm_testing_template.git",
+        suppress_lfs_warning=True
     )
 
     options = Options()
@@ -35,4 +36,23 @@ def test_run_dockered():
     case = Case(study=rdm_example, options=options, environment=matching_environment)
     docker_adapter = DockerAdapter()
     has_run_study = case.run_study(container_adapter=docker_adapter, force=True)
+    assert has_run_study
+
+    options.optimizer_options = {
+        "optimizer": "NOT_AN_OPTIMIZER",
+        "pop_size": 2,
+        "n_cores": 2,
+        "n_max_gen": 1,
+    }
+
+    case = Case(study=rdm_example, options=options, environment=matching_environment)
+    docker_adapter = DockerAdapter()
+    has_run_study = case.run_study(container_adapter=docker_adapter, force=True)
+    assert not has_run_study
+
+
+@pytest.mark.docker
+def test_dockered_from_yml():
+    docker_adapter = DockerAdapter()
+    has_run_study = docker_adapter.run((Path(__file__).parent.resolve() / "case.yml").as_posix())
     assert has_run_study
