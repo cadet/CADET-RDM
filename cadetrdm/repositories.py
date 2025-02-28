@@ -70,6 +70,19 @@ class BaseRepo:
             self.main_branch = "main"
 
         self.add = self._git.add
+        self._metadata = self.load_metadata()
+
+    def load_metadata(self):
+        with open(self.data_json_path, "r") as handle:
+            metadata = json.load(handle)
+        if "output_remotes" not in metadata and metadata["is_project_repo"]:
+            # this enables upgrades from v0.0.23 to v0.0.24.
+            output_remotes_path = self.path / "output_remotes.json"
+            with open(output_remotes_path, "r") as handle:
+                output_remotes = json.load(handle)
+            metadata["output_remotes"] = output_remotes
+        return metadata
+
 
     @property
     def active_branch(self):
@@ -239,9 +252,7 @@ class BaseRepo:
         if remote_name is None:
             remote_name = "origin"
         self._git_repo.create_remote(remote_name, url=remote_url)
-        with open(self.data_json_path, "r") as handle:
-            rdm_data = json.load(handle)
-        if rdm_data["is_project_repo"]:
+        if self._metadata["is_project_repo"]:
             # This folder is a project repo. Use a project repo class to easily access the output repo.
             output_repo = ProjectRepo(self.path).output_repo
 
@@ -252,7 +263,7 @@ class BaseRepo:
             output_repo.add_list_of_remotes_in_readme_file("project_repo", self.remote_urls)
             output_repo.add("README.md")
             output_repo.commit("Add remote for project repo", verbosity=0, add_all=False)
-        if rdm_data["is_output_repo"]:
+        if self._metadata["is_output_repo"]:
             # This folder is an output repo
             project_repo = ProjectRepo(self.path.parent)
             project_repo.update_output_remotes_json()
@@ -716,32 +727,20 @@ class ProjectRepo(BaseRepo):
         if not self.data_json_path.exists():
             raise RuntimeError(f"Folder {self.path} does not appear to be a CADET-RDM repository.")
 
-        metadata = self.load_metadata()
-        self._project_uuid = metadata["project_uuid"]
-        self._output_uuid = metadata["output_uuid"]
-        self._output_folder = metadata["output_remotes"]["output_folder_name"]
+        self._project_uuid = self._metadata["project_uuid"]
+        self._output_uuid = self._metadata["output_uuid"]
+        self._output_folder = self._metadata["output_remotes"]["output_folder_name"]
         if not (self.path / self._output_folder).exists():
             print("Output repository was missing, cloning now.")
             self._clone_output_repo()
         self._output_repo = OutputRepo(self.path / self._output_folder)
 
-        if metadata["cadet_rdm_version"] != cadetrdm.__version__:
-            self._update_version(metadata, cadetrdm.__version__)
+        if self._metadata["cadet_rdm_version"] != cadetrdm.__version__:
+            self._update_version(self._metadata, cadetrdm.__version__)
 
         self._on_context_enter_commit_hash = None
         self._is_in_context_manager = False
         self.options_hash = None
-
-    def load_metadata(self):
-        with open(self.data_json_path, "r") as handle:
-            metadata = json.load(handle)
-        if "output_remotes" not in metadata:
-            # this enables upgrades from v0.0.23 to v0.0.24.
-            output_remotes_path = self.path / "output_remotes.json"
-            with open(output_remotes_path, "r") as handle:
-                output_remotes = json.load(handle)
-            metadata["output_remotes"] = output_remotes
-        return metadata
 
     @property
     def output_repo(self):

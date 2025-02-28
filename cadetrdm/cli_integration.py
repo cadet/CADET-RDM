@@ -46,10 +46,17 @@ def print_log():
 
 
 @cli.command(help="Push all changes to the project and output repositories.")
-def push():
-    from cadetrdm.repositories import ProjectRepo
-    repo = ProjectRepo(".")
-    repo.push(push_all=True)
+@click.option('--single', "-s", is_flag=True, help="Push only changes of the current branch.")
+def push(single=False):
+    from cadetrdm.repositories import ProjectRepo, BaseRepo
+    base_repo = BaseRepo(".")
+    if base_repo._metadata["is_project_repo"]:
+        repo = ProjectRepo(".")
+    elif base_repo._metadata["is_output_repo"]:
+        repo = ProjectRepo("..")
+    else:
+        raise ValueError("Current directory is neither Project nor Output repository")
+    repo.push(push_all=not single)
 
 
 @cli.command(help="Record changes to the repository")
