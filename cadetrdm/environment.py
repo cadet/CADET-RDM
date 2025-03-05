@@ -75,17 +75,16 @@ class Environment:
 
         return instance
 
-    def to_yml(self, yml_path):
+    def to_yml(self, handle):
         """
         Create an environment.yml file from an Environment instance.
 
-        :param yml_path:
+        :param handle:
         :return:
         """
         yml_dict = self._to_yml_dict()
 
-        with open(yml_path, "w") as handle:
-            yaml.safe_dump(yml_dict, handle)
+        yaml.safe_dump(yml_dict, handle)
 
     def _to_yml_dict(self):
         """
@@ -94,24 +93,26 @@ class Environment:
         :return: yml dict
         """
         dependency_list = []
-        for package, spec in self.conda_packages.items():
-            if "git+" in spec:
-                raise ValueError(f"Conda can not use git+ dependencies for {package} {spec}")
-            elif ">" in spec or "<" in spec or "=" in spec:
-                dependency_list.append(f"{package}{spec}")
-            else:
-                dependency_list.append(f"{package}={spec}")
+        if self.conda_packages is not None:
+            for package, spec in self.conda_packages.items():
+                if "git+" in spec:
+                    raise ValueError(f"Conda can not use git+ dependencies for {package} {spec}")
+                elif ">" in spec or "<" in spec or "=" in spec:
+                    dependency_list.append(f"{package}{spec}")
+                else:
+                    dependency_list.append(f"{package}={spec}")
 
         pip_list = []
-        for package, spec in self.pip_packages.items():
-            if "git+" in spec:
-                pip_list.append(spec)
-            elif ">" in spec or "<" in spec or "=" in spec:
-                pip_list.append(f"{package}{spec}")
-            else:
-                pip_list.append(f"{package}=={spec}")
+        if self.pip_packages is not None:
+            for package, spec in self.pip_packages.items():
+                if "git+" in spec:
+                    pip_list.append(spec)
+                elif ">" in spec or "<" in spec or "=" in spec:
+                    pip_list.append(f"{package}{spec}")
+                else:
+                    pip_list.append(f"{package}=={spec}")
 
-        dependency_list.append({"pip": pip_list})
+            dependency_list.append({"pip": pip_list})
 
         yml_dict = {
             "name": self.name,

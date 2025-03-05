@@ -1,3 +1,4 @@
+import io
 import subprocess
 
 import pytest
@@ -112,14 +113,46 @@ def test_environment():
     assert environment.fulfils("cadet", "~4.4.0")
     assert not environment.fulfils("cadet", ">4.4.0")
 
+    install_instructions = (
+        'conda install -y cadet=4.4.0 tbb=2024.0.0',
+        "pip install 'xarray==2024.2.0'"
+    )
+    assert environment.prepare_install_instructions() == install_instructions
+
+    yml_dict = {'name': None,
+                'channels': None,
+                'dependencies': ['cadet=4.4.0',
+                                 'tbb=2024.0.0',
+                                 {'pip': ['xarray==2024.2.0']}]}
+    assert environment._to_yml_dict() == yml_dict
+    yml_string = ('channels: null\ndependencies:\n- cadet=4.4.0\n- tbb=2024.0.0\n'
+                  '- pip:\n  - xarray==2024.2.0\nname: null\n')
+    handle = io.StringIO()
+    environment.to_yml(handle)
+    assert yml_string == handle.getvalue()
+
+    environment = Environment(conda_packages=None, pip_packages={"xarray": "2024.2.0"})
+    yml_dict = {'name': None,
+                'channels': None,
+                'dependencies': [{'pip': ['xarray==2024.2.0']}]}
+    assert environment._to_yml_dict() == yml_dict
+
+    environment = Environment(conda_packages={"cadet": "4.4.0", "tbb": "2024.0.0"}, pip_packages=None)
+    yml_dict = {'name': None,
+                'channels': None,
+                'dependencies': ['cadet=4.4.0', 'tbb=2024.0.0']}
+    assert environment._to_yml_dict() == yml_dict
+
     complex_environment = Environment(
         conda_packages={"cadet": ">4.4.0", "tbb": ">=2024.0.0", "mkl": "~2024.0.0"},
         pip_packages={"xarray": ">2024.2.0", "pydantic": "<=2.6.4", }
     )
 
-    install_instructions = ("conda install -y cadet=4.4.0 tbb=2024.0.0", "pip install 'xarray==2024.2.0'")
-    assert environment.prepare_install_instructions() == install_instructions
-
+    install_instructions = (
+        'conda install -y cadet>4.4.0 tbb>=2024.0.0 mkl=2024.0.0',
+        "pip install 'xarray>2024.2.0' 'pydantic<=2.6.4'"
+    )
+    assert complex_environment.prepare_install_instructions() == install_instructions
 
 @pytest.mark.slow
 def test_update_environment():
