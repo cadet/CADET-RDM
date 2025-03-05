@@ -87,3 +87,16 @@ command
 ```bash
 rdm push
 ```
+
+## Migrating a repository
+
+If you want to migrate a repository to another remote, the easiest way to do that at the moment is to create the remote
+repositories on GitHub or GitLab and change the `origin` URL for the project and output repositories with:
+
+```bash
+rdm remote set-url origin git@<my_git_server.foo>:<project>.git
+cd output
+rdm remote set-url origin git@<my_git_server.foo>:<project>_output.git
+cd ..
+rdm push
+```

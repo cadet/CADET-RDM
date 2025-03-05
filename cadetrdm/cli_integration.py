@@ -1,4 +1,5 @@
 import subprocess
+from pathlib import Path
 
 import click
 
@@ -45,18 +46,33 @@ def print_log():
     repo.print_log()
 
 
+@cli.command(name="check", help="Ensure metadata is consistent.")
+def check():
+    repo = get_project_repo()
+    repo.check()
+
+
 @cli.command(help="Push all changes to the project and output repositories.")
 @click.option('--single', "-s", is_flag=True, help="Push only changes of the current branch.")
 def push(single=False):
+    repo = get_project_repo()
+    repo.push(push_all=not single)
+
+
+def get_project_repo(path: str = "."):
+    """
+    Get the project repo to a given path
+    :return:
+    """
     from cadetrdm.repositories import ProjectRepo, BaseRepo
-    base_repo = BaseRepo(".")
+    base_repo = BaseRepo(path)
     if base_repo._metadata["is_project_repo"]:
-        repo = ProjectRepo(".")
+        repo = ProjectRepo(path)
     elif base_repo._metadata["is_output_repo"]:
-        repo = ProjectRepo("..")
+        repo = ProjectRepo(Path(path).parent)
     else:
         raise ValueError("Current directory is neither Project nor Output repository")
-    repo.push(push_all=not single)
+    return repo
 
 
 @cli.command(help="Record changes to the repository")
@@ -116,6 +132,18 @@ def add_remote(name: str = None, remote_url: str = None):
     repo = BaseRepo(".")
     repo.add_remote(remote_url=remote_url, remote_name=name)
     print("Done.")
+
+
+@remote.command(name="set-url", help="Add")
+@click.argument('name')
+@click.argument('remote_url')
+def set_url(name: str, remote_url: str):
+    from cadetrdm.repositories import BaseRepo
+    repo = BaseRepo(".")
+    repo.remote_set_url(url=remote_url, name=name)
+    print(f"Set url of remote {name} to {remote_url}. Commiting changes to metadata.")
+    project_repo = get_project_repo()
+    project_repo.check(commit=True)
 
 
 @remote.command(name="create")

@@ -10,6 +10,7 @@ from cadetrdm import initialize_repo, ProjectRepo, clone, Options
 from cadetrdm.initialize_repo import init_lfs
 from cadetrdm.io_utils import delete_path
 from cadetrdm.repositories import OutputRepo, BaseRepo
+from cadetrdm.web_utils import ssh_url_to_http_url
 from cadetrdm.wrapper import tracks_results
 
 
@@ -255,6 +256,29 @@ def test_add_lfs_filetype():
     delete_path(path_to_repo)
 
 
+def test_rdm_check():
+    path_to_repo = Path("test_repo_3")
+    new_project_url = "git@github.com:foobar/rdm_example_alternate.git"
+    new_output_url = "git@github.com:foobar/rdm_example_output_alternate.git"
+    if path_to_repo.exists():
+        delete_path(path_to_repo)
+    os.makedirs(path_to_repo)
+    initialize_repo(path_to_repo)
+    repo = ProjectRepo(path_to_repo)
+    repo.add_remote("git@github.com:foobar/rdm_testing_template.git")
+    repo.output_repo.add_remote("git@github.com:foobar/rdm_testing_template_output.git")
+    repo.remote_set_url("origin", new_project_url)
+    repo.output_repo.remote_set_url("origin", new_output_url)
+
+    repo.check()
+    with open(repo.path / "README.md", "r") as handle:
+        readme_lines = handle.readlines()
+    assert f'[output_repo]({ssh_url_to_http_url(new_output_url)})\n' in readme_lines
+    with open(repo.output_repo.path / "README.md", "r") as handle:
+        readme_lines = handle.readlines()
+    assert f'[project_repo]({ssh_url_to_http_url(new_project_url)})\n' in readme_lines
+
+
 def test_error_stack():
     path_to_repo = Path("test_repo_3")
     if path_to_repo.exists():
@@ -272,7 +296,6 @@ def test_error_stack():
 
     error_line = '    raise ValueError("This is an error message with \\n a line break")\n'
     assert error_line in lines
-
 
 
 def test_cookiecutter_with_url(monkeypatch):

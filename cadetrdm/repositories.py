@@ -690,6 +690,16 @@ class BaseRepo:
                 file_handle.writelines(filelines)
             self.add(readme_filepath)
 
+    def remote_set_url(self, name: str, url: str):
+        """
+        Set the url of a named remote.
+
+        :param name:
+        :param url:
+        """
+        self._git_repo.remotes[name].set_url(url)
+
+
 
 class ProjectRepo(BaseRepo):
     def __init__(self, repository_path=None, output_folder=None,
@@ -1056,6 +1066,25 @@ class ProjectRepo(BaseRepo):
         self.update_output_remotes_json()
 
         super().commit(message=message, add_all=add_all, verbosity=verbosity)
+
+    def check(self, commit=True):
+        """
+        Check the repository for consistency. Update remote links.
+
+        :param commit:
+        Automatically commit changes to the changed files.
+
+        :return:
+        """
+        self.update_output_remotes_json()
+        if commit:
+            super().commit(message="Update remote links", add_all=False, verbosity=1)
+
+        # update urls in main branch of output_repo
+        self.output_repo._git.checkout(self.output_repo.main_branch)
+        self.output_repo.add_list_of_remotes_in_readme_file("project_repo", self.remote_urls)
+        if commit:
+            self.output_repo.commit(message="Update remote links", add_all=False, verbosity=1)
 
     def update_output_remotes_json(self):
         output_repo_remotes = self.output_repo.remote_urls
