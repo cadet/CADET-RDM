@@ -34,7 +34,8 @@ def validate_is_output_repo(path_to_repo):
         if rdm_data["is_project_repo"]:
             raise ValueError("Please use the URL to the output repository.")
 
-class BaseRepo:
+
+class GitRepo:
     def __init__(self, repository_path=None, search_parent_directories=True, *args, **kwargs):
         """
         Base class handling most git workflows.
@@ -70,19 +71,6 @@ class BaseRepo:
             self.main_branch = "main"
 
         self.add = self._git.add
-        self._metadata = self.load_metadata()
-
-    def load_metadata(self):
-        with open(self.data_json_path, "r") as handle:
-            metadata = json.load(handle)
-        if "output_remotes" not in metadata and metadata["is_project_repo"]:
-            # this enables upgrades from v0.0.23 to v0.0.24.
-            output_remotes_path = self.path / "output_remotes.json"
-            with open(output_remotes_path, "r") as handle:
-                output_remotes = json.load(handle)
-            metadata["output_remotes"] = output_remotes
-        return metadata
-
 
     @property
     def active_branch(self):
@@ -241,202 +229,118 @@ class BaseRepo:
             else:
                 os.environ[key] = previous_value
 
-    def add_remote(self, remote_url, remote_name=None):
-        """
-        Add a remote to the repository.
-
-        :param remote_url:
-        :param remote_name:
-        :return:
-        """
-        if remote_name is None:
-            remote_name = "origin"
-        self._git_repo.create_remote(remote_name, url=remote_url)
-        if self._metadata["is_project_repo"]:
-            # This folder is a project repo. Use a project repo class to easily access the output repo.
-            output_repo = ProjectRepo(self.path).output_repo
-
-            if output_repo.active_branch != output_repo.main_branch:
-                if output_repo.exist_uncomitted_changes:
-                    output_repo.stash_all_changes()
-                output_repo.checkout(output_repo.main_branch)
-            output_repo.add_list_of_remotes_in_readme_file("project_repo", self.remote_urls)
-            output_repo.add("README.md")
-            output_repo.commit("Add remote for project repo", verbosity=0, add_all=False)
-        if self._metadata["is_output_repo"]:
-            # This folder is an output repo
-            project_repo = ProjectRepo(self.path.parent)
-            project_repo.update_output_remotes_json()
-            project_repo.add_list_of_remotes_in_readme_file("output_repo", self.remote_urls)
-            project_repo.add(project_repo.data_json_path)
-            project_repo.add("README.md")
-            project_repo.commit("Add remote for output repo", verbosity=0, add_all=False)
-
-    def add_filetype_to_lfs(self, file_type):
-        """
-        Add the filetype given in file_type to the GIT-LFS tracking
-
-        :param file_type:
-        Wildcard formatted string. Examples: "*.png" or "*.xlsx"
-        :return:
-        """
-        init_lfs(lfs_filetypes=[file_type], path=self.path)
-        self.add_all_files()
-        self.commit(f"Add {file_type} to lfs")
-
-    def import_remote_repo(self, source_repo_location, source_repo_branch, target_repo_location=None):
-        """
-        Import a remote repo and update the cadet-rdm-cache
-
-        :param source_repo_location:
-        Path or URL to the source repo.
-        Example https://jugit.fz-juelich.de/IBG-1/ModSim/cadet/agile_cadet_rdm_presentation_output.git
-        or git@jugit.fz-juelich.de:IBG-1/ModSim/cadet/agile_cadet_rdm_presentation_output.git
-
-        :param source_repo_branch:
-        Branch of the source repo to check out.
-
-        :param target_repo_location:
-        Place to store the repo. If None, the external_cache folder is used.
-
-        :return:
-        Path to the cloned repository
-        """
-        if "://" in str(source_repo_location):
-            source_repo_name = source_repo_location.split("/")[-1]
-        else:
-            source_repo_name = Path(source_repo_location).name
-        if target_repo_location is None:
-            target_repo_location = self.path / "external_cache" / source_repo_name
-        else:
-            target_repo_location = self.path / target_repo_location
-
-        self.add_path_to_gitignore(target_repo_location)
-
-        print(f"Cloning from {source_repo_location} into {target_repo_location}")
-        multi_options = ["--filter=blob:none", "--branch", source_repo_branch, "--single-branch"]
-        repo = self.clone_from(url=source_repo_location, to_path=target_repo_location,
-                               multi_options=multi_options)
-        repo._git.clear_cache()
-        repo._git_repo.close()
-
-        self.update_cadet_rdm_cache_json(source_repo_branch=source_repo_branch,
-                                         target_repo_location=target_repo_location,
-                                         source_repo_location=source_repo_location)
-        return target_repo_location
-
-    def add_path_to_gitignore(self, path_to_be_ignored):
-        """
-        Add the path to the .gitignore file
-
-        :param path_to_be_ignored:
-        :return:
-        """
-        path_to_be_ignored = self.ensure_relative_path(path_to_be_ignored)
-        with open(self.path / ".gitignore", "r") as file_handle:
-            gitignore = file_handle.readlines()
-            gitignore[-1] += "\n"  # Sometimes there is no trailing newline
-        if str(path_to_be_ignored) + "\n" not in gitignore:
-            gitignore.append(str(path_to_be_ignored) + "\n")
-        with open(self.path / ".gitignore", "w") as file_handle:
-            file_handle.writelines(gitignore)
-
-    def update_cadet_rdm_cache_json(self, source_repo_location, source_repo_branch, target_repo_location):
-        """
-        Update the information in the .cadet_rdm_cache.json file
-
-        :param source_repo_location:
-        Path or URL to the source repo.
-        :param source_repo_branch:
-        Name of the branch to check out.
-        :param target_repo_location:
-        Path where to put the repo or data
-        """
-        if not self.cache_json_path.exists():
-            with open(self.cache_json_path, "w") as file_handle:
-                file_handle.writelines("{}")
-
-        with open(self.cache_json_path, "r") as file_handle:
-            rdm_cache = json.load(file_handle)
-
-        repo = BaseRepo(target_repo_location)
-        commit_hash = repo.current_commit_hash
-        if "__example/path/to/repo__" in rdm_cache.keys():
-            rdm_cache.pop("__example/path/to/repo__")
-
-        target_repo_location = str(self.ensure_relative_path(target_repo_location))
-
-        if isinstance(source_repo_location, Path):
-            source_repo_location = source_repo_location.as_posix()
-
-        rdm_cache[target_repo_location] = {
-            "source_repo_location": source_repo_location,
-            "branch_name": source_repo_branch,
-            "commit_hash": commit_hash,
-        }
-
-        with open(self.cache_json_path, "w") as file_handle:
-            json.dump(rdm_cache, file_handle, indent=2)
-
-    def ensure_relative_path(self, input_path):
-        """
-        Turn the input path into a relative path, relative to the repo working directory.
-
-        :param input_path:
-        :return:
-        """
-        if type(input_path) is str:
-            input_path = Path(input_path)
-
-        if input_path.is_absolute():
-            relative_path = input_path.relative_to(self.path)
-        else:
-            relative_path = input_path
-        return relative_path
-
-    def verify_unchanged_cache(self):
-        """
-        Verify that all repos referenced in .cadet-rdm-data.json are
-        in an unmodified state. Raises a RuntimeError if the commit hash has changed or if
-        uncommited changes are found.
-
-        :return:
-        """
-
-        with open(self.cache_json_path, "r") as file_handle:
-            rdm_cache = json.load(file_handle)
-
-        if "__example/path/to/repo__" in rdm_cache.keys():
-            rdm_cache.pop("__example/path/to/repo__")
-
-        for repo_location, repo_info in rdm_cache.items():
-            try:
-                repo = BaseRepo(repo_location)
-                repo._git.clear_cache()
-            except git.exc.NoSuchPathError:
-                raise git.exc.NoSuchPathError(f"The imported repository at {repo_location} was not found.")
-
-            self.verify_cache_folder_is_unchanged(repo_location, repo_info["commit_hash"])
-
-    def verify_cache_folder_is_unchanged(self, repo_location, commit_hash):
-        """
-        Verify that the repo located at repo_location has no uncommited changes and that the current commit_hash
-        is equal to the given commit_hash
-
-        :param repo_location:
-        :param commit_hash:
-        :return:
-        """
-        repo = BaseRepo(repo_location)
-        commit_changed = repo.current_commit_hash != commit_hash
-        uncommited_changes = repo.exist_uncomitted_changes
-        if commit_changed or uncommited_changes:
-            raise RuntimeError(f"The contents of {repo_location} have been modified. Don't do that.")
-        repo._git.clear_cache()
-
     def checkout(self, *args, **kwargs):
         self._most_recent_branch = self.active_branch
         self._git.checkout(*args, **kwargs)
+
+    def remote_set_url(self, name: str, url: str):
+        """
+        Set the url of a named remote.
+
+        :param name:
+        :param url:
+        """
+        self._git_repo.remotes[name].set_url(url)
+
+    def commit(self, message: str | None = None, add_all=True, verbosity=1):
+        """
+        Commit current state of the repository.
+
+        :param message:
+            Commit message
+        :param add_all:
+            Option to add all changed and new files to git automatically.
+        :param verbosity:
+            Option to choose degree of printed feedback.
+        """
+
+        if not self.exist_uncomitted_changes:
+            if verbosity >= 1:
+                print(f"No changes to commit in repo {self.path}")
+            return
+
+        print("Found changes in these files:")
+        for file in [self.untracked_files + self.changed_files]:
+            print(" -", file)
+
+        if message is None:
+            message = input("Please enter a commit message for these code changes or 'N' to cancel.\n")
+            if message.upper().replace(" ", "") == "N" or message.upper().replace(" ", "") == "":
+                raise KeyboardInterrupt
+
+        print(f"Commiting changes to repo {self.path}")
+        if add_all:
+            self.add(".")
+
+        try:
+            commit_return = self._git.commit("-m", message)
+            if verbosity >= 1:
+                print("\n" + commit_return + "\n")
+        except:
+            pass
+
+    def git_ammend(self, ):
+        """
+        Call git commit with options --amend --no-edit
+        """
+        self._git.commit("--amend", "--no-edit")
+
+    @property
+    def status(self):
+        return self._git.status()
+
+    @property
+    def log(self):
+        return self._git.log()
+
+    def log_oneline(self):
+        return self._git.log("--oneline")
+
+    def print_status(self):
+        """
+        prints git status
+        """
+        print(self._git.status())
+
+    def print_log(self):
+        """
+        Prints the git log
+        """
+        print(self._git.log())
+
+    def stash_all_changes(self):
+        """
+        Adds all untracked files to git and then stashes all changes.
+        Will raise a RuntimeError if no changes are found.
+        """
+        if not self.exist_uncomitted_changes:
+            warnings.warn("No changes in repo to stash.")
+            return
+        self.add(".")
+        self._git.stash()
+
+    def apply_stashed_changes(self):
+        """
+        Apply the last stashed changes.
+        If a "CONFLICT (modify/delete)" error is encountered, this is ignored.
+        All other errors are raised.
+        """
+        try:
+            self._git.stash('pop')  # equivalent to $ git stash pop
+        except git.exc.GitCommandError as e:
+            # Will raise error because the stash cannot be applied without conflicts. This is expected
+            if 'CONFLICT (modify/delete)' in e.stdout:
+                pass
+            else:
+                raise e
+
+    def test_for_uncommitted_changes(self):
+        """
+        Raise a RuntimeError if uncommitted changes are in the repository.
+        :return:
+        """
+        if self.exist_uncomitted_changes:
+            raise RuntimeError(f"Found uncommitted changes in the repository {self.path}.")
 
     def push(self, remote=None, local_branch=None, remote_branch=None, push_all=True):
         """
@@ -542,6 +446,231 @@ class BaseRepo:
     def exist_uncomitted_changes(self):
         return len(self._git.status("--porcelain")) > 0
 
+    def ensure_relative_path(self, input_path):
+        """
+        Turn the input path into a relative path, relative to the repo working directory.
+
+        :param input_path:
+        :return:
+        """
+        if type(input_path) is str:
+            input_path = Path(input_path)
+
+        if input_path.is_absolute():
+            relative_path = input_path.relative_to(self.path)
+        else:
+            relative_path = input_path
+        return relative_path
+
+
+class BaseRepo(GitRepo):
+    def __init__(self, repository_path=None, search_parent_directories=True, *args, **kwargs):
+        """
+        Base class handling most git workflows.
+
+        :param repository_path:
+            Path to the root directory of the repository.
+        :param search_parent_directories:
+            if True, all parent directories will be searched for a valid repo as well.
+
+            Please note that this was the default behaviour in older versions of GitPython,
+            which is considered a bug though.
+        :param args:
+            Args handed to git.Repo()
+        :param kwargs:
+            Kwargs handed to git.Repo()
+        """
+        super().__init__(repository_path, search_parent_directories, *args, **kwargs)
+        self._metadata = self.load_metadata()
+
+    def load_metadata(self):
+        with open(self.data_json_path, "r") as handle:
+            metadata = json.load(handle)
+        if "output_remotes" not in metadata and metadata["is_project_repo"]:
+            # this enables upgrades from v0.0.23 to v0.0.24.
+            output_remotes_path = self.path / "output_remotes.json"
+            with open(output_remotes_path, "r") as handle:
+                output_remotes = json.load(handle)
+            metadata["output_remotes"] = output_remotes
+        return metadata
+
+    def add_remote(self, remote_url, remote_name=None):
+        """
+        Add a remote to the repository.
+
+        :param remote_url:
+        :param remote_name:
+        :return:
+        """
+        if remote_name is None:
+            remote_name = "origin"
+        self._git_repo.create_remote(remote_name, url=remote_url)
+        if self._metadata["is_project_repo"]:
+            # This folder is a project repo. Use a project repo class to easily access the output repo.
+            output_repo = ProjectRepo(self.path).output_repo
+
+            if output_repo.active_branch != output_repo.main_branch:
+                if output_repo.exist_uncomitted_changes:
+                    output_repo.stash_all_changes()
+                output_repo.checkout(output_repo.main_branch)
+            output_repo.add_list_of_remotes_in_readme_file("project_repo", self.remote_urls)
+            output_repo.add("README.md")
+            output_repo.commit("Add remote for project repo", verbosity=0, add_all=False)
+        if self._metadata["is_output_repo"]:
+            # This folder is an output repo
+            project_repo = ProjectRepo(self.path.parent)
+            project_repo.update_output_remotes_json()
+            project_repo.add_list_of_remotes_in_readme_file("output_repo", self.remote_urls)
+            project_repo.add(project_repo.data_json_path)
+            project_repo.add("README.md")
+            project_repo.commit("Add remote for output repo", verbosity=0, add_all=False)
+
+    def add_filetype_to_lfs(self, file_type):
+        """
+        Add the filetype given in file_type to the GIT-LFS tracking
+
+        :param file_type:
+        Wildcard formatted string. Examples: "*.png" or "*.xlsx"
+        :return:
+        """
+        init_lfs(lfs_filetypes=[file_type], path=self.path)
+        self.add_all_files()
+        self.commit(f"Add {file_type} to lfs")
+
+    def import_remote_repo(self, source_repo_location, source_repo_branch, target_repo_location=None):
+        """
+        Import a remote repo and update the cadet-rdm-cache
+
+        :param source_repo_location:
+        Path or URL to the source repo.
+        Example https://jugit.fz-juelich.de/IBG-1/ModSim/cadet/agile_cadet_rdm_presentation_output.git
+        or git@jugit.fz-juelich.de:IBG-1/ModSim/cadet/agile_cadet_rdm_presentation_output.git
+
+        :param source_repo_branch:
+        Branch of the source repo to check out.
+
+        :param target_repo_location:
+        Place to store the repo. If None, the external_cache folder is used.
+
+        :return:
+        Path to the cloned repository
+        """
+        if "://" in str(source_repo_location):
+            source_repo_name = source_repo_location.split("/")[-1]
+        else:
+            source_repo_name = Path(source_repo_location).name
+        if target_repo_location is None:
+            target_repo_location = self.path / "external_cache" / source_repo_name
+        else:
+            target_repo_location = self.path / target_repo_location
+
+        self.add_path_to_gitignore(target_repo_location)
+
+        print(f"Cloning from {source_repo_location} into {target_repo_location}")
+        multi_options = ["--filter=blob:none", "--branch", source_repo_branch, "--single-branch"]
+        repo = GitRepo.clone_from(url=source_repo_location, to_path=target_repo_location,
+                               multi_options=multi_options)
+        repo._git.clear_cache()
+        repo._git_repo.close()
+
+        self.update_cadet_rdm_cache_json(source_repo_branch=source_repo_branch,
+                                         target_repo_location=target_repo_location,
+                                         source_repo_location=source_repo_location)
+        return target_repo_location
+
+    def add_path_to_gitignore(self, path_to_be_ignored):
+        """
+        Add the path to the .gitignore file
+
+        :param path_to_be_ignored:
+        :return:
+        """
+        path_to_be_ignored = self.ensure_relative_path(path_to_be_ignored)
+        with open(self.path / ".gitignore", "r") as file_handle:
+            gitignore = file_handle.readlines()
+            gitignore[-1] += "\n"  # Sometimes there is no trailing newline
+        if str(path_to_be_ignored) + "\n" not in gitignore:
+            gitignore.append(str(path_to_be_ignored) + "\n")
+        with open(self.path / ".gitignore", "w") as file_handle:
+            file_handle.writelines(gitignore)
+
+    def update_cadet_rdm_cache_json(self, source_repo_location, source_repo_branch, target_repo_location):
+        """
+        Update the information in the .cadet_rdm_cache.json file
+
+        :param source_repo_location:
+        Path or URL to the source repo.
+        :param source_repo_branch:
+        Name of the branch to check out.
+        :param target_repo_location:
+        Path where to put the repo or data
+        """
+        if not self.cache_json_path.exists():
+            with open(self.cache_json_path, "w") as file_handle:
+                file_handle.writelines("{}")
+
+        with open(self.cache_json_path, "r") as file_handle:
+            rdm_cache = json.load(file_handle)
+
+        repo = GitRepo(target_repo_location)
+        commit_hash = repo.current_commit_hash
+        if "__example/path/to/repo__" in rdm_cache.keys():
+            rdm_cache.pop("__example/path/to/repo__")
+
+        target_repo_location = str(self.ensure_relative_path(target_repo_location))
+
+        if isinstance(source_repo_location, Path):
+            source_repo_location = source_repo_location.as_posix()
+
+        rdm_cache[target_repo_location] = {
+            "source_repo_location": source_repo_location,
+            "branch_name": source_repo_branch,
+            "commit_hash": commit_hash,
+        }
+
+        with open(self.cache_json_path, "w") as file_handle:
+            json.dump(rdm_cache, file_handle, indent=2)
+
+    def verify_unchanged_cache(self):
+        """
+        Verify that all repos referenced in .cadet-rdm-data.json are
+        in an unmodified state. Raises a RuntimeError if the commit hash has changed or if
+        uncommited changes are found.
+
+        :return:
+        """
+
+        with open(self.cache_json_path, "r") as file_handle:
+            rdm_cache = json.load(file_handle)
+
+        if "__example/path/to/repo__" in rdm_cache.keys():
+            rdm_cache.pop("__example/path/to/repo__")
+
+        for repo_location, repo_info in rdm_cache.items():
+            try:
+                repo = GitRepo(repo_location)
+                repo._git.clear_cache()
+            except git.exc.NoSuchPathError:
+                raise git.exc.NoSuchPathError(f"The imported repository at {repo_location} was not found.")
+
+            self.verify_cache_folder_is_unchanged(repo_location, repo_info["commit_hash"])
+
+    def verify_cache_folder_is_unchanged(self, repo_location, commit_hash):
+        """
+        Verify that the repo located at repo_location has no uncommited changes and that the current commit_hash
+        is equal to the given commit_hash
+
+        :param repo_location:
+        :param commit_hash:
+        :return:
+        """
+        repo = GitRepo(repo_location)
+        commit_changed = repo.current_commit_hash != commit_hash
+        uncommited_changes = repo.exist_uncomitted_changes
+        if commit_changed or uncommited_changes:
+            raise RuntimeError(f"The contents of {repo_location} have been modified. Don't do that.")
+        repo._git.clear_cache()
+
     def dump_package_list(self, target_folder):
         """
         Use "conda env export" and "pip freeze" to create environment.yml and pip_requirements.txt files.
@@ -562,106 +691,6 @@ class BaseRepo:
         os.system(f"pip freeze > {dump_path}/pip_requirements.txt")
         print("Dumping pip independent requirements.txt.")
         os.system(f"pip list --not-required --format freeze > {dump_path}/pip_independent_requirements.txt")
-
-    def commit(self, message: str | None = None, add_all=True, verbosity=1):
-        """
-        Commit current state of the repository.
-
-        :param message:
-            Commit message
-        :param add_all:
-            Option to add all changed and new files to git automatically.
-        :param verbosity:
-            Option to choose degree of printed feedback.
-        """
-
-        if not self.exist_uncomitted_changes:
-            if verbosity >= 1:
-                print(f"No changes to commit in repo {self.path}")
-            return
-
-        print("Found changes in these files:")
-        for file in [self.untracked_files + self.changed_files]:
-            print(" -", file)
-
-        if message is None:
-            message = input("Please enter a commit message for these code changes or 'N' to cancel.\n")
-            if message.upper().replace(" ", "") == "N" or message.upper().replace(" ", "") == "":
-                raise KeyboardInterrupt
-
-        print(f"Commiting changes to repo {self.path}")
-        if add_all:
-            self.add(".")
-
-        try:
-            commit_return = self._git.commit("-m", message)
-            if verbosity >= 1:
-                print("\n" + commit_return + "\n")
-        except:
-            pass
-
-    def git_ammend(self, ):
-        """
-        Call git commit with options --amend --no-edit
-        """
-        self._git.commit("--amend", "--no-edit")
-
-    @property
-    def status(self):
-        return self._git.status()
-
-    @property
-    def log(self):
-        return self._git.log()
-
-    def log_oneline(self):
-        return self._git.log("--oneline")
-
-    def print_status(self):
-        """
-        prints git status
-        """
-        print(self._git.status())
-
-    def print_log(self):
-        """
-        Prints the git log
-        """
-        print(self._git.log())
-
-    def stash_all_changes(self):
-        """
-        Adds all untracked files to git and then stashes all changes.
-        Will raise a RuntimeError if no changes are found.
-        """
-        if not self.exist_uncomitted_changes:
-            warnings.warn("No changes in repo to stash.")
-            return
-        self.add(".")
-        self._git.stash()
-
-    def apply_stashed_changes(self):
-        """
-        Apply the last stashed changes.
-        If a "CONFLICT (modify/delete)" error is encountered, this is ignored.
-        All other errors are raised.
-        """
-        try:
-            self._git.stash('pop')  # equivalent to $ git stash pop
-        except git.exc.GitCommandError as e:
-            # Will raise error because the stash cannot be applied without conflicts. This is expected
-            if 'CONFLICT (modify/delete)' in e.stdout:
-                pass
-            else:
-                raise e
-
-    def test_for_uncommitted_changes(self):
-        """
-        Raise a RuntimeError if uncommitted changes are in the repository.
-        :return:
-        """
-        if self.exist_uncomitted_changes:
-            raise RuntimeError(f"Found uncommitted changes in the repository {self.path}.")
 
     def add_list_of_remotes_in_readme_file(self, repo_identifier: str, remotes_url_list: list):
         if len(remotes_url_list) > 0:
@@ -689,16 +718,6 @@ class BaseRepo:
             with open(readme_filepath, "w") as file_handle:
                 file_handle.writelines(filelines)
             self.add(readme_filepath)
-
-    def remote_set_url(self, name: str, url: str):
-        """
-        Set the url of a named remote.
-
-        :param name:
-        :param url:
-        """
-        self._git_repo.remotes[name].set_url(url)
-
 
 
 class ProjectRepo(BaseRepo):

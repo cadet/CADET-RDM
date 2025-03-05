@@ -219,9 +219,9 @@ def test_cache_with_non_rdm_repo(monkeypatch):
         handle.write("Readme-line 1\n")
     with open(".gitignore", "w") as handle:
         handle.write("foo.bar.*")
-    repo = git.Repo(".")
-    repo.git.add(".")
-    repo.git.commit("-m", "Initial commit")
+    git_repo = git.Repo(".")
+    git_repo.git.add(".")
+    git_repo.git.commit("-m", "Initial commit")
 
     os.chdir("..")
     if Path("test_repo_non_rdm_imports").exists():
@@ -229,17 +229,17 @@ def test_cache_with_non_rdm_repo(monkeypatch):
     initialize_repo("test_repo_non_rdm_imports")
     os.chdir("test_repo_non_rdm_imports")
 
-    repo = BaseRepo(".")
+    base_repo = BaseRepo(".")
 
     if Path("external_cache/non_rdm_repo").exists():
         delete_path("external_cache/non_rdm_repo")
     if Path("foo/bar/non_rdm_repo").exists():
         delete_path("foo/bar/non_rdm_repo")
     # import two repos and confirm verify works.
-    repo.import_remote_repo(source_repo_location=".." / path_to_repo, source_repo_branch="master")
-    repo.import_remote_repo(source_repo_location=".." / path_to_repo, source_repo_branch="master",
+    base_repo.import_remote_repo(source_repo_location=".." / path_to_repo, source_repo_branch="master")
+    base_repo.import_remote_repo(source_repo_location=".." / path_to_repo, source_repo_branch="master",
                             target_repo_location="foo/bar/non_rdm_repo")
-    repo.verify_unchanged_cache()
+    base_repo.verify_unchanged_cache()
 
 
 def test_add_lfs_filetype():
