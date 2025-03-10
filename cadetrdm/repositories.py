@@ -1067,6 +1067,7 @@ class ProjectRepo(BaseRepo):
         multi_options = ["--filter=blob:none", "--single-branch"]
         git.Repo.clone_from(self.path, code_tmp_folder, multi_options=multi_options)
 
+        delete_path(code_tmp_folder / ".git")
         shutil.make_archive(target_path / "code", "zip", code_tmp_folder)
 
         delete_path(code_tmp_folder)
