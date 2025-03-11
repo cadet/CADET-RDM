@@ -825,6 +825,8 @@ class ProjectRepo(BaseRepo):
         for output_remote in ssh_remotes:
             try:
                 print(f"Attempting to clone {output_remote} into {output_path}")
+                if multi_options is None:
+                    multi_options = ["--filter=blob:none"]
                 _ = OutputRepo.clone_from(output_remote, output_path, multi_options=multi_options)
                 break
             except Exception:
