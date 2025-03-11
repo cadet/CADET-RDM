@@ -135,8 +135,8 @@ def try_commit_results_with_uncommitted_code_changes(path_to_repo):
 def try_load_previous_output(path_to_repo, branch_name):
     repo = ProjectRepo(path_to_repo)
     with repo.track_results(results_commit_message="Load array and extend"):
-        cached_array_path = repo.input_data(branch_name=branch_name,
-                                            file_path="result.csv")
+        cache_folder_path = repo.input_data(branch_name=branch_name)
+        cached_array_path = cache_folder_path / "result.csv"
         previous_array = np.loadtxt(cached_array_path, delimiter=",")
         extended_array = np.concatenate([previous_array, previous_array])
         extended_array_file_path = path_to_repo / repo.output_path / "extended_result.csv"

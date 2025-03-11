@@ -60,15 +60,9 @@ With this branch name, previously generated data can be loaded in as input data 
 further calculations.
 
 ```python
-cached_array_path = repo.input_data(branch_name=branch_name, source_file_path="raw_data/data.csv")
+cached_folder_path = repo.input_data(branch_name=branch_name)
 ```
 
-Alternatively, using the auto-generated cache of previous results, CADET-RDM can infer
-the correct branch name from the path to the file within the cache
-
-```python
-cached_array_path = repo.input_data(source_file_path="output_cached/<branch_name>/raw_data/data.csv")
-```
 
 ```json
 {

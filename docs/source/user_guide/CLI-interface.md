@@ -29,6 +29,19 @@ For the run-command option, the command must be given in quotes, so:
 rdm run command "python example_file.py" "commit message for the results"
 ```
 
+## Re-using results from previous iterations
+
+Each result stored with CADET-RDM is given a unique branch name, formatted as:
+`<timestamp>_<output_folder>_"from"_<active_project_branch>_<project_repo_hash[:7]>`
+
+With this branch name, previously generated data can be loaded in as input data for
+further calculations. The following command will copy the contents of the `branch_name` branch to the
+cache folder at `project_root/output_cached/branch_name`.
+
+```bash
+rdm data cache branch_name
+```
+
 
 ## Using results from another repository
 

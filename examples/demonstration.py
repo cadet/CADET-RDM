@@ -21,8 +21,6 @@ repo = ProjectRepo(".")
 
 repo.add_filetype_to_lfs("*.tsv")
 
-repo.create_gitlab_remotes("Demonstration Repository", "r.jaepel", "https://jugit.fz-juelich.de/")
-
 # repo.add_remote("git@jugit.fz-juelich.de:r.jaepel/API_test_project.git")
 # repo.output_repo.add_remote("git@jugit.fz-juelich.de:r.jaepel/API_test_project_output.git")
 
@@ -56,8 +54,8 @@ with open("analyse_data.py", "w") as handle:
 repo.commit("Add code to analyse data")
 
 with repo.track_results(results_commit_message="Do linear regression"):
-    data_path = repo.input_data(f"output_cached/{output_branch}/data.tsv")
-    geyser_data = np.loadtxt(data_path, skiprows=1, delimiter="\t")
+    data_path = repo.input_data(output_branch)
+    geyser_data = np.loadtxt(data_path / "data.tsv", skiprows=1, delimiter="\t")
     x, y = geyser_data[:, 0], geyser_data[:, 1]
 
     res = stats.linregress(x, y)
@@ -78,12 +76,12 @@ with open("analyse_data_GP.py", "w") as handle:
 repo.commit("Change model from linear to GPR")
 
 with repo.track_results(results_commit_message="Do Gaussian Process regression"):
-    data_path = repo.input_data(f"output_cached/{output_branch}/data.tsv")
+    data_path = repo.input_data(output_branch)
 
     from sklearn.gaussian_process import GaussianProcessRegressor
     from sklearn.gaussian_process.kernels import RationalQuadratic, ExpSineSquared, RBF
 
-    geyser_data = np.loadtxt(data_path, skiprows=1, delimiter="\t")
+    geyser_data = np.loadtxt(data_path / "data.tsv", skiprows=1, delimiter="\t")
     x, y = geyser_data[:, 0], geyser_data[:, 1]
 
     gp = GaussianProcessRegressor(kernel=RBF(length_scale_bounds=(10, 20)), alpha=1e-6)
@@ -110,9 +108,9 @@ with open("analyse_data_GP.py", "w") as handle:
 repo.commit("Change GPR model parameters")
 
 with repo.track_results(results_commit_message="Adapt GP regression"):
-    data_path = repo.input_data(f"output_cached/{output_branch}/data.tsv")
+    data_path = repo.input_data(output_branch)
 
-    geyser_data = np.loadtxt(data_path, skiprows=1, delimiter="\t")
+    geyser_data = np.loadtxt(data_path / "data.tsv", skiprows=1, delimiter="\t")
     x, y = geyser_data[:, 0], geyser_data[:, 1]
 
     from sklearn.gaussian_process import GaussianProcessRegressor
@@ -137,9 +135,9 @@ with repo.track_results(results_commit_message="Adapt GP regression"):
         handle.write(str(res))
 
 with repo.track_results(results_commit_message="Adapt GP regression again"):
-    data_path = repo.input_data(f"output_cached/{output_branch}/data.tsv")
+    data_path = repo.input_data(output_branch)
 
-    geyser_data = np.loadtxt(data_path, skiprows=1, delimiter="\t")
+    geyser_data = np.loadtxt(data_path / "data.tsv", skiprows=1, delimiter="\t")
     x, y = geyser_data[:, 0], geyser_data[:, 1]
 
     gp = GaussianProcessRegressor(
@@ -160,4 +158,4 @@ with repo.track_results(results_commit_message="Adapt GP regression again"):
     with open(repo.output_path / "model_performance.txt", "w") as handle:
         handle.write(str(res))
 
-repo.push()
+# repo.push()

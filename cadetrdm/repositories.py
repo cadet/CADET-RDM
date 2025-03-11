@@ -1134,56 +1134,18 @@ class ProjectRepo(BaseRepo):
         absolute_file_path = self.output_data(file_path)
         return urlretrieve(url, absolute_file_path)
 
-    def input_data(self, file_path, branch_name=None):
+    def input_data(self, branch_name: str) -> Path:
         """
-        # ToDo: needs testing
-        Load previously generated results to iterate upon.
-        :param file_path:
-            Can be relative path within the cached output repository to the file you wish to load.
-            OR relative path within the actual output repository, if branch_name is given.
+        Load previously generated results to iterate upon. Copies entire branch of output repo
+        to the output_cached / branch_name folder.
         :param branch_name:
-            Name of the branch of the output repository in which the results are stored. If none,
-            the cached_output is used.
+            Name of the branch of the output repository in which the results are stored.
         :return:
-            Absolute path to the newly copied file.
+            Absolute path to the newly copied folder.
         """
-        if branch_name is None and os.path.exists(file_path):
-            return file_path
+        cached_branch_path = self.copy_data_to_cache(branch_name)
 
-        if branch_name is None and not os.path.exists(file_path):
-            branch_name_and_path = file_path.split("_cached/")[-1]
-            if os.sep not in branch_name_and_path:
-                sep = "/"
-            else:
-                sep = os.sep
-            branch_name, file_path = branch_name_and_path.split(sep, maxsplit=1)
-
-        if self.output_repo.exist_uncomitted_changes:
-            self.output_repo.stash_all_changes()
-            has_stashed_changes = True
-        else:
-            has_stashed_changes = False
-
-        previous_branch = self.output_repo.active_branch.name
-        self.output_repo._git.checkout(branch_name)
-
-        source_filepath = self.output_repo.path / file_path
-
-        target_folder = self.path / (self._output_folder + "_cached") / branch_name
-        os.makedirs(target_folder, exist_ok=True)
-
-        target_filepath = target_folder / file_path
-        if target_filepath.exists():
-            os.chmod(target_filepath, S_IWRITE)
-            os.remove(target_filepath)
-        shutil.copyfile(source_filepath, target_filepath)
-        os.chmod(target_filepath, S_IREAD)
-
-        self.output_repo._git.checkout(previous_branch)
-        if has_stashed_changes:
-            self.output_repo.apply_stashed_changes()
-
-        return target_filepath
+        return cached_branch_path
 
     @property
     def output_path(self):
@@ -1261,7 +1223,8 @@ class ProjectRepo(BaseRepo):
         :param branch_name:
         optional branch name, if None, current branch is used.
 
-        :return:
+        :return Path:
+        Path to folder in cache
         """
         previous_branch = None
         has_stashed_changes = False
@@ -1279,7 +1242,7 @@ class ProjectRepo(BaseRepo):
                 previous_branch = self.output_repo.active_branch.name
                 self.output_repo.checkout(branch_name)
 
-            target_folder = self.path / (self._output_folder + "_cached") / branch_name
+            target_folder = self.path / (self._output_folder + "_cached") / str(branch_name)
 
             if not target_folder.exists():
                 shutil.copytree(str(source_filepath), str(target_folder), ignore=lambda dir, names: [".git"])
@@ -1290,6 +1253,8 @@ class ProjectRepo(BaseRepo):
                     if os.path.isdir(absolute_path):
                         continue
                     os.chmod(os.path.abspath(filename), S_IREAD)
+
+            return target_folder
         except:
             traceback.print_exc()
         finally:

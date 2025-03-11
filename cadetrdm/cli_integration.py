@@ -209,6 +209,14 @@ def fill_data_from_cadet_rdm_json(re_load=False):
     repo.fill_data_from_cadet_rdm_json(re_load=re_load)
 
 
+@data.command(name="cache", help="Copy data from the output repo to the cache.")
+@click.argument("branch")
+def copy_to_cache(branch: str):
+    from cadetrdm.repositories import ProjectRepo
+    repo = ProjectRepo(".")
+    repo.copy_data_to_cache(branch)
+
+
 @data.command(name="verify", help="Verify that cache is unchanged.")
 def verify_unchanged_cache():
     from cadetrdm.repositories import BaseRepo
