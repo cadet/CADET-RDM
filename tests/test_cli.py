@@ -113,7 +113,7 @@ def test_08_data_import():
     assert result.exit_code == 0
 
 
-@pytest.mark.docker
+@pytest.mark.container
 def test_run_dockered():
     result = runner.invoke(
         cli,

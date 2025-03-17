@@ -2,24 +2,17 @@ import os
 import subprocess
 import tempfile
 from pathlib import Path
-
-try:
-    import docker
-    from docker.models.images import Image
-except ImportError:
-    print("Warning: no python-docker-interface installation found.")
 import yaml
 
-from cadetrdm.docker import ContainerAdapter
+from cadetrdm.container import ContainerAdapter
 from cadetrdm.batch_running import Study, Case, Options
 from cadetrdm import Environment
 
 
-class DockerAdapter(ContainerAdapter):
+class ApptainerAdapter(ContainerAdapter):
 
     def __init__(self):
-        self.client = docker.from_env()
-        self.image = None
+        pass
 
     def run(self, yml_path):
         with open(yml_path, "r") as stream:
@@ -134,7 +127,7 @@ class DockerAdapter(ContainerAdapter):
         case.options.dump_json_file(tmp_filename)
         return tmp_filename
 
-    def _build_image(self, case) -> Image:
+    def _build_image(self, case):
         cwd = os.getcwd()
         with open(case.study.path / "Dockerfile", "rb") as dockerfile:
             os.chdir(case.study.path.as_posix())
@@ -168,7 +161,7 @@ class DockerAdapter(ContainerAdapter):
             **kwargs
         )
 
-    def _tag_image(self, image: Image, repository, tag=None, **kwargs) -> Image:
+    def _tag_image(self, image, repository, tag=None, **kwargs):
         """
         Tag this image into a repository. Similar to the ``docker tag``
         command.

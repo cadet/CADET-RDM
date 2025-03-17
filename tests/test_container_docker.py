@@ -2,10 +2,10 @@ from pathlib import Path
 import pytest
 
 from cadetrdm import Study, Options, Environment, Case
-from cadetrdm.docker import DockerAdapter
+from cadetrdm.container import DockerAdapter
 
 
-@pytest.mark.docker
+@pytest.mark.container
 def test_run_dockered():
     WORK_DIR = Path.cwd() / "tmp"
     WORK_DIR.mkdir(parents=True, exist_ok=True)
@@ -51,7 +51,7 @@ def test_run_dockered():
     assert not has_run_study
 
 
-@pytest.mark.docker
+@pytest.mark.container
 def test_dockered_from_yml():
     docker_adapter = DockerAdapter()
     has_run_study = docker_adapter.run((Path(__file__).parent.resolve() / "case.yml").as_posix())

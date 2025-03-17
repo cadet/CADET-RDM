@@ -79,7 +79,7 @@ docs = [
 markers = [
     "slow: marks tests as slow (deselect with '-m \"not slow\"')",
     "server_api: marks tests as using the GitLab/GitHub API",
-    "docker: marks tests as using the Docker API"
+    "container: marks tests as using containerization interfaces such as Docker or Apptainer"
 ]
 
 [tool.setuptools.dynamic]

@@ -1,0 +1,9 @@
+name: cadet-rdm
+channels:
+  - conda-forge
+dependencies:
+  - python
+  - cadet
+  - pip:
+      - cadet-process
+      - cadet-rdm
