@@ -1288,6 +1288,9 @@ class ProjectRepo(BaseRepo):
         :param output_dict:
             Dictionary containing optional output tracking parameters
         """
+        if self._on_context_enter_commit_hash is None:
+            # This means the context was not entered during enter_context
+            return
         self.test_for_uncommitted_changes()
         if self._on_context_enter_commit_hash != self.current_commit_hash:
             raise RuntimeError("Code has changed since starting the context. Don't do that.")
