@@ -9,10 +9,10 @@ from cadetrdm.cli_integration import cli
 from cadetrdm.io_utils import delete_path
 
 runner = CliRunner()
-if os.path.exists("test_repo_cli"):
-    delete_path("test_repo_cli")
+# if os.path.exists("test_repo_cli"):
+#     delete_path("test_repo_cli")
 
-os.makedirs("test_repo_cli")
+os.makedirs("test_repo_cli", exist_ok=True)
 os.chdir("test_repo_cli")
 
 
@@ -22,7 +22,7 @@ def modify_code(path_to_repo):
     filepath = Path(path_to_repo) / f"print_random_number.py"
     with open(filepath, "w") as file:
         file.write(
-            f"print({random_number})\n"
+            f"print('{random_number}')\n"
             'with open("output/data.txt", "w") as handle:\n'
             f"    handle.write({random_number})\n"
         )
@@ -82,15 +82,17 @@ def test_04_commit_code():
 #     print(result.output)
 #     assert result.exit_code == 0
 #
-#
-# def test_05b_execute_command():
-#     result = runner.invoke(cli, ["commit", "-m", "add code", "-a"])
-#     print(result.output)
-#     assert result.exit_code == 0
-#     result = runner.invoke(cli, ["run", "command", "python", "print_random_number.py",
-#                                  "create data"])
-#     print(result.output)
-#     assert result.exit_code == 0
+
+def test_05b_execute_command():
+    result = runner.invoke(cli, ["commit", "-m", "add code", "-a"])
+    print(result.output)
+    assert result.exit_code == 0
+
+    filepath = Path(".") / f"print_random_number.py"
+    result = runner.invoke(cli, ["run", "command", f"python {filepath.as_posix()}",
+                                 "create data"])
+    print(result.output)
+    assert result.exit_code == 0
 
 
 def test_06_print_log():

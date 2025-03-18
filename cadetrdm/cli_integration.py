@@ -1,5 +1,6 @@
 import subprocess
 from pathlib import Path
+import shlex
 
 import click
 
@@ -106,8 +107,12 @@ def run_python_file(file_name, results_commit_message):
 def run_command(command, results_commit_message):
     from cadetrdm.repositories import ProjectRepo
     repo = ProjectRepo(".")
-    repo.enter_context()
-    subprocess.run(command)
+    repo.enter_context(force=True)
+    if isinstance(command, tuple):
+        command = " && ".join(command)
+    command = shlex.split(command)
+    results = subprocess.run(command, text=True, shell=False, capture_output=True)
+    print(f"Command completed with stdout: {results.stdout} \nand stderr: {results.stderr}")
     repo.exit_context(results_commit_message, {"command": command})
 
 
