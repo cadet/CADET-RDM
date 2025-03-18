@@ -1178,7 +1178,7 @@ class ProjectRepo(BaseRepo):
         :return:
         """
 
-    def enter_context(self, force=False):
+    def enter_context(self, force=False, debug=False):
         """
         Enter the tracking context. This includes:
          - Ensure no uncommitted changes in the project repository
@@ -1186,9 +1186,17 @@ class ProjectRepo(BaseRepo):
          - Clean up empty branches in the output repository
          - Create a new empty output branch in the output repository
 
+
+        :param force:
+            If False, wait for user prompts before deleting data during clean up. If True, don't wait, just delete.
+        :param debug:
+            If True, just return None.
         :return:
             The name of the newly created output branch.
         """
+        if debug:
+            return
+
         if self.active_branch.name == "detached_head":
             print("Repo is in detached HEAD state. Not tracking results")
             return
