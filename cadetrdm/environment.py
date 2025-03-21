@@ -59,6 +59,10 @@ class Environment:
 
         instance = cls()
 
+        # If for some reason the environment.yml is empty, return an empty instance
+        if packages is None:
+            return instance
+
         instance.name = packages["name"]
         instance.channels = packages["channels"]
 

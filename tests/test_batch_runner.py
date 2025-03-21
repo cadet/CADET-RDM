@@ -59,6 +59,32 @@ def test_run_with_non_matching_env():
 
 
 @pytest.mark.server_api
+def test_re_load_results():
+    from pathlib import Path
+
+    from cadetrdm import Options
+    from cadetrdm import Study, Case
+
+    WORK_DIR = Path("batch_repos") / "studies"
+
+    batch_elution = Study(
+        WORK_DIR / 'batch_elution',
+        "git@jugit.fz-juelich.de:j.schmoelder/batch_elution.git",
+        branch="master",
+    )
+
+    options = Options({"_cadet_options": {"install_path": None, "use_dll": True},
+                       "_temp_directory_base": {"class": "Path", "value": "/dev/shm/schmoelder/CADET-Process/tmp"},
+                       "_cache_directory_base": {"class": "Path", "value": "/dev/shm/schmoelder/CADET-Process/cache"},
+                       "objective": "single-objective",
+                       "optimizer_options": {"optimizer": "U_NSGA3", "n_cores": -4, "n_max_gen": 64},
+                       "commit_message": "single-objective_2025-01-20", "debug": False, "push": True})
+
+    single_objective_case = Case(batch_elution, options, name=options.objective)
+    results_path = single_objective_case.results_path
+    assert results_path.exists()
+
+@pytest.mark.server_api
 def test_results_loading():
     WORK_DIR = Path.cwd() / "tmp"
     WORK_DIR.mkdir(parents=True, exist_ok=True)
