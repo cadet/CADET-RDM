@@ -19,7 +19,7 @@ class Case:
         self.options = options
         self.environment = environment
         self._options_hash = options.get_hash()
-        self._results_branch = None
+        self.results_branch = None
         self._current_environment = None
 
     def __str__(self):
@@ -81,8 +81,8 @@ class Case:
 
     @property
     def has_results_for_this_run(self):
-        self._results_branch = self._get_results_branch()
-        if self._results_branch is None:
+        self.results_branch = self._get_results_branch()
+        if self.results_branch is None:
             return False
         else:
             return True
@@ -215,24 +215,24 @@ class Case:
 
     @property
     def _results_path(self):
-        if self._results_branch is None:
+        if self.results_branch is None:
             return None
         else:
-            return self.study.path / (self.study._output_folder + "_cached") / self._results_branch
+            return self.study.path / (self.study._output_folder + "_cached") / self.results_branch
 
     def load(self, ):
-        if self._results_branch is None or self.options.get_hash() != self._options_hash:
-            self._results_branch = self._get_results_branch()
+        if self.results_branch is None or self.options.get_hash() != self._options_hash:
+            self.results_branch = self._get_results_branch()
             self._options_hash = self.options.get_hash()
 
-        if self._results_branch is None:
+        if self.results_branch is None:
             print(f"No results available for Case({self.study.path, self.options.get_hash()[:7]})")
             return None
 
         if self._results_path.exists():
             return
 
-        self.study.copy_data_to_cache(self._results_branch)
+        self.study.copy_data_to_cache(self.results_branch)
 
     @property
     def results_path(self):
