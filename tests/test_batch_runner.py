@@ -100,7 +100,7 @@ def test_results_loading():
 
     case = Case(study=rdm_example, options=OptionsFixture())
     assert case.has_results_for_this_run
-    assert case._results_branch == '2024-05-08_14-44-39_main_79d2be2'
+    assert case.results_branch == '2024-05-08_14-44-39_main_79d2be2'
 
     simple_environment = Environment(
         conda_packages={"cadet": "4.4.0",

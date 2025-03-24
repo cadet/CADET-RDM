@@ -193,7 +193,19 @@ def data():
     pass
 
 
-@data.command(name="import", help="Import a remote repository into a given location.")
+@data.command(name="import", help="Import static data into the output repository without commiting the project status.")
+@click.argument('source_path')
+@click.argument('commit_message')
+def import_remote_repo(source_path, commit_message):
+    from cadetrdm.repositories import ProjectRepo
+    repo = ProjectRepo(".")
+    repo.import_static_data(
+        source_path=source_path,
+        commit_message=commit_message,
+    )
+
+
+@data.command(name="clone", help="Import a remote repository into a given location.")
 @click.argument('source_repo_location')
 @click.argument('source_repo_branch')
 @click.argument('target_repo_location', required=False)

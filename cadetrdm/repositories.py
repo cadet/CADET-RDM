@@ -254,7 +254,7 @@ class GitRepo:
             Option to choose degree of printed feedback.
         """
 
-        if not self.exist_uncomitted_changes:
+        if not self.has_uncomitted_changes:
             if verbosity >= 1:
                 print(f"No changes to commit in repo {self.path}")
             return
@@ -313,7 +313,7 @@ class GitRepo:
         Adds all untracked files to git and then stashes all changes.
         Will raise a RuntimeError if no changes are found.
         """
-        if not self.exist_uncomitted_changes:
+        if not self.has_uncomitted_changes:
             warnings.warn("No changes in repo to stash.")
             return
         self.add(".")
@@ -339,7 +339,7 @@ class GitRepo:
         Raise a RuntimeError if uncommitted changes are in the repository.
         :return:
         """
-        if self.exist_uncomitted_changes:
+        if self.has_uncomitted_changes:
             raise RuntimeError(f"Found uncommitted changes in the repository {self.path}.")
 
     def push(self, remote=None, local_branch=None, remote_branch=None, push_all=True):
@@ -444,6 +444,13 @@ class GitRepo:
 
     @property
     def exist_uncomitted_changes(self):
+        warnings.warn(
+            "ProjectRepo.exist_uncomitted_changes will be removed in a future version. Please use .has_uncomitted_changes"
+        )
+        return self.has_uncomitted_changes
+
+    @property
+    def has_uncomitted_changes(self):
         return len(self._git.status("--porcelain")) > 0
 
     def ensure_relative_path(self, input_path):
@@ -510,7 +517,7 @@ class BaseRepo(GitRepo):
             output_repo = ProjectRepo(self.path).output_repo
 
             if output_repo.active_branch != output_repo.main_branch:
-                if output_repo.exist_uncomitted_changes:
+                if output_repo.has_uncomitted_changes:
                     output_repo.stash_all_changes()
                 output_repo.checkout(output_repo.main_branch)
             output_repo.add_list_of_remotes_in_readme_file("project_repo", self.remote_urls)
@@ -666,7 +673,7 @@ class BaseRepo(GitRepo):
         """
         repo = GitRepo(repo_location)
         commit_changed = repo.current_commit_hash != commit_hash
-        uncommited_changes = repo.exist_uncomitted_changes
+        uncommited_changes = repo.has_uncomitted_changes
         if commit_changed or uncommited_changes:
             raise RuntimeError(f"The contents of {repo_location} have been modified. Don't do that.")
         repo._git.clear_cache()
@@ -1172,11 +1179,21 @@ class ProjectRepo(BaseRepo):
         if (self.path / (self._output_folder + "_cached")).exists():
             delete_path(self.path / (self._output_folder + "_cached"))
 
-    def test_for_correct_repo_setup(self):
+    def import_static_data(self, source_path, commit_message):
         """
-        ToDo: implement
+        Copy and commit static data from somewhere into the output repository.
+
+        :param source_path:
+        :param commit_message:
         :return:
         """
+        new_branch_name = self._get_new_output_branch(force=True)
+        if Path(source_path).is_dir():
+            shutil.copytree(source_path, self.output_path / Path(source_path).name)
+        else:
+            shutil.copy(source_path, self.output_path)
+        self._commit_output_data(commit_message, output_dict={})
+        return new_branch_name
 
     def enter_context(self, force=False, debug=False):
         """
@@ -1201,20 +1218,34 @@ class ProjectRepo(BaseRepo):
             print("Repo is in detached HEAD state. Not tracking results")
             return
 
-        self.test_for_correct_repo_setup()
         self.test_for_uncommitted_changes()
         self._on_context_enter_commit_hash = self.current_commit_hash
         self._is_in_context_manager = True
+
+        new_branch_name = self._get_new_output_branch(force)
+        return new_branch_name
+
+    def _get_new_output_branch(self, force=False):
+        """
+        Prepares a new branch to receive data. This includes:
+         - checking out the output main branch,
+         - creating a new branch from there
+        This thereby produces a clear, empty directory for data, while still maintaining
+        .gitignore and .gitattributes
+
+        :param force:
+            If False, wait for user prompts before deleting data during clean up. If True, don't wait, just delete.
+        """
+
         output_repo = self.output_repo
 
         # ensure that LFS is properly initialized
         os.system("git lfs install")
 
-        if output_repo.exist_uncomitted_changes:
+        # Ensure clean output branch state
+        if output_repo.has_uncomitted_changes:
             output_repo._reset_hard_to_head(force_entry=force)
-
         output_repo.delete_active_branch_if_branch_is_empty()
-
         new_branch_name = self.get_new_output_branch_name()
 
         # update urls in main branch of output_repo
@@ -1223,7 +1254,23 @@ class ProjectRepo(BaseRepo):
         output_repo.add_list_of_remotes_in_readme_file("project_repo", project_repo_remotes)
         output_repo.commit("Update urls", verbosity=0)
 
-        output_repo.prepare_new_branch(new_branch_name)
+        # Create the new branch
+        output_repo._git.checkout('-b', new_branch_name)  # equivalent to $ git checkout -b %branch_name
+        code_backup_path = output_repo.path / "run_history"
+        logs_path = output_repo.path / "log.tsv"
+        if code_backup_path.exists():
+            try:
+                # Remove previous code backup
+
+                delete_path(code_backup_path)
+            except Exception as e:
+                print(e)
+        if logs_path.exists():
+            try:
+                # Remove previous logs
+                delete_path(logs_path)
+            except Exception as e:
+                print(e)
         return new_branch_name
 
     def copy_data_to_cache(self, branch_name=None):
@@ -1295,6 +1342,19 @@ class ProjectRepo(BaseRepo):
         if self._on_context_enter_commit_hash != self.current_commit_hash:
             raise RuntimeError("Code has changed since starting the context. Don't do that.")
 
+        self._commit_output_data(message, output_dict)
+
+    def _commit_output_data(self, message, output_dict):
+        """
+        Commit the data in the output repository.
+         - Stage all changes in the output repository
+         - Commit all changes in the output repository with the given commit message.
+         - Update the log files in the main branch of the output repository.
+        :param message:
+            Commit message for the output repository commit.
+        :param output_dict:
+            Dictionary containing optional output tracking parameters
+        """
         print("Completed computations, commiting results")
         self.output_repo.add(".")
         try:
@@ -1361,7 +1421,7 @@ class OutputRepo(BaseRepo):
     def output_log(self):
         if not self.active_branch == self.main_branch:
             self.checkout(self.main_branch)
-        if self.exist_uncomitted_changes:
+        if self.has_uncomitted_changes:
             self._reset_hard_to_head(force_entry=True)
         return OutputLog(filepath=self.output_log_file_path)
 
@@ -1372,34 +1432,6 @@ class OutputRepo(BaseRepo):
         print(output_log)
 
         self.checkout(self._most_recent_branch)
-
-    def prepare_new_branch(self, branch_name):
-        """
-        Prepares a new branch to receive data. This includes:
-         - checking out the main branch,
-         - creating a new branch from there
-        This thereby produces a clear, empty directory for data, while still maintaining
-        .gitignore and .gitattributes
-        :param branch_name:
-            Name of the new branch.
-        """
-        self._git.checkout(self.main_branch)
-        self._git.checkout('-b', branch_name)  # equivalent to $ git checkout -b %branch_name
-        code_backup_path = self.path / "run_history"
-        logs_path = self.path / "log.tsv"
-        if code_backup_path.exists():
-            try:
-                # Remove previous code backup
-
-                delete_path(code_backup_path)
-            except Exception as e:
-                print(e)
-        if logs_path.exists():
-            try:
-                # Remove previous logs
-                delete_path(logs_path)
-            except Exception as e:
-                print(e)
 
 
 class JupyterInterfaceRepo(ProjectRepo):

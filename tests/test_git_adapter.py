@@ -279,6 +279,20 @@ def test_rdm_check():
     assert f'[project_repo]({ssh_url_to_http_url(new_project_url)})\n' in readme_lines
 
 
+def test_copy_external_data():
+    path_to_repo = Path("test_repo_3")
+    if path_to_repo.exists():
+        delete_path(path_to_repo)
+    os.makedirs(path_to_repo)
+    initialize_repo(path_to_repo)
+    repo = ProjectRepo(path_to_repo)
+    modify_code(path_to_repo)
+    branch_name = repo.import_static_data("static_data", "import non_rdm_repo")
+    assert repo.has_uncomitted_changes
+    cache_path = repo.copy_data_to_cache(branch_name)
+    assert (cache_path / "static_data" / "static_data_contents").exists()
+
+
 def test_error_stack():
     path_to_repo = Path("test_repo_3")
     if path_to_repo.exists():
