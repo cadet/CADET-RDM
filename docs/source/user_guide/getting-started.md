@@ -54,7 +54,7 @@ keyring.set_password("e.g. https://jugit.fz-juelich.de/", username, token)
 or in a command line
 
 ````commandline
-keyring set system username
+keyring set "e.g. https://jugit.fz-juelich.de/" username
 ````
 
 Then you can run:
