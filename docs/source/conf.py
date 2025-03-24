@@ -119,8 +119,8 @@ html_logo = "_static/logo.png"
 html_theme_options = {
     "show_toc_level": 2,
     "use_download_button": True,
-    "repository_url": "https://jugit.fz-juelich.de/IBG-1/ModSim/cadet/CADET-RDM",
-    "repository_provider": "gitlab",
+    "repository_url": "https://github.com/cadet/cadet-rdm",
+    "repository_provider": "github",
     "use_repository_button": True,
     "use_issues_button": False,
 }
