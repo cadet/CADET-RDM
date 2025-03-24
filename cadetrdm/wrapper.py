@@ -7,7 +7,11 @@ from cadetrdm.batch_running import Options
 
 
 def tracks_results(func):
-    """Tracks results using CADET-RDM."""
+    """
+    Tracks results using CADET-RDM.
+    Adds the project_repo to the function arguments and adds the output_branch_name to the return information.
+
+    """
 
     @wraps(func)
     def wrapper(options, repo_path='.'):
@@ -33,13 +37,13 @@ def tracks_results(func):
                 options.commit_message,
                 debug=options.debug,
                 force=True
-        ):
+        ) as new_branch_name:
             options.dump_json_file(project_repo.output_path / "options.json")
             results = func(project_repo, options)
 
         if not options.debug and "push" in options and options["push"]:
             project_repo.push()
 
-        return results
+        return new_branch_name, results
 
     return wrapper

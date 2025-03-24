@@ -85,11 +85,12 @@ def try_commit_code_without_code_changes(path_to_repo):
 def try_commit_results_data(path_to_repo):
     repo = ProjectRepo(path_to_repo)
     current_commit_number = count_commit_number(repo.output_repo)
-    with repo.track_results(results_commit_message="Add array"):
+    with repo.track_results(results_commit_message="Add array") as output_branch:
         example_generate_results_array(path_to_repo, output_folder=repo.output_path)
     updated_commit_number = count_commit_number(repo.output_repo)
     assert current_commit_number <= updated_commit_number
-    return str(repo.output_repo.active_branch)
+    assert str(repo.output_repo.active_branch) == output_branch
+    return output_branch
 
 
 def try_commit_results_with_options(path_to_repo):
