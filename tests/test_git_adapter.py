@@ -288,7 +288,10 @@ def test_copy_external_data():
     initialize_repo(path_to_repo)
     repo = ProjectRepo(path_to_repo)
     modify_code(path_to_repo)
-    branch_name = repo.import_static_data("static_data", "import non_rdm_repo")
+    branch_name = repo.import_static_data(
+        path_to_repo.parent / "static_data",
+        "import non_rdm_repo"
+    )
     assert repo.has_uncomitted_changes
     cache_path = repo.copy_data_to_cache(branch_name)
     assert (cache_path / "static_data" / "static_data_contents").exists()
