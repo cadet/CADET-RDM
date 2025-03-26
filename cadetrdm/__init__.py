@@ -7,3 +7,4 @@ from cadetrdm.repositories import ProjectRepo, JupyterInterfaceRepo
 from cadetrdm.environment import Environment
 from cadetrdm.batch_running import Options, Study, Case
 from cadetrdm.wrapper import tracks_results
+from cadetrdm.tools.process_example import process_example

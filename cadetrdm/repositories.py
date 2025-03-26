@@ -1179,7 +1179,7 @@ class ProjectRepo(BaseRepo):
         if (self.path / (self._output_folder + "_cached")).exists():
             delete_path(self.path / (self._output_folder + "_cached"))
 
-    def import_static_data(self, source_path, commit_message):
+    def import_static_data(self, source_path: Path | str, commit_message):
         """
         Copy and commit static data from somewhere into the output repository.
 

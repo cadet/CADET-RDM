@@ -9,11 +9,10 @@ from cadetrdm.cli_integration import cli
 from cadetrdm.io_utils import delete_path
 
 runner = CliRunner()
-# if os.path.exists("test_repo_cli"):
-#     delete_path("test_repo_cli")
+if os.path.exists("test_repo_cli"):
+    delete_path("test_repo_cli")
 
 os.makedirs("test_repo_cli", exist_ok=True)
-os.chdir("test_repo_cli")
 
 
 def modify_code(path_to_repo):
@@ -29,48 +28,62 @@ def modify_code(path_to_repo):
 
 
 def test_01_initialize_repo():
-    result = runner.invoke(cli, ["init", ])
-    print(result.output)
-    assert result.exit_code == 0
+    try:
+        os.chdir("test_repo_cli")
+        result = runner.invoke(cli, ["init", ])
+        print(result.output)
+        assert result.exit_code == 0
+    finally:
+        os.chdir("..")
 
 
 def test_02_add_remote():
-    result = runner.invoke(cli, ["remote", "add", "https://jugit.fz-juelich.de/r.jaepel/API_test_project"])
-    print(result.output)
-    assert result.exit_code == 0
-    os.chdir("output")
-    result = runner.invoke(cli, ["remote", "add", "https://jugit.fz-juelich.de/r.jaepel/API_test_project_output"])
-    print(result.output)
-    os.chdir("..")
-    assert result.exit_code == 0
+    try:
+        os.chdir("test_repo_cli")
+        result = runner.invoke(cli, ["remote", "add", "https://jugit.fz-juelich.de/r.jaepel/API_test_project"])
+        print(result.output)
+        assert result.exit_code == 0
+        os.chdir("output")
+        result = runner.invoke(cli, ["remote", "add", "https://jugit.fz-juelich.de/r.jaepel/API_test_project_output"])
+        print(result.output)
+        os.chdir("..")
+        assert result.exit_code == 0
+    finally:
+        os.chdir("..")
 
 
 @pytest.mark.server_api
 def test_02b_clone():
-    os.chdir("..")
     if os.path.exists("test_repo_cli_cloned"):
         delete_path("test_repo_cli_cloned")
     result = runner.invoke(cli, ["clone", "test_repo_cli", "test_repo_cli_cloned"])
     print(result.output)
-    os.chdir("test_repo_cli")
     assert result.exit_code == 0
 
 
 def test_03_commit_results_with_uncommited_code_changes():
-    modify_code(".")
+    try:
+        os.chdir("test_repo_cli")
+        modify_code(".")
 
-    result = runner.invoke(cli, ["run", "python", "print_random_number.py",
-                                 "create data"])
-    print(result.output)
-    assert result.exit_code != 0
+        result = runner.invoke(cli, ["run", "python", "print_random_number.py",
+                                     "create data"])
+        print(result.output)
+        assert result.exit_code != 0
+    finally:
+        os.chdir("..")
 
 
 def test_04_commit_code():
-    modify_code(".")
+    try:
+        os.chdir("test_repo_cli")
+        modify_code(".")
 
-    result = runner.invoke(cli, ["commit", "-m", "add code", "-a"])
-    print(result.output)
-    assert result.exit_code == 0
+        result = runner.invoke(cli, ["commit", "-m", "add code", "-a"])
+        print(result.output)
+        assert result.exit_code == 0
+    finally:
+        os.chdir("..")
 
 
 # def test_05_commit_results():
@@ -84,45 +97,66 @@ def test_04_commit_code():
 #
 
 def test_05b_execute_command():
-    result = runner.invoke(cli, ["commit", "-m", "add code", "-a"])
-    print(result.output)
-    assert result.exit_code == 0
+    try:
+        os.chdir("test_repo_cli")
+        result = runner.invoke(cli, ["commit", "-m", "add code", "-a"])
+        print(result.output)
+        assert result.exit_code == 0
 
-    filepath = Path(".") / f"print_random_number.py"
-    result = runner.invoke(cli, ["run", "command", f"python {filepath.as_posix()}",
-                                 "create data"])
-    print(result.output)
-    assert result.exit_code == 0
+        filepath = Path(".") / f"print_random_number.py"
+        result = runner.invoke(cli, ["run", "command", f"python {filepath.as_posix()}",
+                                     "create data"])
+        print(result.output)
+        assert result.exit_code == 0
+    finally:
+        os.chdir("..")
 
 
 def test_06_print_log():
-    result = runner.invoke(cli, ["log"])
-    print(result.output)
-    assert result.exit_code == 0
+    try:
+        os.chdir("test_repo_cli")
+        result = runner.invoke(cli, ["log"])
+        print(result.output)
+        assert result.exit_code == 0
+    finally:
+        os.chdir("..")
 
 
 def test_07_lfs_add():
-    result = runner.invoke(cli, ["lfs", "add", "pptx"])
-    print(result.output)
-    assert result.exit_code == 0
+    try:
+        os.chdir("test_repo_cli")
+        result = runner.invoke(cli, ["lfs", "add", "pptx"])
+        print(result.output)
+        assert result.exit_code == 0
+    finally:
+        os.chdir("..")
 
 
 def test_08_data_import():
-    result = runner.invoke(cli,
-                           ["data", "import", "https://github.com/ronald-jaepel/workshop_demo_output",
-                            "2023-12-19_10-43-15_output_from_master_86541bc", "imported/repo/data"])
-    print(result.output)
-    assert result.exit_code == 0
+    try:
+        os.chdir("test_repo_cli")
+        result = runner.invoke(cli,
+                               ["data", "clone", "https://github.com/cadet/RDM-Example-Characterize-Chromatographic-System",
+                                "2023-12-19_10-43-15_output_from_master_86541bc", "imported/repo/data"])
+        print(result.output)
+        assert result.exit_code == 0
+    finally:
+        os.chdir("..")
 
 
 @pytest.mark.docker
 def test_run_dockered():
-    result = runner.invoke(
-        cli,
-        ["run", "dockered", (Path(__file__).parent.resolve() / "case.yml").as_posix()]
-    )
-    print(result.output)
-    assert result.exit_code == 0
+    try:
+        os.chdir("test_repo_cli")
+        result = runner.invoke(
+            cli,
+            ["run", "dockered", (Path(__file__).parent.resolve() / "case.yml").as_posix()]
+        )
+        print(result.output)
+        assert result.exit_code == 0
+    finally:
+        os.chdir("..")
+
 
 # def test_09_data_verify():
 #     with open()

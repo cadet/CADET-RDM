@@ -166,7 +166,7 @@ def try_initialize_from_remote():
 
 
 def test_init_over_existing_repo(monkeypatch):
-    path_to_repo = Path("test_repo_2")
+    path_to_repo = Path("test_repo_init_over_repo")
     if path_to_repo.exists():
         delete_path(path_to_repo)
     os.makedirs(path_to_repo)
@@ -189,7 +189,7 @@ def test_init_over_existing_repo(monkeypatch):
 
 
 def test_init_over_existing_code(monkeypatch):
-    path_to_repo = Path("test_repo_2")
+    path_to_repo = Path("test_repo_init_over_code")
     if path_to_repo.exists():
         delete_path(path_to_repo)
     os.makedirs(path_to_repo)
@@ -241,10 +241,11 @@ def test_cache_with_non_rdm_repo(monkeypatch):
     base_repo.import_remote_repo(source_repo_location=".." / path_to_repo, source_repo_branch="master",
                             target_repo_location="foo/bar/non_rdm_repo")
     base_repo.verify_unchanged_cache()
+    os.chdir("..")
 
 
 def test_add_lfs_filetype():
-    path_to_repo = Path("test_repo_3")
+    path_to_repo = Path("test_repo_add_lfs")
     if path_to_repo.exists():
         delete_path(path_to_repo)
     os.makedirs(path_to_repo)
@@ -258,7 +259,7 @@ def test_add_lfs_filetype():
 
 
 def test_rdm_check():
-    path_to_repo = Path("test_repo_3")
+    path_to_repo = Path("test_repo_rdm_check")
     new_project_url = "git@github.com:foobar/rdm_example_alternate.git"
     new_output_url = "git@github.com:foobar/rdm_example_output_alternate.git"
     if path_to_repo.exists():
@@ -281,7 +282,7 @@ def test_rdm_check():
 
 
 def test_copy_external_data():
-    path_to_repo = Path("test_repo_3")
+    path_to_repo = Path("test_repo_external_data")
     if path_to_repo.exists():
         delete_path(path_to_repo)
     os.makedirs(path_to_repo)
@@ -289,7 +290,7 @@ def test_copy_external_data():
     repo = ProjectRepo(path_to_repo)
     modify_code(path_to_repo)
     branch_name = repo.import_static_data(
-        path_to_repo.parent / "static_data",
+        repo.path.parent / "static_data",
         "import non_rdm_repo"
     )
     assert repo.has_uncomitted_changes
@@ -298,7 +299,7 @@ def test_copy_external_data():
 
 
 def test_error_stack():
-    path_to_repo = Path("test_repo_3")
+    path_to_repo = Path("test_repo_errors")
     if path_to_repo.exists():
         delete_path(path_to_repo)
     os.makedirs(path_to_repo)
@@ -309,7 +310,7 @@ def test_error_stack():
             raise ValueError("This is an error message with \n a line break")
     except ValueError:
         pass
-    with open("test_repo_3/output/error.stack", "r") as handle:
+    with open("test_repo_errors/output/error.stack", "r") as handle:
         lines = handle.readlines()
 
     error_line = '    raise ValueError("This is an error message with \\n a line break")\n'
