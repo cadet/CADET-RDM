@@ -251,11 +251,11 @@ def test_add_lfs_filetype():
     os.makedirs(path_to_repo)
     initialize_repo(path_to_repo)
     file_type = "*.bak"
-    init_lfs(lfs_filetypes=[file_type], path=path_to_repo)
     repo = ProjectRepo(path_to_repo)
-    repo.add_all_files()
-    repo.commit(f"Add {file_type} to lfs")
-    delete_path(path_to_repo)
+    repo.output_repo.add_filetype_to_lfs(file_type)
+    with open(repo.output_path / ".gitattributes", "r") as handle:
+        gittatributes = handle.readlines()
+    assert any(file_type in line for line in gittatributes)
 
 
 def test_rdm_check():
@@ -282,6 +282,15 @@ def test_rdm_check():
 
 
 def test_copy_external_data():
+    path_to_source = Path("test_repo_external_data_source")
+    if path_to_source.exists():
+        delete_path(path_to_source)
+    os.makedirs(path_to_source)
+
+    filepath = path_to_source / f"static_data_contents"
+    with open(filepath, "w") as file:
+        file.write("This is static data")
+
     path_to_repo = Path("test_repo_external_data")
     if path_to_repo.exists():
         delete_path(path_to_repo)
@@ -290,12 +299,12 @@ def test_copy_external_data():
     repo = ProjectRepo(path_to_repo)
     modify_code(path_to_repo)
     branch_name = repo.import_static_data(
-        repo.path.parent / "static_data",
+        "test_repo_external_data_source",
         "import non_rdm_repo"
     )
     assert repo.has_uncomitted_changes
     cache_path = repo.copy_data_to_cache(branch_name)
-    assert (cache_path / "static_data" / "static_data_contents").exists()
+    assert (cache_path / "test_repo_external_data_source" / "static_data_contents").exists()
 
 
 def test_error_stack():

@@ -19,7 +19,7 @@ os.chdir(repo_path)
 
 repo = ProjectRepo(".")
 
-repo.add_filetype_to_lfs("*.tsv")
+repo.output_repo.add_filetype_to_lfs("*.tsv")
 
 # repo.add_remote("git@jugit.fz-juelich.de:r.jaepel/API_test_project.git")
 # repo.output_repo.add_remote("git@jugit.fz-juelich.de:r.jaepel/API_test_project_output.git")

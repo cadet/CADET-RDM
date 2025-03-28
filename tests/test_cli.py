@@ -9,10 +9,15 @@ from cadetrdm.cli_integration import cli
 from cadetrdm.io_utils import delete_path
 
 runner = CliRunner()
-if os.path.exists("test_repo_cli"):
-    delete_path("test_repo_cli")
 
-os.makedirs("test_repo_cli", exist_ok=True)
+
+def create_repo():
+    if os.path.exists("test_repo_cli"):
+        delete_path("test_repo_cli")
+    os.makedirs("test_repo_cli", exist_ok=True)
+    os.chdir("test_repo_cli")
+    result = runner.invoke(cli, ["init", ])
+
 
 
 def modify_code(path_to_repo):
@@ -29,6 +34,10 @@ def modify_code(path_to_repo):
 
 def test_01_initialize_repo():
     try:
+        if os.path.exists("test_repo_cli"):
+            delete_path("test_repo_cli")
+        os.makedirs("test_repo_cli", exist_ok=True)
+
         os.chdir("test_repo_cli")
         result = runner.invoke(cli, ["init", ])
         print(result.output)
@@ -39,7 +48,7 @@ def test_01_initialize_repo():
 
 def test_02_add_remote():
     try:
-        os.chdir("test_repo_cli")
+        create_repo()
         result = runner.invoke(cli, ["remote", "add", "https://jugit.fz-juelich.de/r.jaepel/API_test_project"])
         print(result.output)
         assert result.exit_code == 0
@@ -63,7 +72,7 @@ def test_02b_clone():
 
 def test_03_commit_results_with_uncommited_code_changes():
     try:
-        os.chdir("test_repo_cli")
+        create_repo()
         modify_code(".")
 
         result = runner.invoke(cli, ["run", "python", "print_random_number.py",
@@ -76,7 +85,7 @@ def test_03_commit_results_with_uncommited_code_changes():
 
 def test_04_commit_code():
     try:
-        os.chdir("test_repo_cli")
+        create_repo()
         modify_code(".")
 
         result = runner.invoke(cli, ["commit", "-m", "add code", "-a"])
@@ -98,7 +107,8 @@ def test_04_commit_code():
 
 def test_05b_execute_command():
     try:
-        os.chdir("test_repo_cli")
+        create_repo()
+        modify_code(".")
         result = runner.invoke(cli, ["commit", "-m", "add code", "-a"])
         print(result.output)
         assert result.exit_code == 0
@@ -114,7 +124,7 @@ def test_05b_execute_command():
 
 def test_06_print_log():
     try:
-        os.chdir("test_repo_cli")
+        create_repo()
         result = runner.invoke(cli, ["log"])
         print(result.output)
         assert result.exit_code == 0
@@ -124,7 +134,7 @@ def test_06_print_log():
 
 def test_07_lfs_add():
     try:
-        os.chdir("test_repo_cli")
+        create_repo()
         result = runner.invoke(cli, ["lfs", "add", "pptx"])
         print(result.output)
         assert result.exit_code == 0
@@ -134,11 +144,15 @@ def test_07_lfs_add():
 
 def test_08_data_import():
     try:
-        os.chdir("test_repo_cli")
+        create_repo()
         result = runner.invoke(cli,
-                               ["data", "clone", "https://github.com/cadet/RDM-Example-Characterize-Chromatographic-System",
-                                "2023-12-19_10-43-15_output_from_master_86541bc", "imported/repo/data"])
-        print(result.output)
+                               [
+                                   "data", "clone",
+                                   "git@github.com:cadet/CADET-Core.git",
+                                   "master",
+                                   "imported/repo/data"
+                               ])
+        print(result.stdout)
         assert result.exit_code == 0
     finally:
         os.chdir("..")
@@ -147,7 +161,7 @@ def test_08_data_import():
 @pytest.mark.docker
 def test_run_dockered():
     try:
-        os.chdir("test_repo_cli")
+        create_repo()
         result = runner.invoke(
             cli,
             ["run", "dockered", (Path(__file__).parent.resolve() / "case.yml").as_posix()]

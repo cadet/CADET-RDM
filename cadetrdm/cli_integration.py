@@ -182,8 +182,8 @@ def lfs():
 @lfs.command(name="add", help="Add a filetype to git lfs.")
 @click.argument('file_types', nargs=-1)
 def add_filetype_to_lfs(file_types: list, ):
-    from cadetrdm.repositories import BaseRepo
-    repo = BaseRepo(".")
+    from cadetrdm.repositories import OutputRepo
+    repo = OutputRepo(".")
     for f_type in file_types:
         repo.add_filetype_to_lfs(f_type)
 

@@ -532,17 +532,6 @@ class BaseRepo(GitRepo):
             project_repo.add("README.md")
             project_repo.commit("Add remote for output repo", verbosity=0, add_all=False)
 
-    def add_filetype_to_lfs(self, file_type):
-        """
-        Add the filetype given in file_type to the GIT-LFS tracking
-
-        :param file_type:
-        Wildcard formatted string. Examples: "*.png" or "*.xlsx"
-        :return:
-        """
-        init_lfs(lfs_filetypes=[file_type], path=self.path)
-        self.add_all_files()
-        self.commit(f"Add {file_type} to lfs")
 
     def import_remote_repo(self, source_repo_location, source_repo_branch, target_repo_location=None):
         """
@@ -1432,6 +1421,18 @@ class OutputRepo(BaseRepo):
         print(output_log)
 
         self.checkout(self._most_recent_branch)
+
+    def add_filetype_to_lfs(self, file_type):
+        """
+        Add the filetype given in file_type to the GIT-LFS tracking
+
+        :param file_type:
+        Wildcard formatted string. Examples: "*.png" or "*.xlsx"
+        :return:
+        """
+        init_lfs(lfs_filetypes=[file_type], path=self.path)
+        self.add_all_files()
+        self.commit(f"Add {file_type} to lfs")
 
 
 class JupyterInterfaceRepo(ProjectRepo):
