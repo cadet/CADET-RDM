@@ -149,9 +149,10 @@ class GitRepo:
     @property
     def has_changes_upstream(self):
         try:
-            remote_branches = self.remotes[0].fetch()
+            remote = self.remotes[0]
+            remote_branches = remote.fetch()
             correct_remote_branches = [fetch_info for fetch_info in remote_branches
-                                       if self.active_branch.name in fetch_info.name]
+                                       if fetch_info.name == f"{remote.name}/{self.active_branch.name}"]
             if len(correct_remote_branches) > 1:
                 raise RuntimeError(f"Remote has multiple branches matching local branch {self.active_branch.name}: "
                                    f"{[branch.name for branch in correct_remote_branches]}")
