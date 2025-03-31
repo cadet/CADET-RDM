@@ -8,7 +8,7 @@ from cadetrdm import ProjectRepo, clone
 class Study(ProjectRepo):
     def __init__(self, path, url, branch="main", name=None, suppress_lfs_warning=False, *args, **kwargs):
         if name is None:
-            self.name = Path(path).parts[-1]
+            self.name = Path(path).resolve().parts[-1]
         else:
             self.name = name
         self.url = url
