@@ -27,7 +27,7 @@ def test_gitlab_create():
 
     response = remote.create_remote(url=url, namespace=namespace, name=name, username="r.jaepel")
 
-    BaseRepo.clone_from(response.ssh_url_to_repo, "test_repo_remote")
+    BaseRepo.clone(response.ssh_url_to_repo, "test_repo_remote")
     delete_path("test_repo_remote")
 
     remote.delete_remote(url=url, namespace=namespace, name=name, username="r.jaepel")
@@ -35,7 +35,7 @@ def test_gitlab_create():
     sleep(3)
 
     with pytest.raises(git.exc.GitCommandError):
-        BaseRepo.clone_from(response.ssh_url_to_repo, "test_repo_remote")
+        BaseRepo.clone(response.ssh_url_to_repo, "test_repo_remote")
 
 
 @pytest.mark.server_api
@@ -61,13 +61,13 @@ def test_github_create():
 
     sleep(3)
 
-    BaseRepo.clone_from(response.html_url, "test_repo_remote")
+    BaseRepo.clone(response.html_url, "test_repo_remote")
     delete_path("test_repo_remote")
 
     remote.delete_remote(namespace=namespace, name=name, username="r.jaepel")
 
     with pytest.raises(git.exc.GitCommandError):
-        BaseRepo.clone_from(response.ssh_url, "test_repo_remote")
+        BaseRepo.clone(response.ssh_url, "test_repo_remote")
 
 
 @pytest.mark.server_api

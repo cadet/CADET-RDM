@@ -35,8 +35,8 @@ def init(path_to_repo: str = None, output_repo_name: (str | bool) = "output", gi
 @click.argument('project_url')
 @click.argument('dest', required=False)
 def clone(project_url, dest: str = None):
-    from cadetrdm.initialize_repo import clone as clone_implementation
-    clone_implementation(project_url, dest)
+    from cadetrdm import ProjectRepo
+    ProjectRepo.clone(url=project_url, to_path=dest)
 
 
 @cli.command(name="log", help="Show commit logs.")

@@ -116,12 +116,12 @@ class DockerAdapter(ContainerAdapter):
         git_commands = [f'git config --global {key} "{value}"' for key, value in git_config.items()]
 
         # pull the study from the URL into a "study" folder
-        command_pull = f"rdm clone {case.study.url} study"
+        command_pull = f"rdm clone {case.project_repo.url} study"
         # cd into the "study" folder
         command_cd = "cd study"
         # run main.py with the options, assuming main.py lies within a sub-folder with the same name as the study.name
         if command is None:
-            command_python = f"python {case.study.name}/main.py {container_tmp_filename}"
+            command_python = f"python {case.project_repo.name}/main.py {container_tmp_filename}"
         else:
             command_python = command
 
@@ -136,13 +136,13 @@ class DockerAdapter(ContainerAdapter):
 
     def _build_image(self, case) -> Image:
         cwd = os.getcwd()
-        with open(case.study.path / "Dockerfile", "rb") as dockerfile:
-            os.chdir(case.study.path.as_posix())
+        with open(case.project_repo.path / "Dockerfile", "rb") as dockerfile:
+            os.chdir(case.project_repo.path.as_posix())
 
             image, logs = self.client.images.build(
-                path=case.study.path.as_posix(),
+                path=case.project_repo.path.as_posix(),
                 # fileobj=dockerfile,  # A file object to use as the Dockerfile.
-                tag=case.study.name + ":" + case.name[:10],  # A tag to add to the final image
+                tag=case.project_repo.name + ":" + case.name[:10],  # A tag to add to the final image
                 quiet=False,  # Whether to return the status
                 pull=True,  # Downloads any updates to the FROM image in Dockerfiles
 
@@ -194,9 +194,9 @@ class DockerAdapter(ContainerAdapter):
         self._push_image(repository, tag, **kwargs)
 
     def _update_Dockerfile_with_env_reqs(self, case):
-        case.study._reset_hard_to_head(force_entry=True)
+        case.project_repo._reset_hard_to_head(force_entry=True)
 
-        dockerfile = Path(case.study.path) / "Dockerfile"
+        dockerfile = Path(case.project_repo.path) / "Dockerfile"
         conda, pip = case.environment.prepare_install_instructions()
         # We need to switch to root to update conda packages and to the $CONDA_USER to update pip packages
         install_command = "\n"

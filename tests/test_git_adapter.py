@@ -6,7 +6,7 @@ import git
 import numpy as np
 import pytest
 
-from cadetrdm import initialize_repo, ProjectRepo, clone, Options
+from cadetrdm import initialize_repo, ProjectRepo, Options
 from cadetrdm.initialize_repo import init_lfs
 from cadetrdm.io_utils import delete_path
 from cadetrdm.repositories import OutputRepo, BaseRepo
@@ -157,8 +157,10 @@ def try_add_remote(path_to_repo):
 def try_initialize_from_remote():
     if Path("test_repo_from_remote").exists():
         delete_path("test_repo_from_remote")
-    clone("git@github.com:ronald-jaepel/rdm_testing_template.git",
-          "test_repo_from_remote")
+    ProjectRepo.clone(
+        url="git@github.com:ronald-jaepel/rdm_testing_template.git",
+        to_path="test_repo_from_remote"
+    )
     assert try_init_gitpython_repo("test_repo_from_remote")
 
     repo = ProjectRepo("test_repo_from_remote")
