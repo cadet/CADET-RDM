@@ -34,7 +34,6 @@ def initialize_repo(path_to_repo: str | Path, output_folder_name: (str | bool) =
     :param output_repo_kwargs:
         kwargs to be given to the creation of the output repo initalization function.
         Include gitignore, gitattributes, and lfs_filetypes kwargs.
-    :return:
     """
     test_for_lfs()
 
@@ -111,6 +110,7 @@ def initialize_repo(path_to_repo: str | Path, output_folder_name: (str | bool) =
     repo.commit("initial CADET RDM commit", add_all=False)
 
     os.chdir(starting_directory)
+    del repo
 
 
 def init_cookiecutter(cookiecutter_template, path_to_repo):
@@ -121,7 +121,6 @@ def init_cookiecutter(cookiecutter_template, path_to_repo):
 
     :param cookiecutter_template:
     :param path_to_repo:
-    :return:
     """
     generated_dir = cookiecutter(cookiecutter_template, output_dir=path_to_repo)
     file_names = os.listdir(generated_dir)
@@ -189,7 +188,6 @@ def initialize_output_repo(output_folder_name, gitignore: list = None,
         List of lines to be added to the gitattributes file
     :param lfs_filetypes:
         List of filetypes to be handled by git lfs.
-    :return:
     """
     starting_directory = os.getcwd()
     os.makedirs(output_folder_name, exist_ok=True)
