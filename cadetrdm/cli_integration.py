@@ -31,12 +31,13 @@ def init(path_to_repo: str = None, output_repo_name: (str | bool) = "output", gi
                                        gitattributes, output_repo_kwargs, cookiecutter)
 
 
-@cli.command(help="Clone a repository into a new directory.")
+@cli.command(help="Clone a repository into a new d^irectory.")
 @click.argument('project_url')
 @click.argument('dest', required=False)
 def clone(project_url, dest: str = None):
     from cadetrdm import ProjectRepo
-    ProjectRepo.clone(url=project_url, to_path=dest)
+    repo = ProjectRepo.clone(url=project_url, to_path=dest)
+    del repo
 
 
 @cli.command(name="log", help="Show commit logs.")
@@ -45,12 +46,14 @@ def print_log():
 
     repo = BaseRepo(".")
     repo.print_log()
+    del repo
 
 
 @cli.command(name="check", help="Ensure metadata is consistent.")
 def check():
     repo = get_project_repo()
     repo.check()
+    del repo
 
 
 @cli.command(help="Push all changes to the project and output repositories.")
@@ -58,6 +61,7 @@ def check():
 def push(single=False):
     repo = get_project_repo()
     repo.push(push_all=not single)
+    del repo
 
 
 def get_project_repo(path: str = "."):
@@ -83,6 +87,7 @@ def commit(message, all):
     from cadetrdm.repositories import ProjectRepo
     repo = ProjectRepo(".")
     repo.commit(message, all)
+    del repo
 
 
 @cli.group(help="Execute commands and track the results.")
@@ -99,6 +104,7 @@ def run_python_file(file_name, results_commit_message):
     repo.enter_context()
     subprocess.run(["python", file_name])
     repo.exit_context(results_commit_message, {"command": f"python {file_name}"})
+    del repo
 
 
 @run.command(name="command")
@@ -114,6 +120,7 @@ def run_command(command, results_commit_message):
     results = subprocess.run(command, text=True, shell=False, capture_output=True)
     print(f"Command completed with stdout: {results.stdout} \nand stderr: {results.stderr}")
     repo.exit_context(results_commit_message, {"command": command})
+    del repo
 
 
 @run.command(name="dockered")
@@ -137,6 +144,7 @@ def add_remote(name: str = None, remote_url: str = None):
     repo = BaseRepo(".")
     repo.add_remote(remote_url=remote_url, remote_name=name)
     print("Done.")
+    del repo
 
 
 @remote.command(name="set-url", help="Add")
@@ -149,6 +157,7 @@ def set_url(name: str, remote_url: str):
     print(f"Set url of remote {name} to {remote_url}. Commiting changes to metadata.")
     project_repo = get_project_repo()
     project_repo.check(commit=True)
+    del repo, project_repo
 
 
 @remote.command(name="create")
@@ -164,6 +173,7 @@ def create_remotes(url, namespace, name, username=None, push=True):
     from cadetrdm.repositories import ProjectRepo
     repo = ProjectRepo(".")
     repo.create_remotes(name=name, namespace=namespace, url=url, username=username, push=push)
+    del repo
 
 
 @remote.command(name="list")
@@ -172,6 +182,7 @@ def list_remotes():
     repo = BaseRepo(".")
     for _remote, url in zip(repo.remotes, repo.remote_urls):
         print(_remote, ": ", url)
+    del repo
 
 
 @cli.group(help="Manage large file storage settings.")
@@ -186,6 +197,7 @@ def add_filetype_to_lfs(file_types: list, ):
     repo = OutputRepo(".")
     for f_type in file_types:
         repo.add_filetype_to_lfs(f_type)
+    del repo
 
 
 @cli.group(help="Manage data and input-data-repositories.")
@@ -203,6 +215,7 @@ def import_remote_repo(source_path, commit_message):
         source_path=source_path,
         commit_message=commit_message,
     )
+    del repo
 
 
 @data.command(name="clone", help="Import a remote repository into a given location.")
@@ -215,6 +228,7 @@ def import_remote_repo(source_repo_location, source_repo_branch, target_repo_loc
     repo.import_remote_repo(source_repo_location=source_repo_location,
                             source_repo_branch=source_repo_branch,
                             target_repo_location=target_repo_location)
+    del repo
 
 
 @data.command(name="fetch", help="Fill data cache based on cadet-rdm.json.")
@@ -224,6 +238,7 @@ def fill_data_from_cadet_rdm_json(re_load=False):
     from cadetrdm.repositories import ProjectRepo
     repo = ProjectRepo(".")
     repo.fill_data_from_cadet_rdm_json(re_load=re_load)
+    del repo
 
 
 @data.command(name="cache", help="Copy data from the output repo to the cache.")
@@ -232,6 +247,7 @@ def copy_to_cache(branch: str):
     from cadetrdm.repositories import ProjectRepo
     repo = ProjectRepo(".")
     repo.copy_data_to_cache(branch)
+    del repo
 
 
 @data.command(name="verify", help="Verify that cache is unchanged.")
@@ -239,6 +255,7 @@ def verify_unchanged_cache():
     from cadetrdm.repositories import BaseRepo
     repo = BaseRepo(".")
     repo.verify_unchanged_cache()
+    del repo
 
 
 @data.command(name="log", help="Print data logs.")
@@ -256,3 +273,4 @@ def print_data_log():
     else:
         repo = OutputRepo()
         repo.print_output_log()
+    del repo

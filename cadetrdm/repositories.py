@@ -1,5 +1,6 @@
 import contextlib
 import csv
+import gc
 import glob
 import importlib
 import json
@@ -11,7 +12,7 @@ import warnings
 from datetime import datetime
 from pathlib import Path
 from stat import S_IREAD, S_IWRITE
-from typing import List, Optional
+from typing import List, Optional, Any
 from urllib.request import urlretrieve
 
 import cadetrdm
@@ -72,6 +73,19 @@ class GitRepo:
             self.main_branch = "main"
 
         self.add = self._git.add
+
+    def __enter__(self) -> "Repo":
+        return self
+
+    def __exit__(self, *args: Any) -> None:
+        self._git_repo.close()
+
+    def __del__(self) -> None:
+        try:
+            self._git_repo.close()
+        except Exception:
+            traceback.print_exc()
+            pass
 
     @property
     def active_branch(self):
