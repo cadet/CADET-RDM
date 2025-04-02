@@ -1,6 +1,7 @@
 import contextlib
 import csv
 import glob
+import importlib
 import json
 import os
 import shutil
@@ -128,6 +129,10 @@ class GitRepo:
         return [str(remote.url) for remote in self.remotes]
 
     @property
+    def url(self):
+        return self.remote_urls[0]
+
+    @property
     def earliest_commit(self):
         if self._earliest_commit is None:
             *_, earliest_commit = self._git_repo.iter_commits()
@@ -187,9 +192,25 @@ class GitRepo:
             print(f"Git command error in {self.path}: {e}")
 
     @classmethod
-    def clone_from(cls, url, to_path, multi_options: Optional[List[str]] = None, **kwargs):
+    def clone(cls, url: str, to_path: str | Path = None, multi_options: Optional[List[str]] = None, **kwargs):
+        """
+        Clone a remote repository
+
+        :param url:
+        :param to_path:
+        :param multi_options: A list of Clone options that can be provided multiple times.
+            One option per list item which is passed exactly as specified to clone.
+            For example: ['--config core.filemode=false', '--config core.ignorecase',
+            '--recurse-submodule=repo1_path', '--recurse-submodule=repo2_path']
+        :return:
+        """
+
         # prevent git terminal prompts from interrupting the process.
         previous_environment_variables = cls._git_environ_setup()
+
+        if to_path is None:
+            to_path = url.split("/")[-1].replace(".git", "")
+        print(f"Cloning {url} into {to_path}")
 
         try:
             git.Repo.clone_from(url, to_path, multi_options=multi_options, **kwargs)
@@ -200,6 +221,7 @@ class GitRepo:
                 git.Repo.clone_from(ssh_url_to_http_url(url), to_path, multi_options=multi_options, **kwargs)
             except Exception as e_inner:
                 print(f"Clone from {ssh_url_to_http_url(url)} failed with: ")
+                traceback.print_exc()
                 raise e_inner
         finally:
             cls._git_environ_reset(previous_environment_variables)
@@ -533,7 +555,6 @@ class BaseRepo(GitRepo):
             project_repo.add("README.md")
             project_repo.commit("Add remote for output repo", verbosity=0, add_all=False)
 
-
     def import_remote_repo(self, source_repo_location, source_repo_branch, target_repo_location=None):
         """
         Import a remote repo and update the cadet-rdm-cache
@@ -565,8 +586,8 @@ class BaseRepo(GitRepo):
 
         print(f"Cloning from {source_repo_location} into {target_repo_location}")
         multi_options = ["--filter=blob:none", "--branch", source_repo_branch, "--single-branch"]
-        repo = GitRepo.clone_from(url=source_repo_location, to_path=target_repo_location,
-                               multi_options=multi_options)
+        repo = GitRepo.clone(url=source_repo_location, to_path=target_repo_location,
+                             multi_options=multi_options)
         repo._git.clear_cache()
         repo._git_repo.close()
 
@@ -719,7 +740,9 @@ class BaseRepo(GitRepo):
 
 class ProjectRepo(BaseRepo):
     def __init__(self, repository_path=None, output_folder=None,
-                 search_parent_directories=True, suppress_lfs_warning=False, *args, **kwargs):
+                 search_parent_directories=True, suppress_lfs_warning=False,
+                 url=None,
+                 *args, **kwargs):
         """
         Class for Project-Repositories. Handles interaction between the project repo and
         the output (i.e. results) repo.
@@ -741,6 +764,11 @@ class ProjectRepo(BaseRepo):
         :param kwargs:
             Additional kwargs to be handed to BaseRepo.
         """
+        if repository_path is not None and not Path(repository_path).exists():
+            if url is None:
+                raise ValueError(f"Could not find repository at path {repository_path} and no url was given.")
+            ProjectRepo.clone(url=url, to_path=repository_path)
+
         super().__init__(repository_path, search_parent_directories=search_parent_directories, *args, **kwargs)
 
         if not suppress_lfs_warning:
@@ -773,6 +801,22 @@ class ProjectRepo(BaseRepo):
         if self._output_repo is None:
             raise ValueError("The output repo has not been set yet.")
         return self._output_repo
+
+    @property
+    def name(self):
+        return self.path.parts[-1]
+
+    @property
+    def module(self):
+        cur_dir = os.getcwd()
+
+        os.chdir(self.path)
+        sys.path.append(str(self.path))
+        module = importlib.import_module(self.name)
+
+        sys.path.remove(str(self.path))
+        os.chdir(cur_dir)
+        return module
 
     def _update_version(self, metadata, cadetrdm_version):
         current_version = metadata["cadet_rdm_version"]
@@ -824,7 +868,7 @@ class ProjectRepo(BaseRepo):
                 print(f"Attempting to clone {output_remote} into {output_path}")
                 if multi_options is None:
                     multi_options = ["--filter=blob:none"]
-                _ = OutputRepo.clone_from(output_remote, output_path, multi_options=multi_options)
+                _ = OutputRepo.clone(output_remote, output_path, multi_options=multi_options)
                 break
             except Exception:
                 traceback.print_exc()

@@ -104,10 +104,10 @@ repo.fill_data_from_cadet_rdm_json()
 
 ## Cloning from remote
 
-You should use `cadetrdm.clone` instead of `git clone` to clone the repo to a new location.
+You should use `cadetrdm.ProjectRepo.clone()` instead of `git clone` to clone the repo to a new location.
 
 ```python
-from cadetrdm import clone
+from cadetrdm import ProjectRepo
 
-clone("<URL><path/to/repo>")
+ProjectRepo.clone("<URL><path/to/repo>")
 ```

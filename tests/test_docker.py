@@ -33,7 +33,7 @@ def test_run_dockered():
         }
     )
 
-    case = Case(study=rdm_example, options=options, environment=matching_environment)
+    case = Case(project_repo=rdm_example, options=options, environment=matching_environment)
     docker_adapter = DockerAdapter()
     has_run_study = case.run_study(container_adapter=docker_adapter, force=True)
     assert has_run_study
@@ -45,7 +45,7 @@ def test_run_dockered():
         "n_max_gen": 1,
     }
 
-    case = Case(study=rdm_example, options=options, environment=matching_environment)
+    case = Case(project_repo=rdm_example, options=options, environment=matching_environment)
     docker_adapter = DockerAdapter()
     has_run_study = case.run_study(container_adapter=docker_adapter, force=True)
     assert not has_run_study

@@ -1,21 +1,30 @@
 import traceback
+import warnings
 from pathlib import Path
 import subprocess
 from typing import Dict
 
-from cadetrdm.batch_running import Study
+from cadetrdm.repositories import ProjectRepo
 from cadetrdm.batch_running import Options
 from cadetrdm.environment import Environment
 from cadetrdm.logging import LogEntry
 
 
 class Case:
-    def __init__(self, study: Study, options: Options, environment: Environment = None, name: str = None):
+    def __init__(self, project_repo: ProjectRepo, options: Options, environment: Environment = None, name: str = None,
+                 study=None):
         if name is None:
-            name = study.name + "_" + options.get_hash()
+            name = project_repo.name + "_" + options.get_hash()
 
         self.name = name
-        self.study = study
+        if study is not None:
+            warnings.warn(
+                "Initializing Case() with the study= kwarg is deprecated and will be removed in the future. "
+                "Please use project_repo=",
+                FutureWarning
+            )
+            project_repo = study
+        self.project_repo = project_repo
         self.options = options
         self.environment = environment
         self._options_hash = options.get_hash()
@@ -27,7 +36,7 @@ class Case:
 
     @property
     def status_file(self):
-        return Path(self.study.path).parent / (Path(self.study.path).name + ".status")
+        return Path(self.project_repo.path).parent / (Path(self.project_repo.path).name + ".status")
 
     @property
     def status(self):
@@ -39,7 +48,7 @@ class Case:
         """Update the status file with the current execution status."""
 
         with open(self.status_file, "w") as f:
-            f.write(f"{status}@{self.study.current_commit_hash}")
+            f.write(f"{status}@{self.project_repo.current_commit_hash}")
 
     @property
     def status_hash(self):
@@ -95,9 +104,9 @@ class Case:
         :return:
         str: name of the results branch or None.
         """
-        output_log: Dict[str, LogEntry] = self.study.output_log.entries
+        output_log: Dict[str, LogEntry] = self.project_repo.output_log.entries
         options_hash = self.options.get_hash()
-        study_hash = self.study.current_commit_hash
+        study_hash = self.project_repo.current_commit_hash
 
         found_results_with_incorrect_study_hash = False
         found_results_with_incorrect_options = False
@@ -164,17 +173,17 @@ class Case:
 
         """
         if not force and self.is_running:
-            print(f"{self.study.name} is currently running. Skipping...")
+            print(f"{self.project_repo.name} is currently running. Skipping...")
             return False
 
-        print(f"Running {self.name} in {self.study.path} with: {self.options}")
+        print(f"Running {self.name} in {self.project_repo.path} with: {self.options}")
         if not self.options.debug:
-            self.study.update()
+            self.project_repo.update()
         else:
             print("WARNING: Not updating the repositories while in debug mode.")
 
         if not force and self.has_results_for_this_run:
-            print(f"{self.study.path} has already been computed with these options. Skipping...")
+            print(f"{self.project_repo.path} has already been computed with these options. Skipping...")
             return True
 
         if container_adapter is None and self.can_run_study is False:
@@ -191,7 +200,7 @@ class Case:
                     self.status = "failed"
                     return False
             else:
-                self.study.module.main(self.options, str(self.study.path))
+                self.project_repo.module.main(self.options, str(self.project_repo.path))
 
             print("Command execution successful.")
             self.status = 'finished'
@@ -218,7 +227,7 @@ class Case:
         if self.results_branch is None:
             return None
         else:
-            return self.study.path / (self.study._output_folder + "_cached") / self.results_branch
+            return self.project_repo.path / (self.project_repo._output_folder + "_cached") / self.results_branch
 
     def load(self, ):
         if self.results_branch is None or self.options.get_hash() != self._options_hash:
@@ -226,13 +235,13 @@ class Case:
             self._options_hash = self.options.get_hash()
 
         if self.results_branch is None:
-            print(f"No results available for Case({self.study.path, self.options.get_hash()[:7]})")
+            print(f"No results available for Case({self.project_repo.path, self.options.get_hash()[:7]})")
             return None
 
         if self._results_path.exists():
             return
 
-        self.study.copy_data_to_cache(self.results_branch)
+        self.project_repo.copy_data_to_cache(self.results_branch)
 
     @property
     def results_path(self):

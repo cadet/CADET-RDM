@@ -1,17 +1,21 @@
+import os
 from pathlib import Path
 
 import pytest
 
-from cadetrdm import Options, Study, Case, Environment
+from cadetrdm import Options, Study, Case, Environment, ProjectRepo, initialize_repo
 from cadetrdm.io_utils import delete_path
 
 
 @pytest.mark.server_api
 def test_module_import():
     WORK_DIR = Path.cwd() / "tmp"
+    if WORK_DIR.exists():
+        delete_path(WORK_DIR)
+
     WORK_DIR.mkdir(parents=True, exist_ok=True)
 
-    rdm_example = Study(
+    rdm_example = ProjectRepo(
         WORK_DIR / 'template',
         "git@jugit.fz-juelich.de:r.jaepel/rdm_example.git",
     )
@@ -46,7 +50,7 @@ def test_run_with_non_matching_env():
         }
     )
 
-    case = Case(study=rdm_example, options=options, environment=matching_environment)
+    case = Case(project_repo=rdm_example, options=options, environment=matching_environment)
     assert case.can_run_study is True
 
     non_matching_environment = Environment(conda_packages={
@@ -54,7 +58,7 @@ def test_run_with_non_matching_env():
         }
     )
 
-    case = Case(study=rdm_example, options=options, environment=non_matching_environment)
+    case = Case(project_repo=rdm_example, options=options, environment=non_matching_environment)
     assert case.can_run_study is False
 
 
@@ -96,11 +100,11 @@ def test_results_loading():
 
     class OptionsFixture(Options):
         def get_hash(self):
-            return "phhj8kcrx4z92r5zmm4cpbpdqyd1f3mt"
+            return "za16jkxf3waxxy3mkavy3jnjn5za0b"
 
-    case = Case(study=rdm_example, options=OptionsFixture())
+    case = Case(project_repo=rdm_example, options=OptionsFixture())
     assert case.has_results_for_this_run
-    assert case.results_branch == '2024-05-08_14-44-39_main_79d2be2'
+    assert case.results_branch == '2025-02-11_17-15-38_main_d1842fd'
 
     simple_environment = Environment(
         conda_packages={"cadet": "4.4.0",
@@ -159,15 +163,73 @@ def test_results_loading():
                       'wrapt': '1.16.0', 'xarray': '2024.2.0', 'xarray-einstats': '0.7.0', 'zipp': '3.18.0'}
     )
 
-    case = Case(study=rdm_example, options=OptionsFixture(), environment=simple_environment)
+    case = Case(project_repo=rdm_example, options=OptionsFixture(), environment=simple_environment)
     assert case.has_results_for_this_run
-    case = Case(study=rdm_example, options=OptionsFixture(), environment=full_environment)
+    case = Case(project_repo=rdm_example, options=OptionsFixture(), environment=full_environment)
     assert case.has_results_for_this_run
-    case = Case(study=rdm_example, options=OptionsFixture(), environment=mismatched_environment)
+    case = Case(project_repo=rdm_example, options=OptionsFixture(), environment=mismatched_environment)
     assert not case.has_results_for_this_run
 
     # delete_path(WORK_DIR)
 
 
+def test_case_with_projectrepo():
+    class OptionsFixture(Options):
+        def get_hash(self):
+            return "za16jkxf3waxxy3mkavy3jnjn5za0b"
+
+    path_to_repo = Path("test_repo_batch")
+    if path_to_repo.exists():
+        delete_path(path_to_repo)
+
+    initialize_repo(path_to_repo)
+
+    try:
+        os.chdir(path_to_repo)
+        Case(project_repo=ProjectRepo(), options=OptionsFixture())
+
+    finally:
+        os.chdir("..")
+
+    return
+
+
+@pytest.mark.server_api
+def test_results_loading_from_within():
+    class OptionsFixture(Options):
+        def get_hash(self):
+            return "za16jkxf3waxxy3mkavy3jnjn5za0b"
+
+    root_dir = os.getcwd()
+
+    WORK_DIR = Path.cwd() / "tmp"
+    WORK_DIR.mkdir(parents=True, exist_ok=True)
+
+    if (WORK_DIR / 'template').exists():
+        delete_path(WORK_DIR / 'template')
+
+    rdm_example = Study(
+        WORK_DIR / 'template',
+        "git@jugit.fz-juelich.de:r.jaepel/rdm_example.git",
+    )
+
+    try:
+        os.chdir(WORK_DIR / 'template')
+        rdm_example = Study(".", "git@jugit.fz-juelich.de:r.jaepel/rdm_example.git")
+
+        case = Case(project_repo=rdm_example, options=OptionsFixture())
+        assert case.has_results_for_this_run
+        assert case.results_branch == '2025-02-11_17-15-38_main_d1842fd'
+
+        with open(rdm_example.path / "Readme.md", "a") as handle:
+            handle.write("New line\n")
+        rdm_example.commit("modify readme")
+
+        case = Case(project_repo=rdm_example, options=OptionsFixture())
+        assert not case.has_results_for_this_run
+    finally:
+        os.chdir(root_dir)
+
+
 if __name__ == "__main__":
-    test_run_with_non_matching_env()
+    test_results_loading_from_within()
