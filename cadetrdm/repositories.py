@@ -1338,7 +1338,7 @@ class ProjectRepo(BaseRepo):
             branch_name = self.output_repo._git_repo.active_branch.name
 
         # Define the target folder
-        target_folder = self.path / "output_cached" / branch_name
+        target_folder = self.path / f"{self._output_folder}_cached" / branch_name
 
         # Create the target folder if it doesn't exist
         if not target_folder.exists():
