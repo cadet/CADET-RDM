@@ -12,6 +12,8 @@ import warnings
 from datetime import datetime
 from pathlib import Path
 from stat import S_IREAD, S_IWRITE
+import tarfile
+import tempfile
 from typing import List, Optional, Any
 from urllib.request import urlretrieve
 
@@ -1331,45 +1333,38 @@ class ProjectRepo(BaseRepo):
         :return Path:
         Path to folder in cache
         """
-        previous_branch = None
-        has_stashed_changes = False
-        try:
-            source_filepath = self.output_repo.path
+        # Determine the branch name if not provided
+        if branch_name is None:
+            branch_name = self.output_repo._git_repo.active_branch.name
 
-            if branch_name is None:
-                branch_name = self.output_repo.active_branch.name
-            else:
-                try:
-                    self.test_for_uncommitted_changes()
-                except RuntimeError:
-                    self.output_repo.stash_all_changes()
-                    has_stashed_changes = True
-                previous_branch = self.output_repo.active_branch.name
-                self.output_repo.checkout(branch_name)
+        # Define the target folder
+        target_folder = self.path / "output_cached" / branch_name
 
-            target_folder = self.path / (self._output_folder + "_cached") / str(branch_name)
+        # Create the target folder if it doesn't exist
+        if not target_folder.exists():
+            target_folder.mkdir(parents=True, exist_ok=True)
 
-            if not target_folder.exists():
-                shutil.copytree(str(source_filepath), str(target_folder), ignore=lambda dir, names: [".git"])
+            # Create a temporary file for the archive and perform extraction
+            with tempfile.NamedTemporaryFile() as temp_archive:
+                # Create an archive of the specified branch
+                self.output_repo._git_repo.git.archive(
+                    branch_name, output=temp_archive.name
+                )
 
-                # Set all files to read only
-                for filename in glob.iglob(f"{target_folder}/**/*", recursive=True):
-                    absolute_path = os.path.abspath(filename)
-                    if os.path.isdir(absolute_path):
-                        continue
-                    os.chmod(os.path.abspath(filename), S_IREAD)
+                # Open the temporary file in read mode
+                with open(temp_archive.name, 'rb') as archive_file:
+                    # Extract the archive to the specified directory
+                    with tarfile.open(fileobj=archive_file, mode='r') as tar:
+                        tar.extractall(path=target_folder)
 
-            return target_folder
-        except:
-            traceback.print_exc()
-        finally:
-            if previous_branch is not None:
-                self.output_repo.checkout(previous_branch)
-                if has_stashed_changes:
-                    try:
-                        self.output_repo.apply_stashed_changes()
-                    except:
-                        pass
+            # Set all files to read only
+            for filename in glob.iglob(f"{target_folder}/**/*", recursive=True):
+                absolute_path = os.path.abspath(filename)
+                if os.path.isdir(absolute_path):
+                    continue
+                os.chmod(os.path.abspath(filename), S_IREAD)
+
+        return target_folder
 
     def exit_context(self, message, output_dict: dict = None):
         """
