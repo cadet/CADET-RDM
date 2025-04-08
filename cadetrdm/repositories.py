@@ -5,6 +5,7 @@ import glob
 import importlib
 import json
 import os
+import pathlib
 import shutil
 import sys
 import traceback
@@ -12,6 +13,8 @@ import warnings
 from datetime import datetime
 from pathlib import Path
 from stat import S_IREAD, S_IWRITE
+import tarfile
+import tempfile
 from typing import List, Optional, Any
 from urllib.request import urlretrieve
 
@@ -1099,7 +1102,7 @@ class ProjectRepo(BaseRepo):
 
         self.dump_package_list(logs_folderpath)
 
-        self.copy_code(logs_folderpath)
+        self._copy_code(logs_folderpath)
 
         self._output_repo.add(".")
         self._output_repo._git.commit("-m", f"log for '{output_commit_message}' \n"
@@ -1108,7 +1111,7 @@ class ProjectRepo(BaseRepo):
         self._output_repo._git.checkout(output_branch_name)
         self._most_recent_branch = output_branch_name
 
-    def copy_code(self, target_path):
+    def _copy_code(self, target_path):
         """
         Clone only the current branch of the project repo to the target_path
         and then compress it into a zip file.
@@ -1119,15 +1122,11 @@ class ProjectRepo(BaseRepo):
         if type(target_path) is str:
             target_path = Path(target_path)
 
-        code_tmp_folder = target_path / "git_repo"
+        code_tmp_folder = target_path / "code.tar"
 
-        multi_options = ["--filter=blob:none", "--single-branch"]
-        git.Repo.clone_from(self.path, code_tmp_folder, multi_options=multi_options)
-
-        delete_path(code_tmp_folder / ".git")
-        shutil.make_archive(target_path / "code", "zip", code_tmp_folder)
-
-        delete_path(code_tmp_folder)
+        self._git_repo.git.archive(
+            self.active_branch, output=code_tmp_folder
+        )
 
     def commit(self, message: str | None = None, add_all=True, verbosity=1):
         """
@@ -1331,45 +1330,40 @@ class ProjectRepo(BaseRepo):
         :return Path:
         Path to folder in cache
         """
-        previous_branch = None
-        has_stashed_changes = False
-        try:
-            source_filepath = self.output_repo.path
+        # Determine the branch name if not provided
+        if branch_name is None:
+            branch_name = self.output_repo._git_repo.active_branch.name
 
-            if branch_name is None:
-                branch_name = self.output_repo.active_branch.name
-            else:
-                try:
-                    self.test_for_uncommitted_changes()
-                except RuntimeError:
-                    self.output_repo.stash_all_changes()
-                    has_stashed_changes = True
-                previous_branch = self.output_repo.active_branch.name
-                self.output_repo.checkout(branch_name)
+        # Define the target folder
+        target_folder = self.path / f"{self._output_folder}_cached" / str(branch_name)
 
-            target_folder = self.path / (self._output_folder + "_cached") / str(branch_name)
+        # Create the target folder if it doesn't exist
+        if not target_folder.exists():
+            target_folder.mkdir(parents=True, exist_ok=True)
 
-            if not target_folder.exists():
-                shutil.copytree(str(source_filepath), str(target_folder), ignore=lambda dir, names: [".git"])
+            # Create a temporary file for the archive and perform extraction
+            handle, temp_archive_name = tempfile.mkstemp(suffix=".tar")
+            os.close(handle)
+            # Create an archive of the specified branch
+            self.output_repo._git_repo.git.archive(
+                branch_name, output=temp_archive_name
+            )
 
-                # Set all files to read only
-                for filename in glob.iglob(f"{target_folder}/**/*", recursive=True):
-                    absolute_path = os.path.abspath(filename)
-                    if os.path.isdir(absolute_path):
-                        continue
-                    os.chmod(os.path.abspath(filename), S_IREAD)
+            # Open the temporary file in read mode
+            with open(temp_archive_name, 'rb') as archive_file:
+                # Extract the archive to the specified directory
+                with tarfile.open(fileobj=archive_file, mode='r') as tar:
+                    tar.extractall(path=target_folder)
+            Path(temp_archive_name).unlink()
 
-            return target_folder
-        except:
-            traceback.print_exc()
-        finally:
-            if previous_branch is not None:
-                self.output_repo.checkout(previous_branch)
-                if has_stashed_changes:
-                    try:
-                        self.output_repo.apply_stashed_changes()
-                    except:
-                        pass
+            # Set all files to read only
+            for filename in glob.iglob(f"{target_folder}/**/*", recursive=True):
+                absolute_path = os.path.abspath(filename)
+                if os.path.isdir(absolute_path):
+                    continue
+                os.chmod(os.path.abspath(filename), S_IREAD)
+
+        return target_folder
 
     def exit_context(self, message, output_dict: dict = None):
         """
@@ -1414,7 +1408,6 @@ class ProjectRepo(BaseRepo):
             if main_cach_path.exists():
                 delete_path(main_cach_path)
             self.copy_data_to_cache(self._output_repo.main_branch)
-            # print("\n" + commit_return + "\n")
         except git.exc.GitCommandError as e:
             self.output_repo.delete_active_branch_if_branch_is_empty()
             raise e
