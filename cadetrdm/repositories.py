@@ -5,6 +5,7 @@ import glob
 import importlib
 import json
 import os
+import pathlib
 import shutil
 import sys
 import traceback
@@ -1345,18 +1346,19 @@ class ProjectRepo(BaseRepo):
             target_folder.mkdir(parents=True, exist_ok=True)
 
             # Create a temporary file for the archive and perform extraction
-            with tempfile.NamedTemporaryFile(suffix=".tar", delete_on_close=False) as temp_archive:
-                # Create an archive of the specified branch
-                self.output_repo._git_repo.git.archive(
-                    branch_name, output=temp_archive.name
-                )
-                temp_archive.close()
+            handle, temp_archive_name = tempfile.mkstemp(suffix=".tar")
+            os.close(handle)
+            # Create an archive of the specified branch
+            self.output_repo._git_repo.git.archive(
+                branch_name, output=temp_archive_name
+            )
 
-                # Open the temporary file in read mode
-                with open(temp_archive.name, 'rb') as archive_file:
-                    # Extract the archive to the specified directory
-                    with tarfile.open(fileobj=archive_file, mode='r') as tar:
-                        tar.extractall(path=target_folder)
+            # Open the temporary file in read mode
+            with open(temp_archive_name, 'rb') as archive_file:
+                # Extract the archive to the specified directory
+                with tarfile.open(fileobj=archive_file, mode='r') as tar:
+                    tar.extractall(path=target_folder)
+            Path(temp_archive_name).unlink()
 
             # Set all files to read only
             for filename in glob.iglob(f"{target_folder}/**/*", recursive=True):
