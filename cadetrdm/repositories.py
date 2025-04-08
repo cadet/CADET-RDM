@@ -1102,7 +1102,7 @@ class ProjectRepo(BaseRepo):
 
         self.dump_package_list(logs_folderpath)
 
-        self.copy_code(logs_folderpath)
+        self._copy_code(logs_folderpath)
 
         self._output_repo.add(".")
         self._output_repo._git.commit("-m", f"log for '{output_commit_message}' \n"
@@ -1111,7 +1111,7 @@ class ProjectRepo(BaseRepo):
         self._output_repo._git.checkout(output_branch_name)
         self._most_recent_branch = output_branch_name
 
-    def copy_code(self, target_path):
+    def _copy_code(self, target_path):
         """
         Clone only the current branch of the project repo to the target_path
         and then compress it into a zip file.
@@ -1122,15 +1122,11 @@ class ProjectRepo(BaseRepo):
         if type(target_path) is str:
             target_path = Path(target_path)
 
-        code_tmp_folder = target_path / "git_repo"
+        code_tmp_folder = target_path / "code.tar"
 
-        multi_options = ["--filter=blob:none", "--single-branch"]
-        git.Repo.clone_from(self.path, code_tmp_folder, multi_options=multi_options)
-
-        delete_path(code_tmp_folder / ".git")
-        shutil.make_archive(target_path / "code", "zip", code_tmp_folder)
-
-        delete_path(code_tmp_folder)
+        self._git_repo.git.archive(
+            self.active_branch, output=code_tmp_folder
+        )
 
     def commit(self, message: str | None = None, add_all=True, verbosity=1):
         """
