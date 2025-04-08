@@ -1338,18 +1338,19 @@ class ProjectRepo(BaseRepo):
             branch_name = self.output_repo._git_repo.active_branch.name
 
         # Define the target folder
-        target_folder = self.path / f"{self._output_folder}_cached" / branch_name
+        target_folder = self.path / f"{self._output_folder}_cached" / str(branch_name)
 
         # Create the target folder if it doesn't exist
         if not target_folder.exists():
             target_folder.mkdir(parents=True, exist_ok=True)
 
             # Create a temporary file for the archive and perform extraction
-            with tempfile.NamedTemporaryFile() as temp_archive:
+            with tempfile.NamedTemporaryFile(suffix=".tar", delete_on_close=False) as temp_archive:
                 # Create an archive of the specified branch
                 self.output_repo._git_repo.git.archive(
                     branch_name, output=temp_archive.name
                 )
+                temp_archive.close()
 
                 # Open the temporary file in read mode
                 with open(temp_archive.name, 'rb') as archive_file:
@@ -1410,9 +1411,9 @@ class ProjectRepo(BaseRepo):
                 delete_path(main_cach_path)
             self.copy_data_to_cache(self._output_repo.main_branch)
             # print("\n" + commit_return + "\n")
-        except git.exc.GitCommandError as e:
-            self.output_repo.delete_active_branch_if_branch_is_empty()
-            raise e
+        # except git.exc.GitCommandError as e:
+        #     self.output_repo.delete_active_branch_if_branch_is_empty()
+        #     raise e
         finally:
             # self.remove_cached_files()
             self._is_in_context_manager = False
