@@ -1412,7 +1412,6 @@ class ProjectRepo(BaseRepo):
             if main_cach_path.exists():
                 delete_path(main_cach_path)
             self.copy_data_to_cache(self._output_repo.main_branch)
-            # print("\n" + commit_return + "\n")
         except git.exc.GitCommandError as e:
             self.output_repo.delete_active_branch_if_branch_is_empty()
             raise e
