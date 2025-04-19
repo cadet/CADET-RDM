@@ -1,3 +1,4 @@
+import csv
 from pathlib import Path
 from typing import Dict, List
 
@@ -26,6 +27,9 @@ class LogEntry:
 
     def __repr__(self):
         return f"OutputEntry('{self.output_repo_commit_message}', '{self.output_repo_branch}')"
+
+    def to_dict(self):
+        return {key: value for key, value in self.__dict__.items() if not key.startswith("_")}
 
     @property
     def environment(self):
@@ -105,13 +109,13 @@ class LogEntry:
 
 class OutputLog:
     def __init__(self, filepath=None):
+        self._filepath = filepath
+
         if filepath is None or not Path(filepath).exists():
-            self._filepath = None
             self._entry_list = [[], []]
-            self.entries = []
+            self.entries = {}
             return
 
-        self._filepath = filepath
         self._entry_list = self._read_file(filepath)
         self.entries: Dict[str, LogEntry] = self._entries_from_entry_list(self._entry_list)
 
@@ -151,3 +155,18 @@ class OutputLog:
 
     def __repr__(self):
         return f"OutputLog.from_list({self._entry_list})"
+
+    @property
+    def header(self):
+        all_keys = list(set().union(*(d.to_dict().keys() for d in self.entries.values())))
+        return all_keys
+
+    def write(self):
+        if self._filepath is None:
+            raise ValueError("No filepath set for output log. Can not write to filepath")
+
+        with open(self._filepath, "w", newline="") as tsv_file_handle:
+            writer = csv.DictWriter(tsv_file_handle, fieldnames=self.header, delimiter="\t")
+            writer.writeheader()
+            for entry in self.entries.values():
+                writer.writerow(entry.to_dict())

@@ -22,7 +22,7 @@ import cadetrdm
 from cadetrdm.io_utils import delete_path, test_for_lfs
 from cadetrdm.io_utils import recursive_chmod, write_lines_to_file, wait_for_user, init_lfs
 from cadetrdm.jupyter_functionality import Notebook
-from cadetrdm.logging import OutputLog
+from cadetrdm.logging import OutputLog, LogEntry
 from cadetrdm.remote_integration import GitHubRemote, GitLabRemote
 from cadetrdm.web_utils import ssh_url_to_http_url
 
@@ -804,7 +804,7 @@ class ProjectRepo(BaseRepo):
         if not (self.path / self._output_folder).exists():
             print("Output repository was missing, cloning now.")
             self._clone_output_repo()
-        self._output_repo = OutputRepo(self.path / self._output_folder)
+        self.output_repo = OutputRepo(self.path / self._output_folder)
 
         if self._metadata["cadet_rdm_version"] != cadetrdm.__version__:
             self._update_version(self._metadata, cadetrdm.__version__)
@@ -812,12 +812,6 @@ class ProjectRepo(BaseRepo):
         self._on_context_enter_commit_hash = None
         self._is_in_context_manager = False
         self.options_hash = None
-
-    @property
-    def output_repo(self):
-        if self._output_repo is None:
-            raise ValueError("The output repo has not been set yet.")
-        return self._output_repo
 
     @property
     def name(self):
@@ -942,14 +936,14 @@ class ProjectRepo(BaseRepo):
         """
         Checkout the main branch, which contains all the log files.
         """
-        self._most_recent_branch = self._output_repo.active_branch.name
-        self._output_repo._git.checkout(self._output_repo.main_branch)
+        self._most_recent_branch = self.output_repo.active_branch.name
+        self.output_repo._git.checkout(self.output_repo.main_branch)
 
     def reload_recent_results(self):
         """
         Checkout the most recent previous branch.
         """
-        self._output_repo._git.checkout(self._most_recent_branch)
+        self.output_repo._git.checkout(self._most_recent_branch)
 
     def print_output_log(self):
         self.output_repo.print_output_log()
@@ -1053,62 +1047,52 @@ class ProjectRepo(BaseRepo):
         :param output_dict:
         Dictionary containing key-value pairs to be added to the log.
         """
+        if output_dict is None:
+            output_dict = {}
+
         output_branch_name = str(self.output_repo.active_branch)
 
         output_repo_hash = str(self.output_repo.head.commit)
         output_commit_message = self.output_repo.active_branch.commit.message
         output_commit_message = output_commit_message.replace("\n", "; ")
 
-        self.output_repo._git.checkout(self._output_repo.main_branch)
+        self.output_repo._git.checkout(self.output_repo.main_branch)
 
         logs_folderpath = self.output_repo.path / "run_history" / output_branch_name
         if not logs_folderpath.exists():
             os.makedirs(logs_folderpath)
 
         json_filepath = logs_folderpath / "metadata.json"
-
-        meta_info_dict = {
-            "Output repo commit message": output_commit_message,
-            "Output repo branch": output_branch_name,
-            "Output repo commit hash": output_repo_hash,
-            "Project repo commit hash": str(self.head.commit),
-            "Project repo folder name": self.path.name,
-            "Project repo remotes": self.remote_urls,
-            "Python sys args": str(sys.argv),
-            "Tags": ", ".join(self.tags),
-            "Options hash": self.options_hash,
-        }
-        if output_dict is not None:
-            meta_info_dict.update(output_dict)
+        entry = LogEntry(
+            output_repo_commit_message=output_commit_message,
+            output_repo_branch=output_branch_name,
+            output_repo_commit_hash=output_repo_hash,
+            project_repo_commit_hash=str(self.head.commit),
+            project_repo_folder_name=self.path.name,
+            project_repo_remotes=self.remote_urls,
+            python_sys_args=str(sys.argv),
+            tags=", ".join(self.tags),
+            options_hash=self.options_hash,
+            filepath=None,
+            **output_dict
+        )
 
         with open(json_filepath, "w") as f:
-            json.dump(meta_info_dict, f, indent=2)
+            json.dump(entry.to_dict(), f, indent=2)
 
-        if self.output_log_file.exists():
-            with open(self.output_log_file) as tsv_file_handle:
-                reader = csv.DictReader(tsv_file_handle, delimiter="\t")
-                rows: List[dict] = [row for row in reader]
-        else:
-            rows = []
-
-        rows.append(meta_info_dict)
-        fieldnames = list(rows[0].keys()) + list(set(meta_info_dict.keys()) - set(rows[0].keys()))
-
-        with open(self.output_log_file, "w", newline="") as tsv_file_handle:
-            writer = csv.DictWriter(tsv_file_handle, fieldnames=fieldnames, delimiter="\t")
-            writer.writeheader()
-            for row in rows:
-                writer.writerow(row)
+        log = OutputLog(self.output_log_file)
+        log.entries[output_branch_name] = entry
+        log.write()
 
         self.dump_package_list(logs_folderpath)
 
         self._copy_code(logs_folderpath)
 
-        self._output_repo.add(".")
-        self._output_repo._git.commit("-m", f"log for '{output_commit_message}' \n"
-                                            f"of branch '{output_branch_name}'")
+        self.output_repo.add(".")
+        self.output_repo._git.commit("-m", f"log for '{output_commit_message}' \n"
+                                           f"of branch '{output_branch_name}'")
 
-        self._output_repo._git.checkout(output_branch_name)
+        self.output_repo._git.checkout(output_branch_name)
         self._most_recent_branch = output_branch_name
 
     def _copy_code(self, target_path):
@@ -1404,10 +1388,10 @@ class ProjectRepo(BaseRepo):
             commit_return = self.output_repo._git.commit("-m", message)
             self.copy_data_to_cache()
             self.update_output_main_logs(output_dict)
-            main_cach_path = self.path / (self._output_folder + "_cached") / self._output_repo.main_branch
+            main_cach_path = self.path / (self._output_folder + "_cached") / self.output_repo.main_branch
             if main_cach_path.exists():
                 delete_path(main_cach_path)
-            self.copy_data_to_cache(self._output_repo.main_branch)
+            self.copy_data_to_cache(self.output_repo.main_branch)
         except git.exc.GitCommandError as e:
             self.output_repo.delete_active_branch_if_branch_is_empty()
             raise e
