@@ -77,12 +77,16 @@ def test_re_load_results():
         branch="master",
     )
 
-    options = Options({"_cadet_options": {"install_path": None, "use_dll": True},
-                       "_temp_directory_base": {"class": "Path", "value": "/dev/shm/schmoelder/CADET-Process/tmp"},
-                       "_cache_directory_base": {"class": "Path", "value": "/dev/shm/schmoelder/CADET-Process/cache"},
-                       "objective": "single-objective",
-                       "optimizer_options": {"optimizer": "U_NSGA3", "n_cores": -4, "n_max_gen": 64},
-                       "commit_message": "single-objective_2025-01-20", "debug": False, "push": True})
+    options = Options({
+        "_cadet_options": {"install_path": None, "use_dll": True},
+        "_temp_directory_base": {"class": "Path", "value": "/dev/shm/schmoelder/CADET-Process/tmp"},
+        "_cache_directory_base": {"class": "Path", "value": "/dev/shm/schmoelder/CADET-Process/cache"},
+        "objective": "single-objective",
+        "optimizer_options": {"optimizer": "U_NSGA3", "n_cores": -4, "n_max_gen": 64},
+        "commit_message": "single-objective_2025-01-20",
+        "debug": False,
+        "push": True
+    })
 
     single_objective_case = Case(batch_elution, options, name=options.objective)
     results_path = single_objective_case.results_path

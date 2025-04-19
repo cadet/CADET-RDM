@@ -8,7 +8,7 @@ from click.testing import CliRunner
 from cadetrdm.cli_integration import cli
 from cadetrdm.io_utils import delete_path
 
-runner = CliRunner()
+runner = CliRunner(mix_stderr=False)
 
 
 def create_repo():
@@ -19,16 +19,14 @@ def create_repo():
     result = runner.invoke(cli, ["init", ])
 
 
-
 def modify_code(path_to_repo):
     # Add changes to the project code
     random_number = random.randint(0, 265)
     filepath = Path(path_to_repo) / f"print_random_number.py"
     with open(filepath, "w") as file:
         file.write(
-            f"print('{random_number}')\n"
             'with open("output/data.txt", "w") as handle:\n'
-            f"    handle.write({random_number})\n"
+            f"    handle.write('{random_number}')\n"
         )
 
 
@@ -109,12 +107,12 @@ def test_05b_execute_command():
     try:
         create_repo()
         modify_code(".")
-        result = runner.invoke(cli, ["commit", "-m", "add code", "-a"])
+        result = runner.invoke(cli, ["commit", "-a", "-m", "add code"])
         print(result.output)
         assert result.exit_code == 0
 
         filepath = Path(".") / f"print_random_number.py"
-        result = runner.invoke(cli, ["run", "command", f"python {filepath.as_posix()}",
+        result = runner.invoke(cli, ["run", "command", f"python {filepath.absolute().as_posix()}",
                                      "create data"])
         print(result.output)
         assert result.exit_code == 0
@@ -170,7 +168,6 @@ def test_run_dockered():
         assert result.exit_code == 0
     finally:
         os.chdir("..")
-
 
 # def test_09_data_verify():
 #     with open()

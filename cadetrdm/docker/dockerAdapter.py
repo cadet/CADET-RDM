@@ -11,8 +11,8 @@ except ImportError:
 import yaml
 
 from cadetrdm.docker import ContainerAdapter
-from cadetrdm.batch_running import Study, Case, Options
-from cadetrdm import Environment
+from cadetrdm.batch_running import Study, Case
+from cadetrdm import Environment, Options
 
 
 class DockerAdapter(ContainerAdapter):

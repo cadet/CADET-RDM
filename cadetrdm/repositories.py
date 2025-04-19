@@ -19,6 +19,7 @@ from typing import List, Optional, Any
 from urllib.request import urlretrieve
 
 import cadetrdm
+from cadetrdm import Options
 from cadetrdm.io_utils import delete_path, test_for_lfs
 from cadetrdm.io_utils import recursive_chmod, write_lines_to_file, wait_for_user, init_lfs
 from cadetrdm.jupyter_functionality import Notebook
@@ -1444,10 +1445,10 @@ class OutputRepo(BaseRepo):
 
     @property
     def output_log(self):
-        if not self.active_branch == self.main_branch:
-            self.checkout(self.main_branch)
         if self.has_uncomitted_changes:
             self._reset_hard_to_head(force_entry=True)
+        if not self.active_branch == self.main_branch:
+            self.checkout(self.main_branch)
         return OutputLog(filepath=self.output_log_file_path)
 
     def print_output_log(self):
