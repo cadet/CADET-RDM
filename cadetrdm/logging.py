@@ -22,7 +22,7 @@ class LogEntry:
         self.options_hash = options_hash
         self._filepath = filepath
         self._environment: Environment = None
-        for key, value in kwargs:
+        for key, value in kwargs.items():
             setattr(self, key, value)
 
     def __repr__(self):
@@ -158,8 +158,13 @@ class OutputLog:
 
     @property
     def header(self):
-        all_keys = list(set().union(*(d.to_dict().keys() for d in self.entries.values())))
-        return all_keys
+        collection_of_keys = None
+        for entry in self.entries.values():
+            if collection_of_keys is None:
+                collection_of_keys = entry.to_dict()
+            collection_of_keys.update(entry.to_dict())
+
+        return collection_of_keys.keys()
 
     def write(self):
         if self._filepath is None:
