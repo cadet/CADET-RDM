@@ -6,6 +6,24 @@ from addict import Dict
 import numpy as np
 
 
+def remove_invalid_keys(dicti, excluded_keys=None):
+    if excluded_keys is None:
+        excluded_keys = []
+
+    def is_valid(key):
+        return not (key.startswith("_") or "__" in key or key in excluded_keys)
+
+    new_dicti = {}
+    for key, value in dicti.items():
+        if not is_valid(key):
+            continue
+        if isinstance(value, dict):
+            value = remove_invalid_keys(value)
+        new_dicti[key] = value
+
+    return new_dicti
+
+
 class CustomEncoder(json.JSONEncoder):
     """Custom encoder to serialize additional types (e.g. numpy arrays) to json."""
 
@@ -68,12 +86,8 @@ class Options(Dict):
         return cls.loads(string)
 
     def get_hash(self):
-        excluded_keys = {"commit_message", "push", "debug"}
-        included_keys = {"study_options", "optimizer_options"}
-        # remaining_keys = set(self.keys()) - excluded_keys
-        remaining_keys = included_keys
-        remaining_keys = {key for key in remaining_keys if not key.startswith("_") or "__" in key}
-        remaining_dict = {key: self[key] for key in remaining_keys}
+        excluded_keys = {"commit_message", "push", "debug", "force"}
+        remaining_dict = remove_invalid_keys(self, excluded_keys=excluded_keys)
         dump = json.dumps(
             remaining_dict,
             cls=CustomEncoder,

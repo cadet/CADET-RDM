@@ -853,6 +853,10 @@ class ProjectRepo(BaseRepo):
         if version_sum < 34:
             changes_were_made = True
             self.fix_gitattributes_log_tsv()
+        if version_sum < 1007:
+            changes_were_made = True
+            warnings.warn("Repo version has outdated options hashes. Updating option hashes in output log.tsv.")
+            self.output_repo.update_log_hashes()
 
         if changes_were_made:
             print(f"Repo version {metadata['cadet_rdm_version']} was outdated. "
@@ -1476,6 +1480,26 @@ class OutputRepo(BaseRepo):
         if not self.active_branch == self.main_branch:
             self.checkout(self.main_branch)
         return OutputLog(filepath=self.output_log_file_path)
+
+    def update_log_hashes(self):
+        if self.has_uncomitted_changes:
+            self._reset_hard_to_head(force_entry=True)
+        if not self.active_branch == self.main_branch:
+            self.checkout(self.main_branch)
+        log = OutputLog(filepath=self.output_log_file_path)
+
+        for branch, entry in log.entries.items():
+            try:
+                self.checkout(branch)
+            except git.GitCommandError:
+                warnings.warn(f"Could not find branch {branch} in output repository.")
+                continue
+            options = Options.load_json_file(self.path / "options.json")
+            entry.options_hash = options.get_hash()
+
+        self.checkout(self.main_branch)
+        log.write()
+        self.commit(message="Updated log hashes", add_all=True)
 
     def print_output_log(self):
         self.checkout(self.main_branch)
