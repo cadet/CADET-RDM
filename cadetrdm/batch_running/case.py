@@ -116,7 +116,7 @@ class Case:
         found_results_with_incorrect_environment = False
 
         semi_correct_hits = []
-        for output_branch, log_entry in output_log.items()[::-1]:
+        for output_branch, log_entry in reversed(output_log.items()):
             matches_study_hash = log_entry.matches_study_hash(study_hash)
             matches_options_hash = log_entry.matches_options_hash(options_hash)
             matches_environment = log_entry.fulfils_environment(self.environment)
