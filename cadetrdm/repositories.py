@@ -5,7 +5,6 @@ import glob
 import importlib
 import json
 import os
-import pathlib
 import shutil
 import sys
 import traceback
@@ -17,6 +16,8 @@ import tarfile
 import tempfile
 from typing import List, Optional, Any
 from urllib.request import urlretrieve
+
+from semantic_version import Version, SimpleSpec
 
 import cadetrdm
 from cadetrdm import Options
@@ -836,24 +837,24 @@ class ProjectRepo(BaseRepo):
         return module
 
     def _update_version(self, metadata, cadetrdm_version):
-        current_version = metadata["cadet_rdm_version"]
+        current_version = Version.coerce(metadata["cadet_rdm_version"])
+
         changes_were_made = False
-        major, minor, patch = [int(x) for x in current_version.split(".")]
-        version_sum = major * 1000 * 1000 + minor * 1000 + patch
-        if version_sum < 9:
+
+        if SimpleSpec("<0.0.9").match(current_version):
             changes_were_made = True
             self._convert_csv_to_tsv_if_necessary()
             self._add_jupytext_file(self.path)
-        if version_sum < 24:
+        if SimpleSpec("<0.0.24").match(current_version):
             changes_were_made = True
             self._expand_tsv_header()
             output_remotes_path = self.path / "output_remotes.json"
             delete_path(output_remotes_path)
             self.add(output_remotes_path)
-        if version_sum < 34:
+        if SimpleSpec("<0.0.34").match(current_version):
             changes_were_made = True
             self.fix_gitattributes_log_tsv()
-        if version_sum < 1007:
+        if SimpleSpec("<0.1.7").match(current_version):
             changes_were_made = True
             warnings.warn("Repo version has outdated options hashes. Updating option hashes in output log.tsv.")
             self.output_repo.update_log_hashes()
