@@ -119,6 +119,11 @@ class OutputLog:
         self._entry_list = self._read_file(filepath)
         self.entries: Dict[str, LogEntry] = self._entries_from_entry_list(self._entry_list)
 
+    @property
+    def n_entries(self) -> int:
+        """int: Number of results stored in the repository."""
+        return len(self.entries)
+
     @classmethod
     def from_list(cls, entry_list: List[List[str]]):
         instance = cls()
