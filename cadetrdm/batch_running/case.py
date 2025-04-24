@@ -11,12 +11,9 @@ from cadetrdm.logging import LogEntry
 
 
 class Case:
-    def __init__(self, project_repo: ProjectRepo, options: Options, environment: Environment = None, name: str = None,
+    def __init__(self, project_repo: ProjectRepo = None, options: Options = None, environment: Environment = None,
+                 name: str = None,
                  study=None):
-        if name is None:
-            name = project_repo.name + "_" + options.get_hash()
-
-        self.name = name
         if study is not None:
             warnings.warn(
                 "Initializing Case() with the study= kwarg is deprecated and will be removed in the future. "
@@ -24,6 +21,12 @@ class Case:
                 FutureWarning
             )
             project_repo = study
+
+        if name is None:
+            name = project_repo.name + "_" + options.get_hash()
+
+        self.name = name
+
         self.project_repo = project_repo
         self.options = options
         self.environment = environment
