@@ -42,11 +42,11 @@ def validate_is_output_repo(path_to_repo):
 
 
 class GitRepo:
-    def __init__(self, repository_path=None, search_parent_directories=True, *args, **kwargs):
+    def __init__(self, path=None, search_parent_directories=True, *args, **kwargs):
         """
         Base class handling most git workflows.
 
-        :param repository_path:
+        :param path:
             Path to the root directory of the repository.
         :param search_parent_directories:
             if True, all parent directories will be searched for a valid repo as well.
@@ -58,13 +58,13 @@ class GitRepo:
         :param kwargs:
             Kwargs handed to git.Repo()
         """
-        if repository_path is None or repository_path == ".":
-            repository_path = os.getcwd()
+        if path is None or path == ".":
+            path = os.getcwd()
 
-        if type(repository_path) is str:
-            repository_path = Path(repository_path)
+        if type(path) is str:
+            path = Path(path)
 
-        self._git_repo = git.Repo(repository_path, search_parent_directories=search_parent_directories, *args, **kwargs)
+        self._git_repo = git.Repo(path, search_parent_directories=search_parent_directories, *args, **kwargs)
         self._git = self._git_repo.git
 
         self._most_recent_branch = self.active_branch.name
@@ -512,11 +512,11 @@ class GitRepo:
 
 
 class BaseRepo(GitRepo):
-    def __init__(self, repository_path=None, search_parent_directories=True, *args, **kwargs):
+    def __init__(self, path=None, search_parent_directories=True, *args, **kwargs):
         """
         Base class handling most git workflows.
 
-        :param repository_path:
+        :param path:
             Path to the root directory of the repository.
         :param search_parent_directories:
             if True, all parent directories will be searched for a valid repo as well.
@@ -528,7 +528,7 @@ class BaseRepo(GitRepo):
         :param kwargs:
             Kwargs handed to git.Repo()
         """
-        super().__init__(repository_path, search_parent_directories, *args, **kwargs)
+        super().__init__(path, search_parent_directories, *args, **kwargs)
         self._metadata = self.load_metadata()
 
     def load_metadata(self):
@@ -757,15 +757,15 @@ class BaseRepo(GitRepo):
 
 
 class ProjectRepo(BaseRepo):
-    def __init__(self, repository_path=None, output_folder=None,
+    def __init__(self, path=None, output_folder=None,
                  search_parent_directories=True, suppress_lfs_warning=False,
-                 url=None,
+                 url=None, branch=None,
                  *args, **kwargs):
         """
         Class for Project-Repositories. Handles interaction between the project repo and
         the output (i.e. results) repo.
 
-        :param repository_path:
+        :param path:
             Path to the root of the git repository.
         :param output_folder:
             Deprecated: Path to the root of the output repository.
@@ -777,17 +777,19 @@ class ProjectRepo(BaseRepo):
         :param suppress_lfs_warning:
             Option to not test for git-lfs installation. Used if running a study in a Docker container
             from a system without git-lfs
+        :param branch:
+            Optional branch to check out upon initialization
         :param args:
             Additional args to be handed to BaseRepo.
         :param kwargs:
             Additional kwargs to be handed to BaseRepo.
         """
-        if repository_path is not None and not Path(repository_path).exists():
+        if path is not None and not Path(path).exists():
             if url is None:
-                raise ValueError(f"Could not find repository at path {repository_path} and no url was given.")
-            ProjectRepo.clone(url=url, to_path=repository_path)
+                raise ValueError(f"Could not find repository at path {path} and no url was given.")
+            ProjectRepo.clone(url=url, to_path=path)
 
-        super().__init__(repository_path, search_parent_directories=search_parent_directories, *args, **kwargs)
+        super().__init__(path, search_parent_directories=search_parent_directories, *args, **kwargs)
 
         if not suppress_lfs_warning:
             test_for_lfs()
@@ -813,6 +815,9 @@ class ProjectRepo(BaseRepo):
         self._on_context_enter_commit_hash = None
         self._is_in_context_manager = False
         self.options_hash = None
+
+        if branch is not None:
+            self.checkout(branch)
 
     @property
     def name(self):
