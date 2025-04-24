@@ -856,8 +856,12 @@ class ProjectRepo(BaseRepo):
             self.fix_gitattributes_log_tsv()
         if SimpleSpec("<0.1.7").match(current_version):
             changes_were_made = True
-            warnings.warn("Repo version has outdated options hashes. Updating option hashes in output log.tsv.")
-            self.output_repo.update_log_hashes()
+            if self.output_repo.output_log.n_entries > 0:
+                warnings.warn(
+                    "Repo version has outdated options hashes. "
+                    "Updating option hashes in output log.tsv."
+                )
+                self.output_repo.update_log_hashes()
 
         if changes_were_made:
             print(f"Repo version {metadata['cadet_rdm_version']} was outdated. "
@@ -1499,7 +1503,8 @@ class OutputRepo(BaseRepo):
             entry.options_hash = options.get_hash()
 
         self.checkout(self.main_branch)
-        log.write()
+        if self.output_log.n_entries > 0:
+            log.write()
         self.commit(message="Updated log hashes", add_all=True)
 
     def print_output_log(self):
