@@ -230,7 +230,7 @@ class Case:
         if self.results_branch is None:
             return None
         else:
-            return self.project_repo.path / (self.project_repo._output_folder + "_cached") / self.results_branch
+            return self.project_repo.cache_folder_for_branch(self.results_branch)
 
     def load(self, ):
         if self.results_branch is None or self.options.get_hash() != self._options_hash:

@@ -1305,6 +1305,23 @@ class ProjectRepo(BaseRepo):
                 print(e)
         return new_branch_name
 
+    def cache_folder_for_branch(self, branch_name=None):
+        """
+        Returns the path to the cache folder for the given branch
+
+        :param branch_name:
+        optional branch name, if None, current branch is used.
+
+        :return Path:
+        Path to folder in cache
+        """
+
+        branch_name_path = branch_name.replace("/", "_")
+
+        # Define the target folder
+        cache_folder = self.path / f"{self._output_folder}_cached" / str(branch_name_path)
+        return cache_folder
+
     def copy_data_to_cache(self, branch_name=None):
         """
         Copy all existing output results into a cached folder and make it read-only.
@@ -1319,8 +1336,12 @@ class ProjectRepo(BaseRepo):
         if branch_name is None:
             branch_name = self.output_repo._git_repo.active_branch.name
 
-        # Define the target folder
-        target_folder = self.path / f"{self._output_folder}_cached" / str(branch_name)
+        target_folder = self.cache_folder_for_branch(branch_name)
+
+        # Ensure that the branch is available locally. If it's only a remote branch, git.archive will fail.
+        local_branches = [head.name for head in self.output_repo._git_repo.heads]
+        if branch_name not in local_branches:
+            self.output_repo.checkout(branch_name)
 
         # Create the target folder if it doesn't exist
         if not target_folder.exists():
@@ -1337,7 +1358,7 @@ class ProjectRepo(BaseRepo):
             # Open the temporary file in read mode
             with open(temp_archive_name, 'rb') as archive_file:
                 # Extract the archive to the specified directory
-                with tarfile.open(fileobj=archive_file, mode='r') as tar:
+                with tarfile.open(fileobj=archive_file, mode='r', errorlevel=0, debug=1) as tar:
                     tar.extractall(path=target_folder)
             Path(temp_archive_name).unlink()
 
