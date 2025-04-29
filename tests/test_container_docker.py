@@ -1,18 +1,18 @@
 from pathlib import Path
 import pytest
 
-from cadetrdm import Study, Options, Environment, Case
-from cadetrdm.docker import DockerAdapter
+from cadetrdm import Study, Options, Environment, Case, ProjectRepo
+from cadetrdm.container import DockerAdapter
 
 
-@pytest.mark.docker
+@pytest.mark.container
 def test_run_dockered():
     WORK_DIR = Path.cwd() / "tmp"
     WORK_DIR.mkdir(parents=True, exist_ok=True)
 
-    rdm_example = Study(
-        WORK_DIR / 'template',
-        "git@github.com:ronald-jaepel/rdm_testing_template.git",
+    rdm_example = ProjectRepo(
+        path=WORK_DIR / 'template',
+        url="git@github.com:ronald-jaepel/rdm_testing_template.git",
         suppress_lfs_warning=True
     )
 
@@ -28,9 +28,12 @@ def test_run_dockered():
     }
 
     matching_environment = Environment(
-        pip_packages={
-            "cadet-rdm": "git+https://github.com/cadet/CADET-RDM.git@3e073dd85c5e54d95422c0cdcc1190d80da9e138"
-        }
+        conda_packages={
+            "libsqlite": "==3.48.0"
+        },
+        # pip_packages={
+        #     "cadet-rdm": "git+https://github.com/cadet/CADET-RDM.git@3e073dd85c5e54d95422c0cdcc1190d80da9e138"
+        # }
     )
 
     case = Case(project_repo=rdm_example, options=options, environment=matching_environment)
@@ -51,8 +54,8 @@ def test_run_dockered():
     assert not has_run_study
 
 
-@pytest.mark.docker
+@pytest.mark.container
 def test_dockered_from_yml():
     docker_adapter = DockerAdapter()
-    has_run_study = docker_adapter.run((Path(__file__).parent.resolve() / "case.yml").as_posix())
+    has_run_study = docker_adapter.run_yml((Path(__file__).parent.resolve() / "case.yml").as_posix())
     assert has_run_study

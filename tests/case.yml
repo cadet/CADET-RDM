@@ -1,8 +1,7 @@
-Study:
+ProjectRepo:
   path: tmp/template
   url: git@github.com:ronald-jaepel/rdm_testing_template.git
   branch: main
-  name: null
 Options:
   commit_message: Trying out new things
   debug: false

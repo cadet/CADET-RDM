@@ -7,7 +7,7 @@ from runner_repo import main
 @click.option("options")
 def run_main(options=None):
     """
-    Setup and run an optimization based on the provided parameters.
+    Setup and run_yml an optimization based on the provided parameters.
 
     Parameters:
         options:

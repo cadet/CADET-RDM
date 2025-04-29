@@ -1,0 +1,11 @@
+name: cadet-rdm
+channels:
+  - conda-forge
+dependencies:
+  - python
+  - cadet
+  - pip
+  - libsqlite==3.48.0
+  - pip:
+      - cadet-process
+      - cadet-rdm[jupyter]

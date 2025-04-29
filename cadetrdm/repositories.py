@@ -927,13 +927,13 @@ class ProjectRepo(BaseRepo):
         except RuntimeError as e:
             errors_encountered += 1
             print(e)
-            print("Please fix the error above and re-run repo.add_remote()")
+            print("Please fix the error above and re-run_yml repo.add_remote()")
         try:
             self.output_repo.add_remote(response_output.ssh_url_to_repo)
         except RuntimeError as e:
             errors_encountered += 1
             print(e)
-            print("Please fix the error above and re-run repo.output_repo.add_remote()")
+            print("Please fix the error above and re-run_yml repo.output_repo.add_remote()")
         if errors_encountered == 0 and push:
             self.push(push_all=True)
 
