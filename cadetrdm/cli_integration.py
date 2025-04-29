@@ -126,7 +126,7 @@ def run_command(command, results_commit_message):
 @run.command(name="dockered")
 @click.argument('yaml_path')
 def run_dockered(yaml_path):
-    from cadetrdm.docker import DockerAdapter
+    from cadetrdm.container import DockerAdapter
     docker_adapter = DockerAdapter()
     docker_adapter.run(yaml_path)
 

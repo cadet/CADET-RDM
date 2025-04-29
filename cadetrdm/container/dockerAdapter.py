@@ -10,9 +10,9 @@ except ImportError:
     print("Warning: no python-docker-interface installation found.")
 import yaml
 
-from cadetrdm.docker import ContainerAdapter
-from cadetrdm.batch_running import Study, Case
-from cadetrdm import Environment, Options
+from cadetrdm.container import ContainerAdapter
+from cadetrdm.batch_running import Study, Case, Options
+from cadetrdm import Environment, ProjectRepo
 
 
 class DockerAdapter(ContainerAdapter):
@@ -21,13 +21,13 @@ class DockerAdapter(ContainerAdapter):
         self.client = docker.from_env()
         self.image = None
 
-    def run(self, yml_path):
+    def run_yml(self, yml_path):
         with open(yml_path, "r") as stream:
             instructions = yaml.safe_load(stream)
 
         instructions = {key.lower(): value for key, value in instructions.items()}
 
-        study = Study(**instructions["study"], suppress_lfs_warning=True)
+        study = ProjectRepo(**instructions["projectrepo"], suppress_lfs_warning=True)
         options = Options(**instructions["options"])
         environment = Environment(**instructions["environment"])
         case = Case(study, options, environment)
@@ -47,34 +47,45 @@ class DockerAdapter(ContainerAdapter):
         container_tmp_filename = "/tmp/options.json"
         options_tmp_filename = self._dump_options(case)
 
-        full_command = self._prepare_command(
+        full_command = self._prepare_case_command(
             case=case,
             command=command,
-            container_tmp_filename=container_tmp_filename
+            container_options_filename=container_tmp_filename
         )
 
         log, return_code = self._run_command(
-            container_tmp_filename=container_tmp_filename,
             full_command=full_command,
             image=image,
-            options_tmp_filename=options_tmp_filename
+            mounts={options_tmp_filename: container_tmp_filename},
         )
 
         return log, return_code
 
-    def _run_command(self, container_tmp_filename, full_command, image, options_tmp_filename):
+    def _run_command(self, full_command, image, mounts=None):
+        """
+
+        :param full_command:
+        :param image:
+        :param mounts: Dictionary mapping host paths to container paths
+        :return:
+        """
 
         ssh_location = Path.home() / ".ssh"
         if not ssh_location.exists():
             raise FileNotFoundError("No ssh folder found. Please report this on GitHub/CADET/CADET-RDM")
 
-        container = self.client.containers.run(
+        volumes = {
+            f"{Path.home()}/.ssh": {'bind': "/root/.ssh_host_os", 'mode': "ro"},
+        }
+        if mounts is None:
+            mounts = {}
+        for host_path, container_path in mounts.items():
+            volumes[host_path.absolute().as_posix()] = {'bind': container_path, 'mode': 'ro'}
+
+        container = self.client.containers.run_yml(
             image=image,
             command=full_command,
-            volumes={
-                f"{Path.home()}/.ssh": {'bind': "/root/.ssh_host_os", 'mode': "ro"},
-                options_tmp_filename.absolute().as_posix(): {'bind': container_tmp_filename, 'mode': 'ro'}
-            },
+            volumes=volumes,
             detach=True,
             remove=False
         )
@@ -93,43 +104,9 @@ class DockerAdapter(ContainerAdapter):
 
         return full_log, exit_code
 
-    def _prepare_command(self, case, command, container_tmp_filename):
-        # ensure ssh in the container knows where to look for known_hosts and that .ssh/config is read-only
-        command_ssh = 'cp -r /root/.ssh_host_os /root/.ssh && chmod 600 /root/.ssh/*'
-
-        # copy over git config
-        git_config_list = subprocess.check_output(
-            "git config --list --show-origin --global",
-            shell=True
-        ).decode().split("\n")
-        git_config = {
-            "user.name": None,
-            "user.email": None,
-        }
-        for line in git_config_list:
-            for key in git_config.keys():
-                if key in line:
-                    value = line.split("=")[-1]
-                    # print(value)
-                    git_config[key] = value
-
-        git_commands = [f'git config --global {key} "{value}"' for key, value in git_config.items()]
-
-        # pull the study from the URL into a "study" folder
-        command_pull = f"rdm clone {case.project_repo.url} study"
-        # cd into the "study" folder
-        command_cd = "cd study"
-        # run main.py with the options, assuming main.py lies within a sub-folder with the same name as the study.name
-        if command is None:
-            command_python = f"python {case.project_repo.name}/main.py {container_tmp_filename}"
-        else:
-            command_python = command
-
-        commands = git_commands + [command_ssh, command_pull, command_cd, command_python]
-        full_command = 'bash -c "' + ' && '.join(commands) + '"'
-        return full_command
-
     def _dump_options(self, case):
+        if not Path("tmp").exists():
+            os.makedirs("tmp")
         tmp_filename = Path("tmp/" + next(tempfile._get_candidate_names()) + ".json")
         case.options.dump_json_file(tmp_filename)
         return tmp_filename
@@ -197,17 +174,12 @@ class DockerAdapter(ContainerAdapter):
         case.project_repo._reset_hard_to_head(force_entry=True)
 
         dockerfile = Path(case.project_repo.path) / "Dockerfile"
-        conda, pip = case.environment.prepare_install_instructions()
-        # We need to switch to root to update conda packages and to the $CONDA_USER to update pip packages
-        install_command = "\n"
-        if len(conda) > 0:
-            install_command += f"RUN {conda}\n"
-        if len(pip) > 0:
-            install_command += f"RUN {pip}\n"
-            install_command += f"RUN pip install --force-reinstall --no-deps {pip.split('pip install')[-1]}\n"
+        install_command = case.environment.prepare_install_instructions()
+        if install_command is None:
+            return
 
         with open(dockerfile, "a") as handle:
-            handle.write(install_command)
+            handle.write(f"\n{install_command}\n")
 
     def __del__(self):
         self.client.close()

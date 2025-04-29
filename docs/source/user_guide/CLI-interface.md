@@ -19,14 +19,14 @@ You can execute python files or arbitray commands using the CLI:
 
 ```bash
 cd path/to/your/project
-rdm run python <path/to/file> "commit message for the results"
-rdm run command "command as it would be run" "commit message for the results"
+rdm run_yml python <path/to/file> "commit message for the results"
+rdm run_yml command "command as it would be run" "commit message for the results"
 ```
 
 For the run-command option, the command must be given in quotes, so:
 
 ```bash
-rdm run command "python example_file.py" "commit message for the results"
+rdm run_yml command "python example_file.py" "commit message for the results"
 ```
 
 ## Re-using results from previous iterations

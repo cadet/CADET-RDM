@@ -4,6 +4,7 @@ from pathlib import Path
 import subprocess
 from typing import Dict
 
+# from cadetrdm.container.containerAdapter import ContainerAdapter
 from cadetrdm.repositories import ProjectRepo
 from cadetrdm import Options
 from cadetrdm.environment import Environment
@@ -167,7 +168,7 @@ class Case:
             print("No matching results were found for these options and study version.")
         return None
 
-    def run_study(self, force=False, container_adapter: "DockerAdapter" = None) -> bool:
+    def run_study(self, force=False, container_adapter: "ContainerAdapter" = None, command: str = None) -> bool:
         """
         Run specified study commands in the given repository.
 
@@ -185,7 +186,7 @@ class Case:
         else:
             print("WARNING: Not updating the repositories while in debug mode.")
 
-        if not force and self.has_results_for_this_run:
+        if self.has_results_for_this_run and not force:
             print(f"{self.project_repo.path} has already been computed with these options. Skipping...")
             return True
 
@@ -198,7 +199,7 @@ class Case:
             self.status = 'running'
 
             if container_adapter is not None:
-                log, return_code = container_adapter.run_case(self)
+                log, return_code = container_adapter.run_case(self, command=command)
                 if return_code != 0:
                     self.status = "failed"
                     return False

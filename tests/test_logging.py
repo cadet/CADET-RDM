@@ -83,8 +83,6 @@ def test_environment_from_yml():
     assert not environment.fulfils("cadet", ">4.4.0")
     assert environment.fulfils_environment(environment)
 
-    environment.prepare_install_instructions()
-
     requirements = {
         "text-unidecode": "1.3",
         "xarray": "<=2024.2.0",
@@ -94,6 +92,10 @@ def test_environment_from_yml():
     fulfilled_requirements.pip_packages["scikit-learn"] = "~1.4.1"
 
     assert environment.fulfils_environment(fulfilled_requirements)
+
+    instructions = ("conda install -y cadet>=4.4.0 && "
+                    "pip install 'text-unidecode==1.3' 'xarray<=2024.2.0' 'zipp==3.18' 'scikit-learn=1.4.1'")
+    assert instructions == fulfilled_requirements.prepare_install_instructions()
 
     not_fulfilled_requirements = Environment(conda_packages={"cadet": ">=4.4.0"}, pip_packages={"xarray": ">=2026.2.0"})
 
@@ -113,10 +115,7 @@ def test_environment():
     assert environment.fulfils("cadet", "~4.4.0")
     assert not environment.fulfils("cadet", ">4.4.0")
 
-    install_instructions = (
-        'conda install -y cadet=4.4.0 tbb=2024.0.0',
-        "pip install 'xarray==2024.2.0'"
-    )
+    install_instructions = "conda install -y cadet=4.4.0 tbb=2024.0.0 && pip install 'xarray==2024.2.0'"
     assert environment.prepare_install_instructions() == install_instructions
 
     yml_dict = {'name': None,
@@ -148,11 +147,11 @@ def test_environment():
         pip_packages={"xarray": ">2024.2.0", "pydantic": "<=2.6.4", }
     )
 
-    install_instructions = (
-        'conda install -y cadet>4.4.0 tbb>=2024.0.0 mkl=2024.0.0',
-        "pip install 'xarray>2024.2.0' 'pydantic<=2.6.4'"
-    )
+    install_instructions = ("conda install -y cadet>4.4.0 tbb>=2024.0.0 mkl=2024.0.0 && "
+                            "pip install 'xarray>2024.2.0' 'pydantic<=2.6.4'")
+
     assert complex_environment.prepare_install_instructions() == install_instructions
+
 
 @pytest.mark.slow
 def test_update_environment():
@@ -160,6 +159,8 @@ def test_update_environment():
     subprocess.run(f'conda create -n testing_env_cadet_rdm python=3.11 -y', shell=True)
     target_env = Environment(
         conda_packages={"libiconv": "1.17", "openssl": ">=3.3"},
+        # Currently not aware of any way of activating a conda env and then running commands in it. Therefore,
+        # pip requirements are excluded from this test.
         # pip_packages={"cadet-rdm": "0.0.44"}
     )
 
@@ -167,18 +168,11 @@ def test_update_environment():
     current_env = Environment.from_yml_string(check.stdout.decode())
     assert not current_env.fulfils_environment(target_env)
 
-    conda_instructions, pip_instructions = target_env.prepare_install_instructions()
-    conda_instructions = conda_instructions.replace("install -y", "install --name testing_env_cadet_rdm -y")
-    print(conda_instructions)
-    subprocess.run(conda_instructions, shell=True)
-
-    # Currently not aware of any way of activating a conda env and then running commands in it.
-    # pip_instructions = "conda run -n testing_env_cadet_rdm " + pip_instructions
-    # print(pip_instructions)
-    # subprocess.run(pip_instructions, shell=True)
+    install_instructions = target_env.prepare_install_instructions()
+    install_instructions = install_instructions.replace("install -y", "install --name testing_env_cadet_rdm -y")
+    print(install_instructions)
+    subprocess.run(install_instructions, shell=True)
 
     check = subprocess.run("conda env export -n testing_env_cadet_rdm ", shell=True, capture_output=True)
     current_env = Environment.from_yml_string(check.stdout.decode())
     assert current_env.fulfils_environment(target_env)
-
-

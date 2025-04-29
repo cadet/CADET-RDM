@@ -89,7 +89,7 @@ def run_command(command):
     Parameters
     ----------
     command : str
-        The shell command to run.
+        The shell command to run_yml.
 
     Returns
     -------
@@ -162,7 +162,7 @@ def create_output(root_path: Path, output_path: Path, n_cores=1):
 
 def convert_python_to_ipynb(myst_file_path, ipynb_file_path):
     """Run jupytext with --output ipynb flag on myst_file_path. Will skip README files.
-    Will run the jupyter notebooks.
+    Will run_yml the jupyter notebooks.
 
     Parameters
     ----------

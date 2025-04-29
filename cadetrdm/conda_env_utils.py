@@ -12,6 +12,6 @@ def prepare_conda_env(url: str = None):
         with tempfile.NamedTemporaryFile(delete=False, prefix="environment_", suffix=".yaml") as tmp_file:
             shutil.copyfileobj(response, tmp_file)
 
-    print("Please now run this command in a terminal (Linux) or anaconda shell (Windows):\n")
+    print("Please now run_yml this command in a terminal (Linux) or anaconda shell (Windows):\n")
     print(f"conda deactivate && conda env create -f {tmp_file.name}\n")
     return
