@@ -1,4 +1,4 @@
-__version__ = "0.1.7"
+__version__ = "0.1.8"
 
 
 from cadetrdm.conda_env_utils import prepare_conda_env
