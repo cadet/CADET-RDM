@@ -1499,6 +1499,8 @@ class OutputRepo(BaseRepo):
             except git.GitCommandError:
                 warnings.warn(f"Could not find branch {branch} in output repository.")
                 continue
+            if not (self.path / "options.json").exists():
+                continue
             options = Options.load_json_file(self.path / "options.json")
             entry.options_hash = options.get_hash()
 
