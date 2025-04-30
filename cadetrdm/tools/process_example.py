@@ -106,12 +106,16 @@ def remove_non_jupytext_files(file_list):
     :param file_list:
     :return:
     """
+    if len(file_list) == 0:
+        raise RuntimeError("No python files found in repository")
     filtered_list = []
     for file in file_list:
         with open(file, "r", encoding="utf8") as handle:
             lines = handle.readlines()
         if any("jupytext:" in line for line in lines):
             filtered_list.append(file)
+    if len(file_list) == 0:
+        raise RuntimeError("All python files found in repository are not tagged with jupytext.")
     return filtered_list
 
 
