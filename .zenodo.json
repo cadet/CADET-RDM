@@ -22,7 +22,7 @@
   "keywords": [
    "research data management", "simulation", "reproducibility", "containerization"
   ],
-  "version": "0.0.42",
+  "version": "1.0.0",
   "access_right": "open",
   "communities": [
     { "identifier": "open-source" }
