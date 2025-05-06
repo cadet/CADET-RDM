@@ -59,7 +59,7 @@ jobs:
       - name: Install Dependencies
         run: |
           pip install -U pytest setuptools
-          pip install .[testing]
+          pip install . --group testing
 
       - name: Verify Installation
         run: |
