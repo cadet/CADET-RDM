@@ -8,7 +8,7 @@ from click.testing import CliRunner
 from cadetrdm.cli_integration import cli
 from cadetrdm.io_utils import delete_path
 
-runner = CliRunner(mix_stderr=False)
+runner = CliRunner()
 
 
 def create_repo():
