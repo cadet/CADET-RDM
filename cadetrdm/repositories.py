@@ -1336,12 +1336,14 @@ class ProjectRepo(BaseRepo):
         cache_folder = self.path / f"{self._output_folder}_cached" / str(branch_name_path)
         return cache_folder
 
-    def copy_data_to_cache(self, branch_name=None):
+    def copy_data_to_cache(self, branch_name=None, target_folder=None):
         """
         Copy all existing output results into a cached folder and make it read-only.
 
         :param branch_name:
         optional branch name, if None, current branch is used.
+        :param target_folder:
+        optional target directory, if None, default cache folder is used.
 
         :return Path:
         Path to folder in cache
@@ -1350,7 +1352,9 @@ class ProjectRepo(BaseRepo):
         if branch_name is None:
             branch_name = self.output_repo._git_repo.active_branch.name
 
-        target_folder = self.cache_folder_for_branch(branch_name)
+        if target_folder is None:
+            target_folder = self.cache_folder_for_branch(branch_name)
+        target_folder = Path(target_folder)
 
         # Ensure that the branch is available locally. If it's only a remote branch, git.archive will fail.
         local_branches = [head.name for head in self.output_repo._git_repo.heads]
