@@ -32,7 +32,7 @@ jobs:
 
     steps:
       - name: Checkout Code
-        uses: actions/checkout@master
+        uses: actions/checkout@v4
 
       - name: Set up Python
         uses: actions/setup-python@v4
