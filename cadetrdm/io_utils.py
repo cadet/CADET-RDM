@@ -34,12 +34,12 @@ def write_lines_to_file(path, lines, open_type="a"):
     add_initial_linebreak = False
 
     if os.path.exists(path) and open_type == "a":
-        with open(path, "r") as f:
+        with open(path, "r", encoding="utf-8") as f:
             existing_lines = f.readlines()
         if len(existing_lines) > 0 and not existing_lines[-1].endswith("\n"):
             add_initial_linebreak = True
 
-    with open(path, open_type) as f:
+    with open(path, open_type, encoding="utf-8") as f:
         f.writelines(add_linebreaks(lines, initial_linebreak=add_initial_linebreak))
 
 
