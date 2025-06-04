@@ -66,6 +66,12 @@ docs = [
     "numpydoc>=1.5.0",
     "myst-nb>=0.17.1",
 ]
+dev = [
+    {include-group = "docs"},
+    {include-group = "testing"},
+    "pre-commit",
+    "ruff<=0.11.4",
+]
 
 [project.optional-dependencies]
 jupyter = [
