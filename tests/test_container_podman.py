@@ -5,7 +5,7 @@ import pytest
 from cadetrdm import Options, Environment, Case, ProjectRepo
 from cadetrdm.container import PodmanAdapter
 
-IMAGE_NAME = "ghcr.io/ronald-jaepel/cadet-rdm-jupyter:latest"
+IMAGE_NAME = "ghcr.io/cadet/cadet-suite:Core-v5.0.4-docker02-Python-1.1.0-Process-0.10.1"
 
 
 @pytest.mark.container
