@@ -82,9 +82,9 @@ class DockerAdapter(ContainerAdapter):
         for host_path, container_path in mounts.items():
             volumes[host_path.absolute().as_posix()] = {'bind': container_path, 'mode': 'ro'}
 
-        container = self.client.containers.run_yml(
+        container = self.client.containers.run(
             image=image,
-            command=full_command,
+            command=f"bash -c '{full_command}'",
             volumes=volumes,
             detach=True,
             remove=False
