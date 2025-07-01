@@ -1,6 +1,7 @@
 [build-system]
-requires = ["setuptools>=61.0"]
+requires = ["setuptools", "wheel", "build"]
 build-backend = "setuptools.build_meta"
+
 
 [project]
 name = "CADET-RDM"
