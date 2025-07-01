@@ -8,7 +8,8 @@ dynamic = ["version"]
 authors = [
     { name = "Ronald Jäpel", email = "r.jaepel@fz-juelich.de" },
     { name = "Johannes Schmölder", email = "j.schmoelder@fz-juelich.de" },
-    { name = "Eric von Lieres", email = "e.von.lieres@fz-juelich.de" }
+    { name = "Eric von Lieres", email = "e.von.lieres@fz-juelich.de" },
+    { name = "Hannah Lanzrath", email = "h.lanzrath@fz-juelich.de" }
 ]
 description = "A Python toolbox for research data management."
 readme = "README.md"
