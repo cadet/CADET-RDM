@@ -1,9 +1,8 @@
-name: Build and Publish cadet-rdm
+name: Build and Publish CADET-RDM
 
 on:
-  push:
-    tags:
-      - "v*"
+  release:
+    types: [published]
   workflow_dispatch:
 
 jobs:
