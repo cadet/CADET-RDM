@@ -248,7 +248,7 @@ def create_output_readme():
                     "",
                     "## Project Repository",
                     "",
-                    "The project repository for this case study is available here:",
+                    "The project repository for this case study is available here: ",
                     "[Link to Project Repository]() (not actually set yet because no remote has been configured at this moment)"]
     write_lines_to_file("README.md", readme_lines, open_type="a")
 
