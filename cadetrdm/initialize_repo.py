@@ -233,22 +233,20 @@ def create_environment_yml():
 
 
 def create_readme():
-    readme_lines = ["# Project repo", "Your code goes in this repo.", "Please add a description here including: ",
-                    "- authors", "- project", "- things we will find interesting later", "", "",
-                    "Please update the environment.yml with your python environment requirements.", "", "",
-                    "The output repository can be found at:",
-                    "[output_repo]() (not actually set yet because no remote has been configured at this moment"]
+    readme_lines = ["## Output Repository", 
+                    "",
+                    "The output data for this case study can be found here:",
+                    "[Link to Output Repository]() (not actually set yet because no remote has been configured at this moment)"]
     write_lines_to_file("README.md", readme_lines, open_type="a")
 
 
 def create_output_readme():
-    readme_lines = ["# Output repo", "Your results will be stored here.", "Please add a description here including: ",
-                    "- authors", "- project", "- things we will find interesting later", "", "",
-                    "The project repository can be found at:",
-                    "[project_repo]() (not actually set yet because no remote has been configured at this moment"]
+    readme_lines = ["## Project Repository",
+                    "",
+                    "The project repository for this case study is available here:",
+                    "[Link to Project Repository]() (not actually set yet because no remote has been configured at this moment)"]
     write_lines_to_file("README.md", readme_lines, open_type="a")
 
 
 def create_dockerfile():
     write_lines_to_file("Dockerfile", dockerfile_template, open_type="w")
-
