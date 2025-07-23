@@ -740,7 +740,7 @@ class BaseRepo(GitRepo):
             with open(readme_filepath, "r") as file_handle:
                 filelines = file_handle.readlines()
                 filelines_giving_output_repo = [i for i in range(len(filelines))
-                                                if filelines[i].startswith(f"[{repo_identifier}](")]
+                                                if filelines[i].strip().startswith(f"[{repo_identifier}](")]
                 if len(filelines_giving_output_repo) == 1:
                     line_to_be_modified = filelines_giving_output_repo[0]
                     filelines[line_to_be_modified] = output_link_line
