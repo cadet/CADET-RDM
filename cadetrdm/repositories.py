@@ -737,7 +737,7 @@ class BaseRepo(GitRepo):
                                             for output_repo_remote in remotes_url_list_http) + "\n"
 
             readme_filepath = self.path / "README.md"
-            with open(readme_filepath, "r") as file_handle:
+            with open(readme_filepath, "r", encoding="utf-8") as file_handle:
                 filelines = file_handle.readlines()
                 filelines_giving_output_repo = [i for i in range(len(filelines))
                                                 if filelines[i].strip().startswith(f"[{repo_identifier}](")]
