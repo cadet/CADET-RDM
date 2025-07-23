@@ -562,14 +562,14 @@ class BaseRepo(GitRepo):
                 if output_repo.has_uncomitted_changes:
                     output_repo.stash_all_changes()
                 output_repo.checkout(output_repo.main_branch)
-            output_repo.add_list_of_remotes_in_readme_file("project_repo", self.remote_urls)
+            output_repo.add_list_of_remotes_in_readme_file("Link to Project Repository", self.remote_urls)
             output_repo.add("README.md")
             output_repo.commit("Add remote for project repo", verbosity=0, add_all=False)
         if self._metadata["is_output_repo"]:
             # This folder is an output repo
             project_repo = ProjectRepo(self.path.parent)
             project_repo.update_output_remotes_json()
-            project_repo.add_list_of_remotes_in_readme_file("output_repo", self.remote_urls)
+            project_repo.add_list_of_remotes_in_readme_file("Link to Output Repository", self.remote_urls)
             project_repo.add(project_repo.data_json_path)
             project_repo.add("README.md")
             project_repo.commit("Add remote for output repo", verbosity=0, add_all=False)
@@ -745,7 +745,7 @@ class BaseRepo(GitRepo):
                     line_to_be_modified = filelines_giving_output_repo[0]
                     filelines[line_to_be_modified] = output_link_line
                 elif len(filelines_giving_output_repo) == 0:
-                    filelines.append("The output repo can be found at:\n")
+                    filelines.append("The output repository can be found at:\n") #method can be used for project and output repositories, "the corresponding repository can be found at... would be better"
                     filelines.append(output_link_line)
                 else:
                     raise RuntimeError(f"Multiple lines in the README.md at {readme_filepath}"
@@ -1157,13 +1157,13 @@ class ProjectRepo(BaseRepo):
 
         # update urls in main branch of output_repo
         self.output_repo._git.checkout(self.output_repo.main_branch)
-        self.output_repo.add_list_of_remotes_in_readme_file("project_repo", self.remote_urls)
+        self.output_repo.add_list_of_remotes_in_readme_file("Link to Project Repository", self.remote_urls)
         if commit:
             self.output_repo.commit(message="Update remote links", add_all=False, verbosity=1)
 
     def update_output_remotes_json(self):
         output_repo_remotes = self.output_repo.remote_urls
-        self.add_list_of_remotes_in_readme_file("output_repo", output_repo_remotes)
+        self.add_list_of_remotes_in_readme_file("Link to Output Repository", output_repo_remotes)
 
         with open(self.data_json_path, "r") as file_handle:
             metadata = json.load(file_handle)
@@ -1297,7 +1297,7 @@ class ProjectRepo(BaseRepo):
         # update urls in main branch of output_repo
         output_repo._git.checkout(output_repo.main_branch)
         project_repo_remotes = self.remote_urls
-        output_repo.add_list_of_remotes_in_readme_file("project_repo", project_repo_remotes)
+        output_repo.add_list_of_remotes_in_readme_file("Link to Project Repository", project_repo_remotes)
         output_repo.commit("Update urls", verbosity=0)
 
         # Create the new branch
