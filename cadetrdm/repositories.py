@@ -760,7 +760,7 @@ class BaseRepo(GitRepo):
 class ProjectRepo(BaseRepo):
     def __init__(self, path=None, output_folder=None,
                  search_parent_directories=True, suppress_lfs_warning=False,
-                 url=None, branch=None,
+                 url=None, branch=None, options=None,
                  *args, **kwargs):
         """
         Class for Project-Repositories. Handles interaction between the project repo and
@@ -780,6 +780,8 @@ class ProjectRepo(BaseRepo):
             from a system without git-lfs
         :param branch:
             Optional branch to check out upon initialization
+        :param options:
+            Options dictionary containing ...
         :param args:
             Additional args to be handed to BaseRepo.
         :param kwargs:
@@ -805,6 +807,7 @@ class ProjectRepo(BaseRepo):
         self._project_uuid = self._metadata["project_uuid"]
         self._output_uuid = self._metadata["output_uuid"]
         self._output_folder = self._metadata["output_remotes"]["output_folder_name"]
+        self.options = options
         if not (self.path / self._output_folder).exists():
             print("Output repository was missing, cloning now.")
             self._clone_output_repo()
@@ -944,7 +947,13 @@ class ProjectRepo(BaseRepo):
         """
         project_repo_hash = str(self.head.commit)
         timestamp = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
-        branch_name = "_".join([timestamp, str(self.active_branch), project_repo_hash[:7]])
+
+        if self.options and "branch_prefix" in self.options:
+            branch_prefix = self.options["branch_prefix"]+"_"
+        else:
+            branch_prefix = ""
+
+        branch_name = branch_prefix+"_".join([timestamp, str(self.active_branch), project_repo_hash[:7]])
         return branch_name
 
     def check_results_main(self):
