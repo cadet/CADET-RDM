@@ -277,10 +277,10 @@ def test_rdm_check():
     repo.check()
     with open(repo.path / "README.md", "r") as handle:
         readme_lines = handle.readlines()
-    assert f'[output_repo]({ssh_url_to_http_url(new_output_url)})\n' in readme_lines
+    assert f'[Link to Output Repository]({ssh_url_to_http_url(new_output_url)})\n' in readme_lines
     with open(repo.output_repo.path / "README.md", "r") as handle:
         readme_lines = handle.readlines()
-    assert f'[project_repo]({ssh_url_to_http_url(new_project_url)})\n' in readme_lines
+    assert f'[Link to Project Repository]({ssh_url_to_http_url(new_project_url)})\n' in readme_lines
 
 
 def test_copy_external_data():
