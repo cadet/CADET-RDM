@@ -1,5 +1,5 @@
 {
-  "title": "CADET-RDM: Version 1.0.0",
+  "title": "CADET-RDM: Version 1.0.1",
   "upload_type": "software",
   "creators": [
     {
@@ -8,8 +8,18 @@
       "affiliation": "Forschungszentrum Jülich"
     },
     {
+      "name": "Hannah, Lanzrath",
+      "orcid": "0000-0002-2675-9002",
+      "affiliation": "Forschungszentrum Jülich"
+    },
+    {
       "name": "Schmölder, Johannes",
       "orcid": "0000-0003-0446-7209",
+      "affiliation": "Forschungszentrum Jülich"
+    },
+    {
+      "name": "Katharina, Paul",
+      "orcid": "0009-0008-5016-0340",
       "affiliation": "Forschungszentrum Jülich"
     },
     {
@@ -22,7 +32,7 @@
   "keywords": [
    "research data management", "simulation", "reproducibility", "containerization"
   ],
-  "version": "1.0.0",
+  "version": "1.0.1",
   "access_right": "open",
   "communities": [
     { "identifier": "open-source" }
