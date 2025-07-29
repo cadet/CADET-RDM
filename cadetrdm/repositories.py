@@ -36,7 +36,7 @@ except ImportError:
 
 
 def validate_is_output_repo(path_to_repo):
-    with open(os.path.join(path_to_repo, ".cadet-rdm-data.json"), "r") as file_handle:
+    with open(os.path.join(path_to_repo, ".cadet-rdm-data.json"), "r", encoding="utf-8") as file_handle:
         rdm_data = json.load(file_handle)
         if rdm_data["is_project_repo"]:
             raise ValueError("Please use the URL to the output repository.")
@@ -533,12 +533,12 @@ class BaseRepo(GitRepo):
         self._metadata = self.load_metadata()
 
     def load_metadata(self):
-        with open(self.data_json_path, "r") as handle:
+        with open(self.data_json_path, "r", encoding="utf-8") as handle:
             metadata = json.load(handle)
         if "output_remotes" not in metadata and metadata["is_project_repo"]:
             # this enables upgrades from v0.0.23 to v0.0.24.
             output_remotes_path = self.path / "output_remotes.json"
-            with open(output_remotes_path, "r") as handle:
+            with open(output_remotes_path, "r", encoding="utf-8") as handle:
                 output_remotes = json.load(handle)
             metadata["output_remotes"] = output_remotes
         return metadata
@@ -623,12 +623,12 @@ class BaseRepo(GitRepo):
         :return:
         """
         path_to_be_ignored = self.ensure_relative_path(path_to_be_ignored)
-        with open(self.path / ".gitignore", "r") as file_handle:
+        with open(self.path / ".gitignore", "r", encoding="utf-8") as file_handle:
             gitignore = file_handle.readlines()
             gitignore[-1] += "\n"  # Sometimes there is no trailing newline
         if str(path_to_be_ignored) + "\n" not in gitignore:
             gitignore.append(str(path_to_be_ignored) + "\n")
-        with open(self.path / ".gitignore", "w") as file_handle:
+        with open(self.path / ".gitignore", "w", encoding="utf-8") as file_handle:
             file_handle.writelines(gitignore)
 
     def update_cadet_rdm_cache_json(self, source_repo_location, source_repo_branch, target_repo_location):
@@ -643,10 +643,10 @@ class BaseRepo(GitRepo):
         Path where to put the repo or data
         """
         if not self.cache_json_path.exists():
-            with open(self.cache_json_path, "w") as file_handle:
+            with open(self.cache_json_path, "w", encoding="utf-8") as file_handle:
                 file_handle.writelines("{}")
 
-        with open(self.cache_json_path, "r") as file_handle:
+        with open(self.cache_json_path, "r", encoding="utf-8") as file_handle:
             rdm_cache = json.load(file_handle)
 
         repo = GitRepo(target_repo_location)
@@ -665,7 +665,7 @@ class BaseRepo(GitRepo):
             "commit_hash": commit_hash,
         }
 
-        with open(self.cache_json_path, "w") as file_handle:
+        with open(self.cache_json_path, "w", encoding="utf-8") as file_handle:
             json.dump(rdm_cache, file_handle, indent=2)
 
     def verify_unchanged_cache(self):
@@ -677,7 +677,7 @@ class BaseRepo(GitRepo):
         :return:
         """
 
-        with open(self.cache_json_path, "r") as file_handle:
+        with open(self.cache_json_path, "r", encoding="utf-8") as file_handle:
             rdm_cache = json.load(file_handle)
 
         if "__example/path/to/repo__" in rdm_cache.keys():
@@ -752,7 +752,7 @@ class BaseRepo(GitRepo):
                                        f" link to the {repo_identifier}. "
                                        "Can't automatically update the link.")
 
-            with open(readme_filepath, "w") as file_handle:
+            with open(readme_filepath, "w", encoding="utf-8") as file_handle:
                 file_handle.writelines(filelines)
             self.add(readme_filepath)
 
@@ -867,17 +867,17 @@ class ProjectRepo(BaseRepo):
             print(f"Repo version {metadata['cadet_rdm_version']} was outdated. "
                   f"Current CADET-RDM version is {cadetrdm.__version__}.\n Repo has been updated")
             metadata["cadet_rdm_version"] = cadetrdm_version
-            with open(self.data_json_path, "w") as f:
+            with open(self.data_json_path, "w", encoding="utf-8") as f:
                 json.dump(metadata, f, indent=2)
             self.add(self.data_json_path)
             self.commit("update cadetrdm version", add_all=False)
 
     def fix_gitattributes_log_tsv(self):
         file = self.output_path / ".gitattributes"
-        with open(file) as handle:
+        with open(file, encoding="utf-8") as handle:
             lines = handle.readlines()
         lines = [line.replace("rdm-log.tsv", "log.tsv") for line in lines]
-        with open(file, "w") as handle:
+        with open(file, "w", encoding="utf-8") as handle:
             handle.writelines(lines)
         self.output_repo.add(".gitattributes")
         self.output_repo.commit("Update gitattributes")
@@ -973,7 +973,7 @@ class ProjectRepo(BaseRepo):
         :return:
         """
 
-        with open(self.cache_json_path, "r") as file_handle:
+        with open(self.cache_json_path, "r", encoding="utf-8") as file_handle:
             rdm_cache = json.load(file_handle)
 
         if "__example/path/to/repo__" in rdm_cache.keys():
@@ -1007,7 +1007,7 @@ class ProjectRepo(BaseRepo):
         if not self.output_log_file.exists():
             return
 
-        with open(self.output_log_file, "r") as f:
+        with open(self.output_log_file, "r", encoding="utf-8") as f:
             lines = f.readlines()
 
         new_header = [
@@ -1020,7 +1020,7 @@ class ProjectRepo(BaseRepo):
             "Python sys args",
             "Tags",
             "Options hash", ]
-        with open(self.output_log_file, "w") as f:
+        with open(self.output_log_file, "w", encoding="utf-8") as f:
             f.writelines(["\t".join(new_header) + "\n"])
             f.writelines(lines[1:])
 
@@ -1042,12 +1042,12 @@ class ProjectRepo(BaseRepo):
             # We have just initialized the repo and neither tsv nor csv exist.
             return
 
-        with open(csv_filepath) as csv_handle:
+        with open(csv_filepath, encoding="utf-8") as csv_handle:
             csv_lines = csv_handle.readlines()
 
         tsv_lines = [line.replace(",", "\t") for line in csv_lines]
 
-        with open(self.output_log_file, "w") as f:
+        with open(self.output_log_file, "w", encoding="utf-8") as f:
             f.writelines(tsv_lines)
 
         write_lines_to_file(path=self.path / ".gitattributes",
@@ -1092,7 +1092,7 @@ class ProjectRepo(BaseRepo):
             **output_dict
         )
 
-        with open(json_filepath, "w") as f:
+        with open(json_filepath, "w", encoding="utf-8") as f:
             json.dump(entry.to_dict(), f, indent=2)
 
         log = OutputLog(self.output_log_file)
@@ -1165,13 +1165,13 @@ class ProjectRepo(BaseRepo):
         output_repo_remotes = self.output_repo.remote_urls
         self.add_list_of_remotes_in_readme_file("Link to Output Repository", output_repo_remotes)
 
-        with open(self.data_json_path, "r") as file_handle:
+        with open(self.data_json_path, "r", encoding="utf-8") as file_handle:
             metadata = json.load(file_handle)
 
         remotes_dict = {remote.name: str(remote.url) for remote in self.output_repo.remotes}
         metadata["output_remotes"] = {"output_folder_name": self._output_folder, "output_remotes": remotes_dict}
 
-        with open(self.data_json_path, "w") as file_handle:
+        with open(self.data_json_path, "w", encoding="utf-8") as file_handle:
             json.dump(metadata, file_handle, indent=2)
 
         self.add(self.data_json_path)
