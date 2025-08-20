@@ -3,7 +3,10 @@
 
 ## Initialize Project Repository
 
-Create a new project repository or convert an existing repository into a CADET-RDM repo:
+Create a new project repository or convert an existing repository into a CADET-RDM repository. 
+- If no <path-to-repo> is provided, the repository is initialized in the root directory without creating a new directory.
+- If <path-to-repo> is given as a relative path (e.g. "repository_name"), a new directory with that name is created inside the root directory.
+- If <path-to-repo> is given as an absolute path (e.g. C:\Users\me\projects\myrepo), a new directory is created at the specified location.
 
 ```bash
 rdm init <path-to-repo>
@@ -17,7 +20,7 @@ from cadetrdm import initialize_repo
 initialize_repo(path_to_repo)
 ```
 
-The `output_folder_name` can be given optionally. It defaults to `output`.
+The `output_directory_name` can be given optionally. It defaults to `output`.
 
 ## Cookiecutter support
 
@@ -96,7 +99,7 @@ repo.output_repo.add_filetype_to_lfs("*.npy")
 ````
 
 
-or from within the output folder in a command line:
+or from within the output directory in a command line:
 
 ```bash
 rdm lfs add *.npy

@@ -10,7 +10,7 @@ rdm init <path-to-repo>
 ```
 
 
-The `output_folder_name` can be given optionally. It defaults to `output`.
+The `output_directory_name` can be given optionally. It defaults to `output`.
 
 
 ## Executing scripts

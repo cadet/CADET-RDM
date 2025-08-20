@@ -798,15 +798,15 @@ class ProjectRepo(BaseRepo):
             test_for_lfs()
 
         if output_folder is not None:
-            print("Deprecation Warning. Setting the outputfolder manually during repo instantiation is deprecated"
+            print("Deprecation Warning. Setting the output directory manually during repo instantiation is deprecated"
                   " and will be removed in a future update.")
 
         if not self.data_json_path.exists():
-            raise RuntimeError(f"Folder {self.path} does not appear to be a CADET-RDM repository.")
+            raise RuntimeError(f"Directory {self.path} does not appear to be a CADET-RDM repository.")
 
         self._project_uuid = self._metadata["project_uuid"]
         self._output_uuid = self._metadata["output_uuid"]
-        self._output_folder = self._metadata["output_remotes"]["output_folder_name"]
+        self._output_folder = self._metadata["output_remotes"]["output_directory_name"]
         self.options = options
         if not (self.path / self._output_folder).exists():
             print("Output repository was missing, cloning now.")
@@ -888,7 +888,7 @@ class ProjectRepo(BaseRepo):
     def _clone_output_repo(self, multi_options: List[str] = None):
         metadata = self.load_metadata()
         output_remotes = metadata["output_remotes"]
-        output_path = self.path / output_remotes["output_folder_name"]
+        output_path = self.path / output_remotes["output_directory_name"]
         ssh_remotes = list(output_remotes["output_remotes"].values())
         if len(ssh_remotes) == 0:
             warnings.warn("No output remotes configured in .cadet-rdm-data.json")
@@ -1178,7 +1178,7 @@ class ProjectRepo(BaseRepo):
             metadata = json.load(file_handle)
 
         remotes_dict = {remote.name: str(remote.url) for remote in self.output_repo.remotes}
-        metadata["output_remotes"] = {"output_folder_name": self._output_folder, "output_remotes": remotes_dict}
+        metadata["output_remotes"] = {"output_directory_name": self._output_folder, "output_remotes": remotes_dict}
 
         with open(self.data_json_path, "w", encoding="utf-8") as file_handle:
             json.dump(metadata, file_handle, indent=2)
