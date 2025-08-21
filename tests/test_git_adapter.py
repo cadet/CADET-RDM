@@ -158,7 +158,7 @@ def try_initialize_from_remote():
     if Path("test_repo_from_remote").exists():
         delete_path("test_repo_from_remote")
     ProjectRepo.clone(
-        url="git@github.com:ronald-jaepel/rdm_testing_template.git",
+        url="git@github.com:cadet/RDM-Testing-Template.git",
         to_path="test_repo_from_remote"
     )
     assert try_init_gitpython_repo("test_repo_from_remote")
