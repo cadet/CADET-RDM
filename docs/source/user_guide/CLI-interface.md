@@ -32,7 +32,7 @@ rdm run_yml command "python example_file.py" "commit message for the results"
 ## Re-using results from previous iterations
 
 Each result stored with CADET-RDM is given a unique branch name, formatted as:
-`<timestamp>_<output_folder>_"from"_<active_project_branch>_<project_repo_hash[:7]>`
+`<timestamp>_<output_directory>_"from"_<active_project_branch>_<project_repo_hash[:7]>`
 
 With this branch name, previously generated data can be loaded in as input data for
 further calculations. The following command will copy the contents of the `branch_name` branch to the

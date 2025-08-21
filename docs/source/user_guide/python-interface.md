@@ -18,14 +18,14 @@ if __name__ == '__main__':
     # If you've made changes to the code, commit the changes
     repo.commit("Add code to generate and analyse example data")
 
-    # Everything written to the output_folder within this context manager gets tracked
-    # The method repo.output_data() generates full paths to within your output_folder
+    # Everything written to the output_directory within this context manager gets tracked
+    # The method repo.output_data() generates full paths to within your output_directory
     with repo.track_results(results_commit_message="Generate and analyse example data"):
         data = generate_data()
-        write_data_to_file(data, output_folder=repo.output_folder)
+        write_data_to_file(data, output_directory=repo.output_directory)
 
         analysis_results = analyse_data(data)
-        plot_analysis_results(analysis_results, figure_path=repo.output_folder / "analysis" / "regression.png")
+        plot_analysis_results(analysis_results, figure_path=repo.output_directory / "analysis" / "regression.png")
 
 ```
 
@@ -54,7 +54,7 @@ repo.push()
 ## Re-using results from previous iterations
 
 Each result stored with CADET-RDM is given a unique branch name, formatted as:
-`<timestamp>_<output_folder>_"from"_<active_project_branch>_<project_repo_hash[:7]>`
+`<timestamp>_<output_directory>_"from"_<active_project_branch>_<project_repo_hash[:7]>`
 
 With this branch name, previously generated data can be loaded in as input data for
 further calculations.

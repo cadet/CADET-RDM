@@ -142,10 +142,10 @@ def init_cookiecutter(cookiecutter_template, path_to_repo):
 #
 #     repo = ProjectRepo(".")
 #
-#     if Path(repo._output_folder).exists():
-#         raise RuntimeError(f"Output repo at {repo._output_folder} already exists.")
+#     if Path(repo._output_directory).exists():
+#         raise RuntimeError(f"Output repo at {repo._output_directory} already exists.")
 #
-#     initialize_output_repo(repo._output_folder, project_repo_uuid=repo._project_uuid,
+#     initialize_output_repo(repo._output_directory, project_repo_uuid=repo._project_uuid,
 #                            output_repo_uuid=repo._output_uuid, **output_repo_kwargs)
 #
 #     os.chdir(starting_directory)

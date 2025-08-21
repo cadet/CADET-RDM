@@ -758,7 +758,7 @@ class BaseRepo(GitRepo):
 
 
 class ProjectRepo(BaseRepo):
-    def __init__(self, path=None, output_folder=None,
+    def __init__(self, path=None, output_directory=None,
                  search_parent_directories=True, suppress_lfs_warning=False,
                  url=None, branch=None, options=None,
                  *args, **kwargs):
@@ -768,7 +768,7 @@ class ProjectRepo(BaseRepo):
 
         :param path:
             Path to the root of the git repository.
-        :param output_folder:
+        :param output_directory:
             Deprecated: Path to the root of the output repository.
         :param search_parent_directories:
             if True, all parent directories will be searched for a valid repo as well.
@@ -797,7 +797,7 @@ class ProjectRepo(BaseRepo):
         if not suppress_lfs_warning:
             test_for_lfs()
 
-        if output_folder is not None:
+        if output_directory is not None:
             print("Deprecation Warning. Setting the output directory manually during repo instantiation is deprecated"
                   " and will be removed in a future update.")
 
@@ -806,16 +806,16 @@ class ProjectRepo(BaseRepo):
 
         self._project_uuid = self._metadata["project_uuid"]
         self._output_uuid = self._metadata["output_uuid"]
-        self._output_folder = self._metadata["output_remotes"]["output_directory_name"]
+        self._output_directory = self._metadata["output_remotes"]["output_directory_name"]
         self.options = options
-        if not (self.path / self._output_folder).exists():
+        if not (self.path / self._output_directory).exists():
             print("Output repository was missing, cloning now.")
             self._clone_output_repo()
-        self.output_repo = OutputRepo(self.path / self._output_folder)
+        self.output_repo = OutputRepo(self.path / self._output_directory)
 
         if self._metadata["cadet_rdm_version"] != cadetrdm.__version__:
             self._update_version(self._metadata, cadetrdm.__version__)
-            
+
         self._on_context_enter_commit_hash = None
         self._is_in_context_manager = False
         self.options_hash = None
@@ -1046,7 +1046,7 @@ class ProjectRepo(BaseRepo):
         if self.output_log_file.exists():
             return
 
-        csv_filepath = self.path / self._output_folder / "log.csv"
+        csv_filepath = self.path / self._output_directory / "log.csv"
         if not csv_filepath.exists():
             # We have just initialized the repo and neither tsv nor csv exist.
             return
@@ -1178,7 +1178,7 @@ class ProjectRepo(BaseRepo):
             metadata = json.load(file_handle)
 
         remotes_dict = {remote.name: str(remote.url) for remote in self.output_repo.remotes}
-        metadata["output_remotes"] = {"output_directory_name": self._output_folder, "output_remotes": remotes_dict}
+        metadata["output_remotes"] = {"output_directory_name": self._output_directory, "output_remotes": remotes_dict}
 
         with open(self.data_json_path, "w", encoding="utf-8") as file_handle:
             json.dump(metadata, file_handle, indent=2)
@@ -1231,8 +1231,8 @@ class ProjectRepo(BaseRepo):
         """
         Delete all previously cached results.
         """
-        if (self.path / (self._output_folder + "_cached")).exists():
-            delete_path(self.path / (self._output_folder + "_cached"))
+        if (self.path / (self._output_directory + "_cached")).exists():
+            delete_path(self.path / (self._output_directory + "_cached"))
 
     def import_static_data(self, source_path: Path | str, commit_message):
         """
@@ -1342,7 +1342,7 @@ class ProjectRepo(BaseRepo):
         branch_name_path = branch_name.replace("/", "_")
 
         # Define the target folder
-        cache_folder = self.path / f"{self._output_folder}_cached" / str(branch_name_path)
+        cache_folder = self.path / f"{self._output_directory}_cached" / str(branch_name_path)
         return cache_folder
 
     def copy_data_to_cache(self, branch_name=None, target_folder=None):
@@ -1437,7 +1437,7 @@ class ProjectRepo(BaseRepo):
             commit_return = self.output_repo._git.commit("-m", message)
             self.copy_data_to_cache()
             self.update_output_main_logs(output_dict)
-            main_cach_path = self.path / (self._output_folder + "_cached") / self.output_repo.main_branch
+            main_cach_path = self.path / (self._output_directory + "_cached") / self.output_repo.main_branch
             if main_cach_path.exists():
                 delete_path(main_cach_path)
             self.copy_data_to_cache(self.output_repo.main_branch)
