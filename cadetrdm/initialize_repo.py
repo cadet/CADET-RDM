@@ -24,7 +24,7 @@ def initialize_repo(path_to_repo: str | Path, output_directory_name: (str | bool
     Initialize a git repository at the given path with an optional included output results repository.
 
     :param path_to_repo:
-        Path to main repository. If set to ".", the repository is initialized in the root directory without creating a new directory. If given as a relative path (e.g. "repository_name"), a new directory with that name is created inside the root directory. If given as an absolute path (e.g. C:\Users\me\projects\myrepo), a new directory is created at the specified location.
+        Path to main repository. If set to ".", the repository is initialized in the root directory without creating a new directory. If given as a relative path (e.g. 'repository_name'), a new directory with that name is created inside the root directory. If given as an absolute path (e.g. "C:\\User\\name\\project", a new directory is created at the specified location.
     :param output_directory_name:
         Name for the output repository.
     :param gitignore:

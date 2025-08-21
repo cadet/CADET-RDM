@@ -815,7 +815,7 @@ class ProjectRepo(BaseRepo):
 
         if self._metadata["cadet_rdm_version"] != cadetrdm.__version__:
             self._update_version(self._metadata, cadetrdm.__version__)
-
+            
         self._on_context_enter_commit_hash = None
         self._is_in_context_manager = False
         self.options_hash = None
