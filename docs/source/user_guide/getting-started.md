@@ -24,7 +24,8 @@ The `output_directory_name` can be given optionally. It defaults to `output`.
 
 ## Cookiecutter support
 
-[Cookiecutter](https://github.com/cookiecutter/cookiecutter) can be used to set a template as a starting position for the repository initialization.
+[Cookiecutter](https://github.com/cookiecutter/cookiecutter) can be used to set a template as a starting position for the repository initialization. 
+If <path_to_repo> is given as an absolute or relative path, it overwrites the name which may be given to the repository in the cookiecutter prompt. If no <path_to_repo> is provided, the repository is initialized in the root directory without creating a new directory even if this may be specified in the cookiecutter template. 
 
 
 ```bash
