@@ -1,5 +1,5 @@
 
-# CLI Interface
+# Using the Command Line Interface (CLI)
 
 ## Initialize Project Repository
 
@@ -82,9 +82,9 @@ rdm clone <URL> <path/to/repo>
 
 ## Sharing Results
 
-To share your project code and results with others, you need to create remote repositories on e.g.
-[GitHub](https://github.com/) or GitLab. You need to create a remote for both the _project_ repo and the
-_results_ repo.
+To share your project code and results (`output`) with others, you need to create remote repositories on e.g.
+[GitHub](https://github.com/) or GitLab. You need to create a remote for both the _project_ repository and the
+_output_ repository.
 
 Once created, the remotes need to be added to the local repositories.
 
