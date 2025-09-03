@@ -6,9 +6,9 @@ A CADET-RDM repository typically consists of a `project repository` which contai
 ## Initialize Project Repository
 
 Create a new project repository or convert an existing repository into a CADET-RDM repository. 
-- If no <path-to-repo> is provided, the repository is initialized in the root directory without creating a new directory.
-- If <path-to-repo> is given as a relative path (e.g. "repository_name"), a new directory with that name is created inside the root directory.
-- If <path-to-repo> is given as an absolute path (e.g. C:\Users\me\projects\myrepo), a new directory is created at the specified location.
+- If no `<path-to-repo>` is provided, the repository is initialized in the root directory without creating a new directory.
+- If `<path-to-repo>` is given as a relative path (e.g. "repository_name"), a new directory with that name is created inside the root directory.
+- If `<path-to-repo>` is given as an absolute path (e.g. C:\Users\me\projects\myrepo), a new directory is created at the specified location.
 
 ```bash
 rdm init <path-to-repo>
@@ -24,7 +24,7 @@ initialize_repo(path_to_repo)
 
 The initialization of the RDM repository will generate a project repository containing the following files, should they not have previously existed within the directory: 
 
-´´´bash
+```bash
 .git
 output
 .cadet-rdm-cache.json
@@ -50,8 +50,9 @@ README.md
 ## Cookiecutter support
 
 [Cookiecutter](https://github.com/cookiecutter/cookiecutter) can be used to set a template as a starting position for the repository initialization. 
-If <path_to_repo> is given as an absolute or relative path, it overwrites the name which may be given to the repository in the cookiecutter prompt. If no <path_to_repo> is provided, the repository is initialized in the root directory. No new directory is created, even if the cookiecutter template would normally do so. 
+If `<path-to-repo>` is given as an absolute or relative path, it overwrites the name which may be given to the directory in the cookiecutter prompt. If no `<path-to-repo>` is provided, the repository is initialized in the root directory. No new directory is created, even if the cookiecutter template would normally do so. 
 
+From the command line
 
 ```bash
 rdm init <path-to-repo> --cookiecutter <template_url>
