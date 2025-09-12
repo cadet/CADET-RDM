@@ -22,7 +22,7 @@ from cadetrdm import initialize_repo
 initialize_repo(path_to_repo)
 ```
 
-The initialization of the RDM repository will generate a project repository containing the following files, should they not have previously existed within the directory: 
+The initialization of the RDM repository will generate a project repository containing the following contents, should they not have previously existed within the directory: 
 
 ```bash
 .git
