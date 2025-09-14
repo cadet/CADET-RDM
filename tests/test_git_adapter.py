@@ -408,7 +408,7 @@ def test_with_detached_head():
 #     repo.import_remote_repo(source_repo_location="../test_repo/results", source_repo_branch=branch_name)
 #     repo.import_remote_repo(source_repo_location="../test_repo/results", source_repo_branch=branch_name,
 #                             target_repo_location="foo/bar/repo")
-#     # delete folder and reload
+#     # delete directory and reload
 #     delete_path("foo/bar/repo")
 #
 #     with pytest.raises(Exception):

@@ -14,7 +14,7 @@ def cli():
 
 @cli.command(help="Create an empty CADET-RDM repository or initialize over an existing git repo.")
 @click.option('--output_directory_name', default="output",
-              help='Name of the folder where the tracked output should be stored. Optional. Default: "output".')
+              help='Name of the directory where the tracked output should be stored. Optional. Default: "output".')
 @click.option('--gitignore', default=None,
               help='List of files to be added to the gitignore file. Optional.')
 @click.option('--gitattributes', default=None,

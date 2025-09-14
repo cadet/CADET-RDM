@@ -28,7 +28,7 @@ all previous outputs are cleared and all cells
 are executed sequentially from top to bottom and then committed to the output repository.
 
 To maintain the link between Markdown annotation, code, and inline graphs, the final notebook is also saved as
-a `.html` webpage into the output folder for future inspection.
+a `.html` webpage into the output directory for future inspection.
 
 ## Tracking Results
 

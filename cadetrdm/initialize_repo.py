@@ -117,9 +117,9 @@ def initialize_repo(path_to_repo: str | Path, output_directory_name: (str | bool
 
 def init_cookiecutter(cookiecutter_template, path_to_repo):
     """
-    Initialize from cookiecutter template. Because cookiecutter can only create the files in a sub-directory
-    but cadet-rdm init can be called from within a folder with "path_to_repo" == ".", we copy the files from the
-    generated_dir folder into the path_to_repo folder afterwards.
+    Initialize from cookiecutter template. Because cookiecutter can only create the file structure in a sub-directory
+    but cadet-rdm init can be called from within another directory by specifying the absolute path of the new rdm repository with "path_to_repo" == ".", we copy the files from the
+    generated_dir directory into the path_to_repo directory afterwards. This means that only the internal contents, the directory layout and files are copied into the path_to_repo. The surrounding top-level directory itself is not carried over.
 
     :param cookiecutter_template: 
         str, Path to cookiecutter template which creates a file structure that is copied into the "output_dir". 
@@ -248,7 +248,7 @@ def create_output_readme():
     readme_lines = ["# Output repository for Example Simulation with CADET",
                     "This repository stores the simulation results for RDM-Example. `CADET-RDM` automatically tracks all simulations that are started by running `main.py` from the corresponding project repository.",
                     "",
-                    "Each simulation run creates a dedicated branch in this output repository. The results are saved within the `src` folder of the respective branch. Additionally, a `log.tsv` file in the main branch records metadata for all runs, uniquely linking each output branch to its originating run in the project repository.",
+                    "Each simulation run creates a dedicated branch in this output repository. The results are saved within the `src` directory of the respective branch. Additionally, a `log.tsv` file in the main branch records metadata for all runs, uniquely linking each output branch to its originating run in the project repository.",
                     "",
                     "## Project Repository",
                     "",
