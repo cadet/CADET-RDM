@@ -42,18 +42,9 @@ cache directory at `project_root/output_cached/branch_name`.
 rdm data cache branch_name
 ```
 
-
 ## Using results from another repository
 
-You can load in results from another repository to use in your project using the CLI:
-
-```bash
-cd path/to/your/project
-rdm data import <URL> <branch_name>
-rdm data import <URL> <branch_name> --target_repo_location <path/to/where/you/want/it>
-```
-
-This will store the URL, branch_name and location in the .cadet-rdm-cache.json file, like this:
+The Project repository URL, branch_name and location of results can be stored in the .cadet-rdm-cache.json file, like this:
 
 ```json
 {
