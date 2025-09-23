@@ -62,12 +62,12 @@ You can use this file to load the remote repositories based on the cache.json wi
 rdm data fetch
 ```
 
-## Cloning from remote
+## Cloning rdm repositories
 
-You should use `cadet-rdm clone` instead of `git clone` to clone the repo to a new location.
+You should use `cadet-rdm clone` instead of `git clone` to clone an existing rdm repository to a new location. The destination directory must be empty. 
 
 ```bash
-rdm clone <URL> <path/to/repo>
+rdm clone <project_url> <destination_path>
 ```
 
 
@@ -85,8 +85,7 @@ cd output
 rdm remote add git@<my_git_server.foo>:<project>_output.git
 ```
 
-Once remotes are configured, you can push all changes to the project repo and the results repos with the
-command
+Once remotes are configured, you can push all changes to the project repository and the output repository with the following command from within the project repository:
 
 ```bash
 rdm push

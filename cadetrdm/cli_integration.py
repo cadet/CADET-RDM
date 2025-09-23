@@ -31,12 +31,12 @@ def init(path_to_repo: str = None, output_directory_name: (str | bool) = "output
                                        gitattributes, output_repo_kwargs, cookiecutter)
 
 
-@cli.command(help="Clone a repository into a new d^irectory.")
+@cli.command(help="Clone a repository into a new empty directory.")
 @click.argument('project_url')
-@click.argument('dest', required=False)
-def clone(project_url, dest: str = None):
+@click.argument('destination_path', required=False)
+def clone(project_url, destination_path: str = None):
     from cadetrdm import ProjectRepo
-    repo = ProjectRepo.clone(url=project_url, to_path=dest)
+    repo = ProjectRepo.clone(url=project_url, to_path=destination_path)
     del repo
 
 
