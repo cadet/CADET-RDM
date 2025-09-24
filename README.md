@@ -12,4 +12,4 @@ and allow for easy sharing, integration, and reproduction of generated results.
 
 ## Documentation
 
-You can read the documentation [here](https://cadet-rdm.readthedocs.io).
+The documentation can be found [here](https://cadet-rdm.readthedocs.io).
