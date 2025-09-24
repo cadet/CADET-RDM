@@ -10,14 +10,14 @@ IMAGE_NAME = "ghcr.io/ronald-jaepel/cadet-rdm-jupyter:latest"
 
 @pytest.mark.container
 def test_run_in_podman():
-    # You need to install passt on your system and add it to the path
+    # passt needs to be installed and added to the path
     # os.environ["PATH"] += os.pathsep + "/home/bin/passt"
     WORK_DIR = Path.cwd() / "tmp"
     WORK_DIR.mkdir(parents=True, exist_ok=True)
 
     rdm_example = ProjectRepo(
         path=WORK_DIR / 'template',
-        url="git@github.com:ronald-jaepel/rdm_testing_template.git",
+        url="git@github.com:cadet/RDM-Testing-Template.git",
         branch="main",
         suppress_lfs_warning=True
     )
@@ -69,7 +69,7 @@ def test_run_in_podman():
 @pytest.mark.slow
 @pytest.mark.container
 def test_pytest_in_podman():
-    # You need to install passt on your system and add it to the path
+    # Passt needs to be installed and added to the path
     # os.environ["PATH"] += os.pathsep + "/home/bin/passt"
     WORK_DIR = Path.cwd() / "tmp"
     WORK_DIR.mkdir(parents=True, exist_ok=True)

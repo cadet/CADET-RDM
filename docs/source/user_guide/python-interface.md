@@ -7,7 +7,7 @@
 from cadetrdm import ProjectRepo
 
 """
-Your imports and function declarations
+Imports and function declarations
 e.g. generate_data(), write_data_to_file(), analyse_data() and plot_analysis_results()
 """
 
@@ -15,25 +15,25 @@ if __name__ == '__main__':
     # Instantiate CADET-RDM ProjectRepo handler
     repo = ProjectRepo()
 
-    # If you've made changes to the code, commit the changes
+    # Commit all changes to the code
     repo.commit("Add code to generate and analyse example data")
 
-    # Everything written to the output_folder within this context manager gets tracked
-    # The method repo.output_data() generates full paths to within your output_folder
+    # Everything written to the output_directory within this context manager gets tracked
+    # The method repo.output_data() generates full paths to within the output_directory
     with repo.track_results(results_commit_message="Generate and analyse example data"):
         data = generate_data()
-        write_data_to_file(data, output_folder=repo.output_folder)
+        write_data_to_file(data, output_directory=repo.output_directory)
 
         analysis_results = analyse_data(data)
-        plot_analysis_results(analysis_results, figure_path=repo.output_folder / "analysis" / "regression.png")
+        plot_analysis_results(analysis_results, figure_path=repo.output_directory / "analysis" / "regression.png")
 
 ```
 
 ## Sharing Results
 
-To share your project code and results with others, you need to create remote repositories on e.g.
-[GitHub](https://github.com/) or GitLab. You need to create a remote for both the _project_ repo and the
-_results_ repo.
+To share the project code and results (`output`) with others, remote repositories have to be configured on e.g.
+[GitHub](https://github.com/) or GitLab. Remotes for both the _project_ repository and the
+_output_ repository have to be created.
 
 Once created, the remotes need to be added to the local repositories.
 
@@ -43,8 +43,7 @@ repo.add_remote("git@<my_git_server.foo>:<project>.git")
 repo.output_repo.add_remote("git@<my_git_server.foo>:<project>_output.git")
 ```
 
-Once remotes are configured, you can push all changes to the project repo and the results repos with the
-command
+Once remotes are configured, all changes to the project repository and the output repository can be pushed with the following command from within the project repository:
 
 ```python
 # push all changes to the Project and Output repositories with one command:
@@ -54,7 +53,7 @@ repo.push()
 ## Re-using results from previous iterations
 
 Each result stored with CADET-RDM is given a unique branch name, formatted as:
-`<timestamp>_<output_folder>_"from"_<active_project_branch>_<project_repo_hash[:7]>`
+`<timestamp>_<active_project_branch>_<project_repo_hash[:7]>`
 
 With this branch name, previously generated data can be loaded in as input data for
 further calculations.
@@ -76,12 +75,12 @@ cached_folder_path = repo.input_data(branch_name=branch_name)
 
 ## Using results from another repository
 
-You can load in results from another repository to use in your project using the CLI:
+The results from another repository can be to used by loading them into the target project with:
 
 ```python
 repo.import_remote_repo(source_repo_location="<URL>", source_repo_branch="<branch_name>")
 repo.import_remote_repo(source_repo_location="<URL>", source_repo_branch="<branch_name>",
-                        target_repo_location="<path/to/where/you/want/it>")
+                        target_repo_location="<path/to/destination/repository>")
 ```
 
 This will store the URL, branch_name and location in the .cadet-rdm-cache.json file, like this:
@@ -96,7 +95,7 @@ This will store the URL, branch_name and location in the .cadet-rdm-cache.json f
 }
 ```
 
-You can use this file to load the remote repositories based on the cache.json with
+This file can be used to load remote repositories based on the cache.json with
 
 ```python
 repo.fill_data_from_cadet_rdm_json()
@@ -104,10 +103,10 @@ repo.fill_data_from_cadet_rdm_json()
 
 ## Cloning from remote
 
-You should use `cadetrdm.ProjectRepo.clone()` instead of `git clone` to clone the repo to a new location.
+The method `cadetrdm.ProjectRepo.clone()` should be used instead of `git clone` to clone an rdm repository to a new location.
 
 ```python
 from cadetrdm import ProjectRepo
 
-ProjectRepo.clone("<URL><path/to/repo>")
+ProjectRepo.clone("<project_URL>, <destination_path>")
 ```
