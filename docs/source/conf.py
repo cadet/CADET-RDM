@@ -94,6 +94,9 @@ if not os.environ.get("READTHEDOCS"):
     sitemap_locales = [None]
     sitemap_url_scheme = "{link}"
 
+### Figure
+extensions.append("sphinx_subfigure")
+
 # Add any paths that contain templates here, relative to this directory.
 templates_path = ["_templates"]
 
@@ -107,7 +110,7 @@ exclude_patterns = ["_build", "Thumbs.db", ".DS_Store"]
 myst_enable_extensions = [
     "dollarmath",
     "amsmath",
-    "colon_fence",
+    "colon_fence"
 ]
 
 # -- Options for HTML output -------------------------------------------------
