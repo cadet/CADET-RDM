@@ -1,38 +1,43 @@
-
 # Jupyter interface
 
-The CADET-RDM Jupyter interface **only works** with [Jupyter Lab](https://jupyterlab.readthedocs.io/en/latest/), 
-and not with the old [Jupyter Notebook](https://jupyter-notebook.readthedocs.io/en/stable/notebook.html) interface
-at the moment.
+The CADET-RDM Jupyter interface provides integration with JupyterLab for tracking code and results generated from notebooks.
 
-## General concepts
+At the moment, the Jupyter interface **only works** with [Jupyter Lab](https://jupyterlab.readthedocs.io/en/latest/),
+and not with the classic [Jupyter Notebook](https://jupyter-notebook.readthedocs.io/en/stable/notebook.html) interface.
+
+## Overview and concepts
+
+The Jupyter interface builds on the Python interface and applies additional constraints to ensure reproducibility when working with notebooks.
 
 ### Jupytext
 
-Jupyter Notebooks are not well suited for version control with git, as the metadata and cell outputs are stored besides 
-the input code. This overwhelms the inspection of differences within commits and the comparisons between branches. 
+Jupyter notebooks are not well suited for version control with Git, as metadata and cell outputs are stored alongside the input code. This makes inspecting changes and comparing branches difficult.
 
-Therefore, the [jupytext](https://github.com/mwouts/jupytext) extension is used by default to convert `.ipynb` files
-into a `.py` files, with the markdown cells included as block comments. All `.ipynb` files are removed from git's 
-version control through the `.gitignore` file and only changes in the `.py` files are tracked. The `.py` files are
-automatically created and updated whenever a `.ipynb` file is saved. 
+Therefore, CADET-RDM uses the [jupytext](https://github.com/mwouts/jupytext) extension by default. Notebooks are converted from `.ipynb` files into `.py` files, with Markdown cells stored as block comments.
 
-Please ensure, that `juyptext` is working for you and that a `.py` file is created after saving your notebook, otherwise
-your code will not be version-controlled.
+* `.ipynb` files are excluded from version control via `.gitignore`
+* only the generated `.py` files are tracked in Git
+* the `.py` file is automatically created and updated whenever the notebook is saved
+
+Please ensure that `jupytext` is working correctly and that a `.py` file is generated when saving the notebook. Otherwise, code changes will not be version controlled.
 
 ### Reproducibility
 
-To ensure results from `.ipynb` files are perfectly reproducible, `CADET-RDM` does not allow for the tracking of
-results generated during live-coding usage. Therefore, before committing results, 
-all previous outputs are cleared and all cells
-are executed sequentially from top to bottom and then committed to the output repository.
+To ensure that results generated from notebooks are reproducible, CADET-RDM does not allow tracking results produced during interactive execution.
 
-To maintain the link between Markdown annotation, code, and inline graphs, the final notebook is also saved as
-a `.html` webpage into the output folder for future inspection.
+Before committing results:
 
-## Tracking Results
+* all existing outputs are cleared
+* all cells are executed sequentially from top to bottom
+* the executed notebook is committed to the output repository
 
-To use `CADET-RDM` from within an `.ipynb` file, please include this at the top of your file.
+
+
+## Handling results with CADET-RDM
+
+### Tracking results from notebooks
+
+To use CADET-RDM inside a Jupyter notebook, initialize the repository interface at the top of the notebook:
 
 ```python
 from cadetrdm.repositories import JupyterInterfaceRepo
@@ -40,7 +45,8 @@ from cadetrdm.repositories import JupyterInterfaceRepo
 repo = JupyterInterfaceRepo()
 ```
 
-Then, at the end of your file, run:
+At the end of the notebook, trigger result tracking and committing:
+
 ```python
 repo.commit_nb_output(
     "path-to-the-current-notebook.ipynb",
@@ -48,21 +54,32 @@ repo.commit_nb_output(
 )
 ```
 
-This will re-run the `.ipynb` file from the start, save a html version of the completed notebook into the output repo
-and commit all changes to the output repo.
+This will:
 
-## Committing changes to your code
+* re-run the notebook from the beginning
+* commit all generated results to a new output branch
+* save a html and ipynb version of the current notebook inside the output branch. The parameter `conversion_formats` can be used to specify the desired output format of the notebook. It defaults to `["html", "ipynb"]`.
 
-You can commit all current changes to your code directly from Jupyter by running
+### Committing code changes
+
+Code changes can be committed directly from within Jupyter:
 
 ```python
 from cadetrdm.repositories import JupyterInterfaceRepo
 
 repo = JupyterInterfaceRepo()
-
 repo.commit("Commit message")
 ```
 
+
 ## Other workflows
 
-All other workflows function identically as described in the {ref}`python_interface` section.
+All other workflows, including:
+
+* reusing results from earlier runs
+* importing results from other repositories
+* configuring remotes
+* pushing results
+* cloning repositories
+
+behave identically to the Python interface and are described in the {ref}`python_interface` section.
