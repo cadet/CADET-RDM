@@ -30,7 +30,7 @@ release = version.replace("_", "")
 # -- General configuration ---------------------------------------------------
 
 # Add any Sphinx extension module names here, as strings. They can be
-# extensions coming with Sphinx (named 'sphinx.ext.*') or your custom
+# extensions coming with Sphinx (named 'sphinx.ext.*') or custom
 # ones.
 
 # Extensions
@@ -43,7 +43,7 @@ source_suffix = {
     '.rst': 'restructuredtext',
     '.ipynb': 'myst-nb',
     '.myst': 'myst-nb',
-    '.md': 'myst-nb',
+    '.md': 'myst-nb'
 }
 
 ## Numpydoc
@@ -74,12 +74,15 @@ todo_include_todos = True
 ## Viewcode
 extensions.append("sphinx.ext.viewcode")
 
+## View figures
+extensions.append("sphinx_subfigure")
+
 ## Copy Button
 extensions.append("sphinx_copybutton")
 
 ## BibTeX
 extensions.append("sphinxcontrib.bibtex")
-bibtex_bibfiles = ['references.bib']
+bibtex_bibfiles = ["references.bib"]
 
 # -- Internationalization ------------------------------------------------
 # specifying the natural language populates some key tags
@@ -107,7 +110,7 @@ exclude_patterns = ["_build", "Thumbs.db", ".DS_Store"]
 myst_enable_extensions = [
     "dollarmath",
     "amsmath",
-    "colon_fence",
+    "colon_fence"
 ]
 
 # -- Options for HTML output -------------------------------------------------
