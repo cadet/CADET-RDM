@@ -34,9 +34,9 @@ def count_commit_number(repo):
     return current_commit_number
 
 
-def example_generate_results_array(path_to_repo, output_folder):
+def example_generate_results_array(path_to_repo, output_directory):
     results_array = np.random.random((500, 3))
-    np.savetxt(path_to_repo / output_folder / "result.csv", results_array, delimiter=",")
+    np.savetxt(path_to_repo / output_directory / "result.csv", results_array, delimiter=",")
     return results_array
 
 
@@ -86,7 +86,7 @@ def try_commit_results_data(path_to_repo):
     repo = ProjectRepo(path_to_repo)
     current_commit_number = count_commit_number(repo.output_repo)
     with repo.track_results(results_commit_message="Add array") as output_branch:
-        example_generate_results_array(path_to_repo, output_folder=repo.output_path)
+        example_generate_results_array(path_to_repo, output_directory=repo.output_path)
     updated_commit_number = count_commit_number(repo.output_repo)
     assert current_commit_number <= updated_commit_number
     assert str(repo.output_repo.active_branch) == output_branch
@@ -129,7 +129,7 @@ def try_commit_results_with_uncommitted_code_changes(path_to_repo):
     modify_code(path_to_repo)
     with pytest.raises(Exception):
         with repo.track_results(results_commit_message="Add array"):
-            example_generate_results_array(path_to_repo, output_folder=repo.output_path)
+            example_generate_results_array(path_to_repo, output_directory=repo.output_path)
     repo.commit("add code to print random number", add_all=True)
 
 
@@ -408,7 +408,7 @@ def test_with_detached_head():
 #     repo.import_remote_repo(source_repo_location="../test_repo/results", source_repo_branch=branch_name)
 #     repo.import_remote_repo(source_repo_location="../test_repo/results", source_repo_branch=branch_name,
 #                             target_repo_location="foo/bar/repo")
-#     # delete folder and reload
+#     # delete directory and reload
 #     delete_path("foo/bar/repo")
 #
 #     with pytest.raises(Exception):

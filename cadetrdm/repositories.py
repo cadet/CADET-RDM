@@ -564,7 +564,7 @@ class BaseRepo(GitRepo):
             remote_name = "origin"
         self._git_repo.create_remote(remote_name, url=remote_url)
         if self._metadata["is_project_repo"]:
-            # This folder is a project repo. Use a project repo class to easily access the output repo.
+            # This directory is a project repository. Use a project repo class to easily access the output repo.
             output_repo = ProjectRepo(self.path).output_repo
 
             if output_repo.active_branch != output_repo.main_branch:
@@ -575,7 +575,7 @@ class BaseRepo(GitRepo):
             output_repo.add("README.md")
             output_repo.commit("Add remote for project repo", verbosity=0, add_all=False)
         if self._metadata["is_output_repo"]:
-            # This folder is an output repo
+            # This directory is an output repository.
             project_repo = ProjectRepo(self.path.parent)
             project_repo.update_output_remotes_json()
             project_repo.add_list_of_remotes_in_readme_file("Link to Output Repository", self.remote_urls)
@@ -596,7 +596,7 @@ class BaseRepo(GitRepo):
         Branch of the source repo to check out.
 
         :param target_repo_location:
-        Place to store the repo. If None, the external_cache folder is used.
+        Place to store the repo. If None, the external_cache directory is used.
 
         :return:
         Path to the cloned repository
@@ -770,7 +770,7 @@ class ProjectRepo(BaseRepo):
     def __init__(
         self,
         path: os.PathLike = None,
-        output_folder = None,
+        output_directory = None,
         search_parent_directories: bool = True,
         suppress_lfs_warning: bool = False,
         url: str = None,
@@ -785,7 +785,7 @@ class ProjectRepo(BaseRepo):
 
         :param path:
             Path to the root of the git repository.
-        :param output_folder:
+        :param output_directory:
             Deprecated: Path to the root of the output repository.
         :param search_parent_directories:
             if True, all parent directories will be searched for a valid repo as well.
@@ -816,24 +816,23 @@ class ProjectRepo(BaseRepo):
         if not suppress_lfs_warning:
             test_for_lfs()
 
-        if output_folder is not None:
-            print("Deprecation Warning. Setting the outputfolder manually during repo instantiation is deprecated"
+        if output_directory is not None:
+            print("Deprecation Warning. Setting the output directory manually during repo instantiation is deprecated"
                   " and will be removed in a future update.")
 
         if not self.data_json_path.exists():
-            raise RuntimeError(f"Folder {self.path} does not appear to be a CADET-RDM repository.")
+            raise RuntimeError(f"Directory {self.path} does not appear to be a CADET-RDM repository.")
 
         self._project_uuid = self._metadata["project_uuid"]
         self._output_uuid = self._metadata["output_uuid"]
-        self._output_folder = self._metadata["output_remotes"]["output_folder_name"]
-
+        self._output_directory = self._metadata["output_remotes"]["output_directory_name"]
         self._update_version()
 
-        if not (self.path / self._output_folder).exists():
+        if not (self.path / self._output_directory).exists():
             print("Output repository was missing, cloning now.")
             self._clone_output_repo()
         self.output_repo = OutputRepo(
-            self.path / self._output_folder,
+            self.path / self._output_directory,
             self,
         )
 
@@ -905,7 +904,7 @@ class ProjectRepo(BaseRepo):
     def _clone_output_repo(self, multi_options: List[str] = None):
         metadata = self.load_metadata()
         output_remotes = metadata["output_remotes"]
-        output_path = self.path / output_remotes["output_folder_name"]
+        output_path = self.path / output_remotes["output_directory_name"]
         ssh_remotes = list(output_remotes["output_remotes"].values())
         if len(ssh_remotes) == 0:
             warnings.warn("No output remotes configured in .cadet-rdm-data.json")
@@ -1148,7 +1147,7 @@ class ProjectRepo(BaseRepo):
             metadata = json.load(file_handle)
 
         remotes_dict = {remote.name: str(remote.url) for remote in self.output_repo.remotes}
-        metadata["output_remotes"] = {"output_folder_name": self._output_folder, "output_remotes": remotes_dict}
+        metadata["output_remotes"] = {"output_directory_name": self._output_directory, "output_remotes": remotes_dict}
 
         with open(self.data_json_path, "w", encoding="utf-8") as file_handle:
             json.dump(metadata, file_handle, indent=2)
@@ -1171,11 +1170,11 @@ class ProjectRepo(BaseRepo):
     def input_data(self, branch_name: str) -> Path:
         """
         Load previously generated results to iterate upon. Copies entire branch of output repo
-        to the output_cached / branch_name folder.
+        to the output_cached / branch_name directory.
         :param branch_name:
             Name of the branch of the output repository in which the results are stored.
         :return:
-            Absolute path to the newly copied folder.
+            Absolute path to the newly copied directory.
         """
         cached_branch_path = self.copy_data_to_cache(branch_name)
 
@@ -1201,8 +1200,8 @@ class ProjectRepo(BaseRepo):
         """
         Delete all previously cached results.
         """
-        if (self.path / (self._output_folder + "_cached")).exists():
-            delete_path(self.path / (self._output_folder + "_cached"))
+        if (self.path / (self._output_directory + "_cached")).exists():
+            delete_path(self.path / (self._output_directory + "_cached"))
 
     def import_static_data(self, source_path: Path | str, commit_message):
         """
@@ -1311,32 +1310,32 @@ class ProjectRepo(BaseRepo):
 
     def cache_folder_for_branch(self, branch_name=None):
         """
-        Returns the path to the cache folder for the given branch
+        Returns the path to the cache directory for the given branch
 
         :param branch_name:
         optional branch name, if None, current branch is used.
 
         :return Path:
-        Path to folder in cache
+        Path to directory in cache
         """
 
         branch_name_path = branch_name.replace("/", "_")
 
-        # Define the target folder
-        cache_folder = self.path / f"{self._output_folder}_cached" / str(branch_name_path)
+        # Define the target directory
+        cache_folder = self.path / f"{self._output_directory}_cached" / str(branch_name_path)
         return cache_folder
 
     def copy_data_to_cache(self, branch_name=None, target_folder=None):
         """
-        Copy all existing output results into a cached folder and make it read-only.
+        Copy all existing output results into a cached directory and make it read-only.
 
         :param branch_name:
         optional branch name, if None, current branch is used.
         :param target_folder:
-        optional target directory, if None, default cache folder is used.
+        optional target directory, if None, default cache directory is used.
 
         :return Path:
-        Path to folder in cache
+        Path to directory in cache
         """
         # Determine the branch name if not provided
         if branch_name is None:
@@ -1353,7 +1352,7 @@ class ProjectRepo(BaseRepo):
                 branch_name, f"origin/{branch_name}"
             )
 
-        # Create the target folder if it doesn't exist
+        # Create the target directory if it doesn't exist
         if not target_folder.exists():
             target_folder.mkdir(parents=True, exist_ok=True)
 
@@ -1432,7 +1431,7 @@ class ProjectRepo(BaseRepo):
             commit_return = self.output_repo._git.commit("-m", message)
             self.copy_data_to_cache()
             self.update_output_main_logs(output_dict, options)
-            main_cach_path = self.path / (self._output_folder + "_cached") / self.output_repo.main_branch
+            main_cach_path = self.path / (self._output_directory + "_cached") / self.output_repo.main_branch
             if main_cach_path.exists():
                 delete_path(main_cach_path)
             self.copy_data_to_cache(self.output_repo.main_branch)

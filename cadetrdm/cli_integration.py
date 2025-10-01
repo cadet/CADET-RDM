@@ -13,8 +13,8 @@ def cli():
 
 
 @cli.command(help="Create an empty CADET-RDM repository or initialize over an existing git repo.")
-@click.option('--output_repo_name', default="output",
-              help='Name of the folder where the tracked output should be stored. Optional. Default: "output".')
+@click.option('--output_directory_name', default="output",
+              help='Name of the directory where the tracked output should be stored. Optional. Default: "output".')
 @click.option('--gitignore', default=None,
               help='List of files to be added to the gitignore file. Optional.')
 @click.option('--gitattributes', default=None,
@@ -22,21 +22,21 @@ def cli():
 @click.option('--cookiecutter', default=None,
               help='URL or path to cookiecutter template. Optional.')
 @click.argument('path_to_repo', required=False)
-def init(path_to_repo: str = None, output_repo_name: (str | bool) = "output", gitignore: list = None,
+def init(path_to_repo: str = None, output_directory_name: (str | bool) = "output", gitignore: list = None,
          gitattributes: list = None, cookiecutter: str = None, output_repo_kwargs: dict = None):
     if path_to_repo is None:
         path_to_repo = "."
     from cadetrdm.initialize_repo import initialize_repo as initialize_git_repo_implementation
-    initialize_git_repo_implementation(path_to_repo, output_repo_name, gitignore,
+    initialize_git_repo_implementation(path_to_repo, output_directory_name, gitignore,
                                        gitattributes, output_repo_kwargs, cookiecutter)
 
 
-@cli.command(help="Clone a repository into a new d^irectory.")
+@cli.command(help="Clone a repository into a new empty directory.")
 @click.argument('project_url')
-@click.argument('dest', required=False)
-def clone(project_url, dest: str = None):
+@click.argument('destination_path', required=False)
+def clone(project_url, destination_path: str = None):
     from cadetrdm import ProjectRepo
-    repo = ProjectRepo.clone(url=project_url, to_path=dest)
+    repo = ProjectRepo.clone(url=project_url, to_path=destination_path)
     del repo
 
 

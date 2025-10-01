@@ -18,22 +18,24 @@ from cadetrdm.repositories import ProjectRepo, OutputRepo
 from cadetrdm.io_utils import write_lines_to_file, wait_for_user, init_lfs, test_for_lfs
 import cadetrdm.templates.dockerfile_template as dockerfile_template
 
-def initialize_repo(path_to_repo: str | Path, output_folder_name: (str | bool) = "output", gitignore: list = None,
+def initialize_repo(path_to_repo: str | Path, output_directory_name: (str | bool) = "output", gitignore: list = None,
                     gitattributes: list = None, output_repo_kwargs: dict = None, cookiecutter_template: str = None):
     """
     Initialize a git repository at the given path with an optional included output results repository.
 
     :param path_to_repo:
-        Path to main repository.
-    :param output_folder_name:
+        Path to main repository. If set to ".", the repository is initialized in the root directory without creating a new directory. If given as a relative path (e.g. 'repository_name'), a new directory with that name is created inside the root directory. If given as an absolute path (e.g. "C:\\User\\name\\project", a new directory is created at the specified location.
+    :param output_directory_name:
         Name for the output repository.
     :param gitignore:
         List of files to be added to the gitignore file.
     :param gitattributes:
         List of lines to be added to the gitattributes file
     :param output_repo_kwargs:
-        kwargs to be given to the creation of the output repo initalization function.
+        kwargs to be given to the creation of the output repository initalization function.
         Include gitignore, gitattributes, and lfs_filetypes kwargs.
+    :param cookiecutter_template:
+        Path to cookiecutter template to include files created by cookiecutter at repository initialization.
     """
     test_for_lfs()
 
@@ -43,8 +45,8 @@ def initialize_repo(path_to_repo: str | Path, output_folder_name: (str | bool) =
     if gitignore is None:
         gitignore = get_default_gitignore() + ["*.ipynb", "*.h5"]
 
-    gitignore.append(f"/{output_folder_name}/")
-    gitignore.append(f"/{output_folder_name}_cached/")
+    gitignore.append(f"/{output_directory_name}/")
+    gitignore.append(f"/{output_directory_name}_cached/")
 
     if gitattributes is not None:
         write_lines_to_file(path=".gitattributes", lines=gitattributes, open_type="a")
@@ -74,7 +76,7 @@ def initialize_repo(path_to_repo: str | Path, output_folder_name: (str | bool) =
         "is_project_repo": True, "is_output_repo": False,
         "project_uuid": project_repo_uuid, "output_uuid": output_repo_uuid,
         "cadet_rdm_version": cadetrdm.__version__,
-        "output_remotes": {"output_folder_name": output_folder_name, "output_remotes": {}}
+        "output_remotes": {"output_directory_name": output_directory_name, "output_remotes": {}}
     }
     with open(".cadet-rdm-data.json", "w") as f:
         json.dump(rdm_data, f, indent=2)
@@ -87,7 +89,7 @@ def initialize_repo(path_to_repo: str | Path, output_folder_name: (str | bool) =
             "commit_hash": "6e3c26527999036e9490d2d86251258fe81d46dc"
         }}, f, indent=2)
 
-    initialize_output_repo(output_folder_name, project_repo_uuid=project_repo_uuid,
+    initialize_output_repo(output_directory_name, project_repo_uuid=project_repo_uuid,
                            output_repo_uuid=output_repo_uuid, **output_repo_kwargs)
 
     repo = ProjectRepo(".")
@@ -115,12 +117,14 @@ def initialize_repo(path_to_repo: str | Path, output_folder_name: (str | bool) =
 
 def init_cookiecutter(cookiecutter_template, path_to_repo):
     """
-    Initialize from cookiecutter template. Because cookiecutter can only create the files in a sub-directory
-    but cadet-rdm init can be called from within a folder with "path_to_repo" == ".", we copy the files from the
-    generated_dir folder into the path_to_repo folder afterwards.
+    Initialize from cookiecutter template. Because cookiecutter can only create the file structure in a sub-directory
+    but cadet-rdm init can be called from within another directory by specifying the absolute path of the new rdm repository with "path_to_repo" == ".", we copy the files from the
+    generated_dir directory into the path_to_repo directory afterwards. This means that only the internal contents, the directory layout and files are copied into the path_to_repo. The surrounding top-level directory itself is not carried over.
 
     :param cookiecutter_template:
+        str, Path to cookiecutter template which creates a file structure that is copied into the "output_dir".
     :param path_to_repo:
+        str, Path to main repository. If set to ".", the repository will be initialized in the current directory without creating an additional subfolder.
     """
     generated_dir = cookiecutter(cookiecutter_template, output_dir=path_to_repo)
     file_names = os.listdir(generated_dir)
@@ -138,10 +142,10 @@ def init_cookiecutter(cookiecutter_template, path_to_repo):
 #
 #     repo = ProjectRepo(".")
 #
-#     if Path(repo._output_folder).exists():
-#         raise RuntimeError(f"Output repo at {repo._output_folder} already exists.")
+#     if Path(repo._output_directory).exists():
+#         raise RuntimeError(f"Output repo at {repo._output_directory} already exists.")
 #
-#     initialize_output_repo(repo._output_folder, project_repo_uuid=repo._project_uuid,
+#     initialize_output_repo(repo._output_directory, project_repo_uuid=repo._project_uuid,
 #                            output_repo_uuid=repo._output_uuid, **output_repo_kwargs)
 #
 #     os.chdir(starting_directory)
@@ -154,8 +158,8 @@ def initialize_git(folder="."):
 
     try:
         repo = git.Repo(".")
-        proceed = wait_for_user('The target directory already contains a git repo.\n'
-                                'Please commit or stash all changes to the repo before continuing.\n'
+        proceed = wait_for_user('The target directory already contains a git repository.\n'
+                                'Please commit or stash all changes to the repository before continuing.\n'
                                 'Proceed?')
         if not proceed:
             raise KeyboardInterrupt
@@ -174,13 +178,13 @@ def get_default_lfs_filetypes():
     return ["*.jpg", "*.png", "*.xlsx", "*.h5", "*.ipynb", "*.pdf", "*.docx", "*.zip", "*.html", "*.csv"]
 
 
-def initialize_output_repo(output_folder_name, gitignore: list = None,
+def initialize_output_repo(output_directory_name, gitignore: list = None,
                            gitattributes: list = None, lfs_filetypes: list = None,
                            project_repo_uuid: str = None, output_repo_uuid: str = None):
     """
     Initialize a git repository at the given path with an optional included output results repository.
 
-    :param output_folder_name:
+    :param output_directory_name:
         Name for the output repository.
     :param gitignore:
         List of files to be added to the gitignore file.
@@ -190,8 +194,8 @@ def initialize_output_repo(output_folder_name, gitignore: list = None,
         List of filetypes to be handled by git lfs.
     """
     starting_directory = os.getcwd()
-    os.makedirs(output_folder_name, exist_ok=True)
-    os.chdir(output_folder_name)
+    os.makedirs(output_directory_name, exist_ok=True)
+    os.chdir(output_directory_name)
 
     if gitignore is None:
         gitignore = get_default_gitignore()
@@ -259,7 +263,7 @@ def create_output_readme():
         "`CADET-RDM` automatically tracks all simulations that are started by running `main.py` from the corresponding project repository.",
         "",
         "Each simulation run creates a dedicated branch in this output repository. "
-        "The results are saved within the `src` folder of the respective branch. "
+        "The results are saved within the `src` directory of the respective branch. "
         "Additionally, a `log.tsv` file in the main branch records metadata for all runs, uniquely linking each output branch to its originating run in the project repository.",
         "",
         "## Project Repository",
