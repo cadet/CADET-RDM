@@ -17,7 +17,7 @@ def test_run_in_podman():
 
     rdm_example = ProjectRepo(
         path=WORK_DIR / 'template',
-        url="git@github.com:ronald-jaepel/rdm_testing_template.git",
+        url="git@github.com:cadet/RDM-Testing-Template.git",
         branch="main",
         suppress_lfs_warning=True
     )

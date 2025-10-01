@@ -12,7 +12,7 @@ def test_run_dockered():
 
     rdm_example = ProjectRepo(
         path=WORK_DIR / 'template',
-        url="git@github.com:ronald-jaepel/rdm_testing_template.git",
+        url="git@github.com:cadet/RDM-Testing-Template.git",
         suppress_lfs_warning=True
     )
 
