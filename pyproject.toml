@@ -67,6 +67,7 @@ docs = [
     "sphinx-sitemap>=2.5.0",
     "numpydoc>=1.5.0",
     "myst-nb>=0.17.1",
+    "sphinx-subfigure>=0.2.4",
 ]
 
 [project.optional-dependencies]

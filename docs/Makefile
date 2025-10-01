@@ -1,7 +1,7 @@
 # Minimal makefile for Sphinx documentation
 #
 
-# You can set these variables from the command line.
+# These variables can be set from the command line.
 SPHINXOPTS    =
 SPHINXBUILD   = sphinx-build
 SPHINXPROJ    = CADET-RDM
