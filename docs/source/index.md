@@ -6,6 +6,7 @@
 :caption: User guide
 :hidden:
 
+user_guide/introduction
 user_guide/installation
 user_guide/getting-started
 user_guide/CLI-interface
