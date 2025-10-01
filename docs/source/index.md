@@ -1,4 +1,4 @@
-```{include} ../../README.md
+```{include} ./user_guide/introduction.md
 ```
 
 ```{toctree}
@@ -6,6 +6,7 @@
 :caption: User guide
 :hidden:
 
+user_guide/introduction
 user_guide/installation
 user_guide/getting-started
 user_guide/command-line-interface
