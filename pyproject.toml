@@ -86,5 +86,13 @@ markers = [
     "container: marks tests as using containerization interfaces such as Docker or Apptainer"
 ]
 
+[tool.setuptools]
+package-dir = {"" = "."}
+
+[tool.setuptools.packages.find]
+include = ["cadetrdm*"]
+exclude = ["tmp*", "batch_repos*"]
+
+
 [tool.setuptools.dynamic]
 version = { attr = "cadetrdm.__version__" }

@@ -45,7 +45,7 @@ class ContainerAdapter:
         if command_install is not None:
             commands.append(command_install)
 
-        # pull the study from the URL into a "study" folder
+        # pull the study from the URL into a "study" repository
         command_pull = f"rdm clone {case.project_repo.url} study"
         # cd into the "study" folder
         command_cd = "cd study"

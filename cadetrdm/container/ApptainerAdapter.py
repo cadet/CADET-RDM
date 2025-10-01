@@ -61,7 +61,7 @@ This is a placeholder for the upcoming Apptainer Adapters
 #
 #         ssh_location = Path.home() / ".ssh"
 #         if not ssh_location.exists():
-#             raise FileNotFoundError("No ssh folder found. Please report this on GitHub/CADET/CADET-RDM")
+#             raise FileNotFoundError("No ssh directory found. Please report this on GitHub/CADET/CADET-RDM")
 #
 #         container = self.client.containers.run_yml(
 #             image=image,

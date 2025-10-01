@@ -10,3 +10,4 @@ dist
 tmp
 .ipynb_checkpoints
 /tests/non_rdm_repo/
+.vscode
