@@ -72,7 +72,7 @@ class DockerAdapter(ContainerAdapter):
 
         ssh_location = Path.home() / ".ssh"
         if not ssh_location.exists():
-            raise FileNotFoundError("No ssh folder found. Please report this on GitHub/CADET/CADET-RDM")
+            raise FileNotFoundError("No ssh directory found. Please report this on GitHub/CADET/CADET-RDM")
 
         volumes = {
             f"{Path.home()}/.ssh": {'bind': "/root/.ssh_host_os", 'mode': "ro"},

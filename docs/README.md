@@ -7,7 +7,7 @@ pip install -e .[docs]
 ```
 from the CADET-RDM root directory.
 
-Then, in the `docs` folder run:
+Then, in the `docs` directory run:
 
 ```
 sphinx-build -b html source build

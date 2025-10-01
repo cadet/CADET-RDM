@@ -69,7 +69,7 @@ class PodmanAdapter(ContainerAdapter):
 
         ssh_location = Path.home() / ".ssh"
         if not ssh_location.exists():
-            raise FileNotFoundError("No ssh folder found. Please report this on GitHub/CADET/CADET-RDM")
+            raise FileNotFoundError("No ssh directory found. Please report this on GitHub/CADET/CADET-RDM")
 
         full_command = full_command.replace('"', "'")
 
@@ -82,7 +82,7 @@ class PodmanAdapter(ContainerAdapter):
         podman_command = (
             f'podman run '
             '--rm '  # remove container after run_yml (to keep space usage low)
-            f'-v {ssh_location}:/root/.ssh_host_os:ro '  # mount ssh folder for the container to access
+            f'-v {ssh_location}:/root/.ssh_host_os:ro '  # mount ssh directory for the container to access
             f'{volume_mounts}'  # mount options file
             f'{image} '  # specify image name
             f'bash -c "{full_command}"'  # run_yml command in bash shell
