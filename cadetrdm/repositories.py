@@ -1368,7 +1368,9 @@ class ProjectRepo(BaseRepo):
         # Ensure that the branch is available locally. If it's only a remote branch, git.archive will fail.
         local_branches = [head.name for head in self.output_repo._git_repo.heads]
         if branch_name not in local_branches:
-            self.output_repo.checkout(branch_name)
+            self.output_repo._git_repo.create_head(
+                branch_name, f"origin/{branch_name}"
+            )
 
         # Create the target folder if it doesn't exist
         if not target_folder.exists():
