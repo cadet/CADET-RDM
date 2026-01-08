@@ -832,11 +832,13 @@ class ProjectRepo(BaseRepo):
         cur_dir = os.getcwd()
 
         os.chdir(self.path)
-        sys.path.append(str(self.path))
-        module = importlib.import_module(self.name)
+        try:
+            sys.path.insert(0, str(self.path))
+            module = importlib.import_module(self.name)
+        finally:
+            sys.path.remove(str(self.path))
+            os.chdir(cur_dir)
 
-        sys.path.remove(str(self.path))
-        os.chdir(cur_dir)
         return module
 
     def _update_version(self, metadata, cadetrdm_version):
