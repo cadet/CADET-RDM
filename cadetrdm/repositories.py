@@ -832,7 +832,7 @@ class ProjectRepo(BaseRepo):
         cur_dir = os.getcwd()
 
         os.chdir(self.path)
-        sys.path.append(str(self.path))
+        sys.path.insert(0, str(self.path))
         module = importlib.import_module(self.name)
 
         sys.path.remove(str(self.path))
