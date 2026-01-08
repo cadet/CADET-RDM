@@ -1,3 +1,4 @@
+import os
 import traceback
 import warnings
 from pathlib import Path
@@ -5,6 +6,7 @@ import subprocess
 from typing import Dict
 
 # from cadetrdm.container.containerAdapter import ContainerAdapter
+from cadetrdm.batch_running import Study
 from cadetrdm.repositories import ProjectRepo
 from cadetrdm import Options
 from cadetrdm.environment import Environment
@@ -12,9 +14,14 @@ from cadetrdm.logging import LogEntry
 
 
 class Case:
-    def __init__(self, project_repo: ProjectRepo = None, options: Options = None, environment: Environment = None,
-                 name: str = None,
-                 study=None):
+    def __init__(
+        self,
+        project_repo: ProjectRepo | os.PathLike = "./",
+        options: Options | None = None,
+        environment: Environment| None  = None,
+        name: str | None = None,
+        study: Study | None = None,
+     ) -> None:
         if study is not None:
             warnings.warn(
                 "Initializing Case() with the study= kwarg is deprecated and will be removed in the future. "
@@ -28,6 +35,8 @@ class Case:
 
         self.name = name
 
+        if not isinstance(project_repo, ProjectRepo):
+            project_repo = ProjectRepo(project_repo)
         self.project_repo = project_repo
         self.options = options
         self.environment = environment
