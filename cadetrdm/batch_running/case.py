@@ -21,6 +21,7 @@ class Case:
         environment: Environment| None  = None,
         name: str | None = None,
         study: Study | None = None,
+        run_method: str = "main"
      ) -> None:
         if study is not None:
             warnings.warn(
@@ -43,6 +44,7 @@ class Case:
         self._options_hash = options.get_hash()
         self.results_branch = None
         self._current_environment = None
+        self.run_method = run_method
 
     def __str__(self):
         return self.name
@@ -213,7 +215,9 @@ class Case:
                     self.status = "failed"
                     return False
             else:
-                self.project_repo.module.main(self.options, str(self.project_repo.path))
+                module = self.project_repo.module
+                run_method = getattr(module, self.run_method)
+                run_method(self.options, str(self.project_repo.path))
 
             print("Command execution successful.")
             self.status = 'finished'
