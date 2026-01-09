@@ -38,6 +38,7 @@ def test_run_dockered():
 
     case = Case(project_repo=rdm_example, options=options, environment=matching_environment)
     docker_adapter = DockerAdapter()
+    docker_adapter.pull_image("ghcr.io/cadet/cadet-suite:Core-v5.0.4-docker02-Python-1.1.0-Process-0.10.1")
     has_run_study = case.run_study(container_adapter=docker_adapter, force=True)
     assert has_run_study
 
@@ -50,6 +51,7 @@ def test_run_dockered():
 
     case = Case(project_repo=rdm_example, options=options, environment=matching_environment)
     docker_adapter = DockerAdapter()
+    docker_adapter.pull_image("ghcr.io/cadet/cadet-suite:Core-v5.0.4-docker02-Python-1.1.0-Process-0.10.1")
     has_run_study = case.run_study(container_adapter=docker_adapter, force=True)
     assert not has_run_study
 
