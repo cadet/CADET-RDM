@@ -948,12 +948,11 @@ class ProjectRepo(BaseRepo):
         project_repo_hash = str(self.head.commit)
         timestamp = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
 
-        if self.options and "branch_prefix" in self.options:
-            branch_prefix = self.options["branch_prefix"]+"_"
-        else:
-            branch_prefix = ""
+        branch_name = f"{timestamp}_{self.active_branch}_{project_repo_hash[:7]}"
 
-        branch_name = branch_prefix+"_".join([timestamp, str(self.active_branch), project_repo_hash[:7]])
+        if self.options and "branch_prefix" in self.options:
+            branch_name = f"{self.options['branch_prefix']}_{branch_name}"
+
         return branch_name
 
     def check_results_main(self):
