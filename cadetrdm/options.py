@@ -86,7 +86,7 @@ class Options(Dict):
         return cls.loads(string)
 
     def get_hash(self):
-        excluded_keys = {"commit_message", "push", "debug", "force"}
+        excluded_keys = {"branch_prefix", "commit_message", "push", "debug", "force"}
         remaining_dict = remove_invalid_keys(self, excluded_keys=excluded_keys)
         dump = json.dumps(
             remaining_dict,
