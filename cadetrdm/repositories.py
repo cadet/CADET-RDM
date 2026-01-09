@@ -14,6 +14,7 @@ from pathlib import Path
 from stat import S_IREAD, S_IWRITE
 import tarfile
 import tempfile
+from types import ModuleType
 from typing import List, Optional, Any
 from urllib.request import urlretrieve
 
@@ -758,10 +759,19 @@ class BaseRepo(GitRepo):
 
 
 class ProjectRepo(BaseRepo):
-    def __init__(self, path=None, output_folder=None,
-                 search_parent_directories=True, suppress_lfs_warning=False,
-                 url=None, branch=None, options=None,
-                 *args, **kwargs):
+    def __init__(
+        self,
+        path: os.PathLike = None,
+        output_folder = None,
+        search_parent_directories: bool = True,
+        suppress_lfs_warning: bool = False,
+        url: str = None,
+        branch: str = None,
+        options: Options | None = None,
+        package_dir: str | None = None,
+         *args: Any,
+         **kwargs: Any,
+     ) -> None:
         """
         Class for Project-Repositories. Handles interaction between the project repo and
         the output (i.e. results) repo.
@@ -780,6 +790,8 @@ class ProjectRepo(BaseRepo):
             from a system without git-lfs
         :param branch:
             Optional branch to check out upon initialization
+        :param package_dir:
+            Name of the directory containing the main package.
         :param options:
             Options dictionary containing ...
         :param args:
@@ -823,23 +835,29 @@ class ProjectRepo(BaseRepo):
         if branch is not None:
             self.checkout(branch)
 
+        self._package_dir = package_dir
+
     @property
     def name(self):
         return self.path.parts[-1]
 
     @property
-    def module(self):
+    def package_dir(self) -> str:
+        if self._package_dir is None:
+            return self.name
+        return self._package_dir
+
+    @property
+    def module(self) -> ModuleType:
         cur_dir = os.getcwd()
 
-        os.chdir(self.path)
         try:
             sys.path.insert(0, str(self.path))
-            module = importlib.import_module(self.name)
+            os.chdir(self.path)
+            return importlib.import_module(self.package_dir)
         finally:
             sys.path.remove(str(self.path))
             os.chdir(cur_dir)
-
-        return module
 
     def _update_version(self, metadata, cadetrdm_version):
         current_version = Version.coerce(metadata["cadet_rdm_version"])
