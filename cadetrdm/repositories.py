@@ -1101,11 +1101,10 @@ class ProjectRepo(BaseRepo):
 
         self.output_repo._git.checkout(self.output_repo.main_branch)
 
-        logs_folderpath = self.output_repo.path / "run_history" / output_branch_name
-        if not logs_folderpath.exists():
-            os.makedirs(logs_folderpath)
+        logs_dir= self.output_repo.path / "run_history" / output_branch_name
+        if not logs_dir.exists():
+            os.makedirs(logs_dir)
 
-        json_filepath = logs_folderpath / "metadata.json"
         entry = LogEntry(
             output_repo_commit_message=output_commit_message,
             output_repo_branch=output_branch_name,
@@ -1120,20 +1119,26 @@ class ProjectRepo(BaseRepo):
             **output_dict
         )
 
-        with open(json_filepath, "w", encoding="utf-8") as f:
+        with open(logs_dir / "metadata.json", "w", encoding="utf-8") as f:
             json.dump(entry.to_dict(), f, indent=2)
+
+        if self.options is not None:
+            self.options.dump_json_file(logs_dir / "options.json")
 
         log = OutputLog(self.output_log_file)
         log.entries[output_branch_name] = entry
         log.write()
 
-        self.dump_package_list(logs_folderpath)
+        self.dump_package_list(logs_dir)
 
-        self._copy_code(logs_folderpath)
+        self._copy_code(logs_dir)
 
         self.output_repo.add(".")
-        self.output_repo._git.commit("-m", f"log for '{output_commit_message}' \n"
-                                           f"of branch '{output_branch_name}'")
+        self.output_repo._git.commit(
+            "-m",
+            f"log for '{output_commit_message}' \n"
+            f"of branch '{output_branch_name}'"
+        )
 
         self.output_repo._git.checkout(output_branch_name)
         self._most_recent_branch = output_branch_name
