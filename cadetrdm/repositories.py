@@ -1101,7 +1101,7 @@ class ProjectRepo(BaseRepo):
 
         self.output_repo._git.checkout(self.output_repo.main_branch)
 
-        logs_dir= self.output_repo.path / "run_history" / output_branch_name
+        logs_dir = self.output_repo.path / "run_history" / output_branch_name
         if not logs_dir.exists():
             os.makedirs(logs_dir)
 
