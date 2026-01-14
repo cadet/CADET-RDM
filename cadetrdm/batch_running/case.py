@@ -50,6 +50,10 @@ class Case:
         return self.name
 
     @property
+    def output_repo(self):
+        return self.project_repo.output_repo
+
+    @property
     def status_file(self):
         return Path(self.project_repo.path).parent / (Path(self.project_repo.path).name + ".status")
 
