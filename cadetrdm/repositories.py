@@ -1,6 +1,5 @@
 import contextlib
 import csv
-import gc
 import glob
 import importlib
 import json
@@ -9,6 +8,7 @@ import shutil
 import sys
 import traceback
 import warnings
+from collections import defaultdict
 from datetime import datetime
 from pathlib import Path
 from stat import S_IREAD, S_IWRITE
@@ -1508,6 +1508,64 @@ class OutputRepo(BaseRepo):
         print(output_log)
 
         self.checkout(self._most_recent_branch)
+
+    @property
+    def project_repo_branches(self) -> set[str]:
+        """All project repo branches that have been run."""
+        return set([
+            entry.project_repo_branch
+            for entry in self.output_log.entries.values()
+        ])
+
+    @property
+    def project_repo_commit_hashes(self) -> set[str]:
+        """All project repo commit hashes that have been run."""
+        return set([
+            entry.project_repo_commit_hash
+            for entry in self.output_log.entries.values()
+        ])
+
+    @property
+    def options_hashes(self) -> set[str]:
+        """All option hashes that have been run."""
+        return set([
+            entry.options_hash
+            for entry in self.output_log.entries.values()
+        ])
+
+    @property
+    def commit_to_options_map(self) -> dict[str, dict[str, list[str]]]:
+        """
+        Map each branch to its commit hashes and their associated option hashes.
+
+        Returns
+        -------
+        dict[str, dict[str, list[str]]]:
+            - Outer key: branch name (str)
+            - Inner key: commit hash (str)
+            - Value: list of option hashes (List[str])
+        """
+        mapping = defaultdict(lambda: defaultdict(list))
+        for entry in self.output_log.entries.values():
+            mapping[entry.project_repo_branch][entry.project_repo_commit_hash].append(entry.options_hash)
+        return {branch: dict(commits) for branch, commits in mapping.items()}
+
+    @property
+    def options_to_commit_map(self) -> dict[str, dict[str, list[str]]]:
+        """
+        Map each option hash to the branches and commits where it was run.
+
+        Returns
+        -------
+        dict[str, dict[str, list[str]]]:
+            - Outer key: option hash (str)
+            - Inner key: branch name (str)
+            - Value: list of commit hashes (List[str])
+        """
+        mapping = defaultdict(lambda: defaultdict(list))
+        for entry in self.output_log.entries.values():
+            mapping[entry.options_hash][entry.project_repo_branch].append(entry.project_repo_commit_hash)
+        return {option: dict(branches) for option, branches in mapping.items()}
 
     def add_filetype_to_lfs(self, file_type):
         """
