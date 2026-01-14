@@ -885,6 +885,17 @@ class ProjectRepo(BaseRepo):
         if SimpleSpec("<0.0.34").match(current_version):
             changes_were_made = True
             self.output_repo._fix_gitattributes_log_tsv()
+        if SimpleSpec("<1.1.0").match(current_version):
+            # Note, this needs to be performed before upating the hashes, otherwise
+            # instantiating an `OutputLog` will crash when missing the
+            # `project_repo_branch` attribute.
+            changes_were_made = True
+            if self.output_log_file.exists():
+                warnings.warn(
+                    "Repo version has missing project repo branch_name field."
+                    "Updating log.tsv."
+                )
+                self.output_repo._add_branch_name_to_log()
         if SimpleSpec("<0.1.7").match(current_version):
             changes_were_made = True
             if self.output_repo.output_log.n_entries > 0:
@@ -1062,6 +1073,7 @@ class ProjectRepo(BaseRepo):
             output_repo_commit_message=output_commit_message,
             output_repo_branch=output_branch_name,
             output_repo_commit_hash=output_repo_hash,
+            project_repo_branch=str(self.active_branch),
             project_repo_commit_hash=str(self.head.commit),
             project_repo_folder_name=self.path.name,
             project_repo_remotes=self.remote_urls,
@@ -1599,6 +1611,39 @@ class OutputRepo(BaseRepo):
         if self.output_log.n_entries > 0:
             log.write()
         self.commit(message="Updated log hashes", add_all=True)
+
+    def _add_branch_name_to_log(self) -> None:
+        """
+        Update the TSV file by adding a 'project_repo_branch' column.
+
+        The branch name is extracted from the 'output_repo_commit_message' field.
+        """
+        self.checkout(self.main_branch)
+
+        with open(self.output_log_file_path, "r") as f:
+            reader = csv.DictReader(f, delimiter="\t")
+            rows = list(reader)
+        fieldnames = list(rows[0].keys())
+
+        # Add new column to header if not present
+        if "project_repo_branch" not in rows[0]:
+            for row in rows:
+                commit_msg = row["output_repo_branch"]
+                branch = commit_msg.split("_")[2]
+                row["project_repo_branch"] = branch
+
+        if "project_repo_branch" not in fieldnames:
+            # Insert the new column at position 3
+            fieldnames.insert(3, "project_repo_branch")
+
+        # Write updated data back to file
+        with open(self.output_log_file_path, "w", newline="") as f:
+            writer = csv.DictWriter(f, fieldnames=fieldnames, delimiter="\t")
+            writer.writeheader()
+            writer.writerows(rows)
+
+        self.add("log.tsv")
+        self.commit(message="Add project_repo_branch_name to log.tsv")
 
 
 class JupyterInterfaceRepo(ProjectRepo):
