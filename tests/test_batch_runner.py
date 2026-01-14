@@ -220,14 +220,23 @@ def test_results_loading_from_within():
 
     try:
         os.chdir(WORK_DIR / 'template')
-        case = Case(project_repo=rdm_example, options=OptionsFixture())
-        assert case.has_results_for_this_run
-        assert case.results_branch == '2025-02-11_17-15-38_main_d1842fd'
         rdm_example = ProjectRepo(
             ".",
             url="git@jugit.fz-juelich.de:IBG-1/ModSim/cadet/rdm_example.git",
             package_dir="template",
         )
+
+        case = Case(
+            project_repo=rdm_example,
+            options=OptionsFixture()
+        )
+        path = case.run_study()
+
+        expected_path = Path('./output_cached/2026-01-14_17-55-25_main_e22b884').absolute()
+        assert path == expected_path
+        assert case.results_path == expected_path
+
+        assert case.results_branch == '2026-01-14_17-55-25_main_e22b884'
 
         with open(rdm_example.path / "Readme.md", "a") as handle:
             handle.write("New line\n")
