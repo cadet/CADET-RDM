@@ -226,30 +226,47 @@ def initialize_output_repo(output_folder_name, gitignore: list = None,
 
 
 def create_environment_yml():
-    file_lines = ["name: rdm_example", "channels:", "  - conda-forge", "dependencies:", "  - python=3.10",
-                  "  - cadet", "  - pip", "  - pip:", "      - cadet-process", "      - cadet-rdm"]
+    file_lines = [
+        "name: rdm_example",
+        "channels:",
+        "  - conda-forge",
+        "dependencies:",
+        "  - python=3.10",
+        "  - cadet",
+        "  - pip",
+        "  - pip:",
+        "      - cadet-process",
+        "      - cadet-rdm"
+    ]
     if not os.path.exists("environment.yml"):
         write_lines_to_file("environment.yml", file_lines, open_type="w")
 
 
 def create_readme():
-    readme_lines = ["## Output Repository", 
-                    "",
-                    "The output data for this case study can be found here:",
-                    "[Link to Output Repository]() (not actually set yet because no remote has been configured at this moment)"]
+    readme_lines = [
+        "## Output Repository",
+        "",
+        "The output data for this case study can be found here:",
+        "[Link to Output Repository]() (not actually set yet because no remote has been configured at this moment)"
+    ]
     write_lines_to_file("README.md", readme_lines, open_type="a")
 
 
 def create_output_readme():
-    readme_lines = ["# Output repository for Example Simulation with CADET",
-                    "This repository stores the simulation results for RDM-Example. `CADET-RDM` automatically tracks all simulations that are started by running `main.py` from the corresponding project repository.",
-                    "",
-                    "Each simulation run creates a dedicated branch in this output repository. The results are saved within the `src` folder of the respective branch. Additionally, a `log.tsv` file in the main branch records metadata for all runs, uniquely linking each output branch to its originating run in the project repository.",
-                    "",
-                    "## Project Repository",
-                    "",
-                    "The project repository for this case study is available here: ",
-                    "[Link to Project Repository]() (not actually set yet because no remote has been configured at this moment)"]
+    readme_lines = [
+        "# Output repository for Example Simulation with CADET",
+        "This repository stores the simulation results for RDM-Example. "
+        "`CADET-RDM` automatically tracks all simulations that are started by running `main.py` from the corresponding project repository.",
+        "",
+        "Each simulation run creates a dedicated branch in this output repository. "
+        "The results are saved within the `src` folder of the respective branch. "
+        "Additionally, a `log.tsv` file in the main branch records metadata for all runs, uniquely linking each output branch to its originating run in the project repository.",
+        "",
+        "## Project Repository",
+        "",
+        "The project repository for this case study is available here: ",
+        "[Link to Project Repository]() (not actually set yet because no remote has been configured at this moment)"
+    ]
     write_lines_to_file("README.md", readme_lines, open_type="a")
 
 
