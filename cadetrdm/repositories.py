@@ -823,7 +823,10 @@ class ProjectRepo(BaseRepo):
         if not (self.path / self._output_folder).exists():
             print("Output repository was missing, cloning now.")
             self._clone_output_repo()
-        self.output_repo = OutputRepo(self.path / self._output_folder)
+        self.output_repo = OutputRepo(
+            self.path / self._output_folder,
+            self,
+        )
 
         if self._metadata["cadet_rdm_version"] != cadetrdm.__version__:
             self._update_version(self._metadata, cadetrdm.__version__)
@@ -1475,6 +1478,15 @@ class ProjectRepo(BaseRepo):
 
 
 class OutputRepo(BaseRepo):
+    def __init__(
+        self,
+        *args: Any,
+        project_repo: ProjectRepo | None = None,
+        **kwargs: Any,
+    ):
+        self.project_repo = project_repo
+        super().__init__(*args, **kwargs)
+
     @property
     def output_log_file_path(self):
         if not self.active_branch == self.main_branch:
