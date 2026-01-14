@@ -1,6 +1,6 @@
 import csv
+import os
 from pathlib import Path
-from typing import Dict, List
 
 from tabulate import tabulate
 
@@ -8,12 +8,25 @@ from cadetrdm.environment import Environment
 
 
 class LogEntry:
-    def __init__(self, output_repo_commit_message, output_repo_branch, output_repo_commit_hash,
-                 project_repo_commit_hash, project_repo_folder_name, project_repo_remotes, python_sys_args, tags,
-                 options_hash, filepath, **kwargs):
+    def __init__(
+        self,
+        output_repo_commit_message: str,
+        output_repo_branch: str,
+        output_repo_commit_hash: str,
+        project_repo_branch: str,
+        project_repo_commit_hash: str,
+        project_repo_folder_name: str,
+        project_repo_remotes: str,
+        python_sys_args: str,
+        tags: str,
+        options_hash: str,
+        filepath: os.PathLike,
+        **kwargs
+    ):
         self.output_repo_commit_message = output_repo_commit_message
         self.output_repo_branch = output_repo_branch
         self.output_repo_commit_hash = output_repo_commit_hash
+        self.project_repo_branch = project_repo_branch
         self.project_repo_commit_hash = project_repo_commit_hash
         self.project_repo_folder_name = project_repo_folder_name
         self.project_repo_remotes = project_repo_remotes
@@ -117,7 +130,7 @@ class OutputLog:
             return
 
         self._entry_list = self._read_file(filepath)
-        self.entries: Dict[str, LogEntry] = self._entries_from_entry_list(self._entry_list)
+        self.entries: dict[str, LogEntry] = self._entries_from_entry_list(self._entry_list)
 
     @property
     def n_entries(self) -> int:
@@ -125,13 +138,13 @@ class OutputLog:
         return len(self.entries)
 
     @classmethod
-    def from_list(cls, entry_list: List[List[str]]):
+    def from_list(cls, entry_list: list[list[str]]):
         instance = cls()
         instance._entry_list = entry_list
-        instance.entries: Dict[str, LogEntry] = instance._entries_from_entry_list(instance._entry_list)
+        instance.entries: dict[str, LogEntry] = instance._entries_from_entry_list(instance._entry_list)
         return instance
 
-    def _entries_from_entry_list(self, entry_list) -> Dict[str, LogEntry]:
+    def _entries_from_entry_list(self, entry_list) -> dict[str, LogEntry]:
         header = self._convert_header(entry_list[0])
         if len(header) < 9:
             header.append("options_hash")
