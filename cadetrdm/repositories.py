@@ -1534,38 +1534,31 @@ class OutputRepo(BaseRepo):
         ])
 
     @property
-    def commit_to_options_map(self) -> dict[str, dict[str, list[str]]]:
+    def options_to_commit_map(self) -> dict[str, list[str]]:
         """
-        Map each branch to its commit hashes and their associated option hashes.
+        Maps each option hash to the commit hashes where it was run.
 
-        Returns
-        -------
-        dict[str, dict[str, list[str]]]:
-            - Outer key: branch name (str)
-            - Inner key: commit hash (str)
-            - Value: list of option hashes (List[str])
+        Returns:
+            dict: Keys are option hashes, values are lists of commit hashes.
         """
-        mapping = defaultdict(lambda: defaultdict(list))
+        mapping = defaultdict(list)
         for entry in self.output_log.entries.values():
-            mapping[entry.project_repo_branch][entry.project_repo_commit_hash].append(entry.options_hash)
-        return {branch: dict(commits) for branch, commits in mapping.items()}
+            mapping[entry.options_hash].append(entry.project_repo_commit_hash)
+        return dict(mapping)
 
     @property
-    def options_to_commit_map(self) -> dict[str, dict[str, list[str]]]:
+    def commit_to_options_map(self) -> dict[str, list[str]]:
         """
-        Map each option hash to the branches and commits where it was run.
+        Map each commit hash to the option hashes run at that commit.
 
-        Returns
-        -------
-        dict[str, dict[str, list[str]]]:
-            - Outer key: option hash (str)
-            - Inner key: branch name (str)
-            - Value: list of commit hashes (List[str])
+        Returns:
+            dict: Keys are commit hashes, values are lists of option hashes.
         """
-        mapping = defaultdict(lambda: defaultdict(list))
+        mapping = defaultdict(list)
         for entry in self.output_log.entries.values():
-            mapping[entry.options_hash][entry.project_repo_branch].append(entry.project_repo_commit_hash)
-        return {option: dict(branches) for option, branches in mapping.items()}
+            mapping[entry.project_repo_commit_hash].append(entry.options_hash)
+        return dict(mapping)
+
 
     def add_filetype_to_lfs(self, file_type):
         """
