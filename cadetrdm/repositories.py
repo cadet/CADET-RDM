@@ -866,17 +866,25 @@ class ProjectRepo(BaseRepo):
 
         if SimpleSpec("<0.0.9").match(current_version):
             changes_were_made = True
-            self._convert_csv_to_tsv_if_necessary()
+            self.output_repo._convert_csv_to_tsv_if_necessary()
             self._add_jupytext_file(self.path)
         if SimpleSpec("<0.0.24").match(current_version):
             changes_were_made = True
-            self._expand_tsv_header()
+            self.output_repo._expand_tsv_header()
             output_remotes_path = self.path / "output_remotes.json"
             delete_path(output_remotes_path)
             self.add(output_remotes_path)
+        if SimpleSpec("<=0.0.34").match(current_version):
+            changes_were_made = True
+            if self.output_log_file.exists():
+                warnings.warn(
+                    "Repo version has outdated headers."
+                    "Updating log.tsv."
+                )
+                self.output_repo._update_headers()
         if SimpleSpec("<0.0.34").match(current_version):
             changes_were_made = True
-            self.fix_gitattributes_log_tsv()
+            self.output_repo._fix_gitattributes_log_tsv()
         if SimpleSpec("<0.1.7").match(current_version):
             changes_were_made = True
             if self.output_repo.output_log.n_entries > 0:
@@ -884,26 +892,21 @@ class ProjectRepo(BaseRepo):
                     "Repo version has outdated options hashes. "
                     "Updating option hashes in output log.tsv."
                 )
-                self.output_repo.update_log_hashes()
-
+                self.output_repo._update_log_hashes()
         if changes_were_made:
-            print(f"Repo version {metadata['cadet_rdm_version']} was outdated. "
-                  f"Current CADET-RDM version is {cadetrdm.__version__}.\n Repo has been updated")
+            print(
+                f"Repo version {metadata['cadet_rdm_version']} was outdated. "
+                f"Current CADET-RDM version is {cadetrdm.__version__}.\n"
+                "Repo has been updated."
+            )
             metadata["cadet_rdm_version"] = cadetrdm_version
             with open(self.data_json_path, "w", encoding="utf-8") as f:
                 json.dump(metadata, f, indent=2)
             self.add(self.data_json_path)
-            self.commit("update cadetrdm version", add_all=False)
-
-    def fix_gitattributes_log_tsv(self):
-        file = self.output_path / ".gitattributes"
-        with open(file, encoding="utf-8") as handle:
-            lines = handle.readlines()
-        lines = [line.replace("rdm-log.tsv", "log.tsv") for line in lines]
-        with open(file, "w", encoding="utf-8") as handle:
-            handle.writelines(lines)
-        self.output_repo.add(".gitattributes")
-        self.output_repo.commit("Update gitattributes")
+            self.commit(
+                f"Update CADET-RDM version to {cadetrdm_version}",
+                add_all=False
+            )
 
     def _clone_output_repo(self, multi_options: List[str] = None):
         metadata = self.load_metadata()
@@ -1030,57 +1033,6 @@ class ProjectRepo(BaseRepo):
     @property
     def output_log(self):
         return self.output_repo.output_log
-
-    def _expand_tsv_header(self):
-        if not self.output_log_file.exists():
-            return
-
-        with open(self.output_log_file, "r", encoding="utf-8") as f:
-            lines = f.readlines()
-
-        new_header = [
-            "Output repo commit message",
-            "Output repo branch",
-            "Output repo commit hash",
-            "Project repo commit hash",
-            "Project repo folder name",
-            "Project repo remotes",
-            "Python sys args",
-            "Tags",
-            "Options hash", ]
-        with open(self.output_log_file, "w", encoding="utf-8") as f:
-            f.writelines(["\t".join(new_header) + "\n"])
-            f.writelines(lines[1:])
-
-        self.output_repo.add(self.output_log_file)
-        self.output_repo.commit("Update tsv header", add_all=False)
-
-    def _convert_csv_to_tsv_if_necessary(self):
-        """
-        If not tsv log is found AND a csv log is found, convert the csv to tsv.
-
-        :return:
-        """
-
-        if self.output_log_file.exists():
-            return
-
-        csv_filepath = self.path / self._output_folder / "log.csv"
-        if not csv_filepath.exists():
-            # We have just initialized the repo and neither tsv nor csv exist.
-            return
-
-        with open(csv_filepath, encoding="utf-8") as csv_handle:
-            csv_lines = csv_handle.readlines()
-
-        tsv_lines = [line.replace(",", "\t") for line in csv_lines]
-
-        with open(self.output_log_file, "w", encoding="utf-8") as f:
-            f.writelines(tsv_lines)
-
-        write_lines_to_file(path=self.path / ".gitattributes",
-                            lines=["rdm-log.tsv merge=union"],
-                            open_type="a")
 
     def update_output_main_logs(self, output_dict: dict = None):
         """
@@ -1525,7 +1477,112 @@ class OutputRepo(BaseRepo):
             self.checkout(self.main_branch)
         return OutputLog(filepath=self.output_log_file_path)
 
-    def update_log_hashes(self):
+    def print_output_log(self):
+        self.checkout(self.main_branch)
+
+        output_log = self.output_log
+        print(output_log)
+
+        self.checkout(self._most_recent_branch)
+
+    def add_filetype_to_lfs(self, file_type):
+        """
+        Add the filetype given in file_type to the GIT-LFS tracking
+
+        :param file_type:
+        Wildcard formatted string. Examples: "*.png" or "*.xlsx"
+        :return:
+        """
+        init_lfs(lfs_filetypes=[file_type], path=self.path)
+        self.add_all_files()
+        self.commit(f"Add {file_type} to lfs")
+
+    def _convert_csv_to_tsv_if_necessary(self) -> None:
+        """Convert logfile from csv to tsv format."""
+        if self.output_log_file_path.exists():
+            return
+
+        csv_filepath = self.path / "log.csv"
+        if not csv_filepath.exists():
+            return
+
+        with open(csv_filepath, encoding="utf-8") as csv_handle:
+            csv_lines = csv_handle.readlines()
+
+        tsv_lines = [line.replace(",", "\t") for line in csv_lines]
+
+        with open(self.output_log_file_path, "w", encoding="utf-8") as f:
+            f.writelines(tsv_lines)
+
+        write_lines_to_file(
+            path=self.path / ".gitattributes",
+            lines=["rdm-log.tsv merge=union"],
+            open_type="a"
+        )
+
+    def _expand_tsv_header(self):
+        """Update tsv header."""
+        if not self.output_log_file_path.exists():
+            return
+
+        with open(self.output_log_file_path, "r", encoding="utf-8") as f:
+            lines = f.readlines()
+
+        new_header = [
+            "Output repo commit message",
+            "Output repo branch",
+            "Output repo commit hash",
+            "Project repo commit hash",
+            "Project repo folder name",
+            "Project repo remotes",
+            "Python sys args",
+            "Tags",
+            "Options hash", ]
+        with open(self.output_log_file_path, "w", encoding="utf-8") as f:
+            f.writelines(["\t".join(new_header) + "\n"])
+            f.writelines(lines[1:])
+
+        self.add(self.output_log_file_path)
+        self.commit("Update tsv header", add_all=False)
+
+    def _update_headers(self):
+        """Update tsv header."""
+        if not self.output_log_file_path.exists():
+            return
+
+        with open(self.output_log_file_path, "r", encoding="utf-8") as f:
+            lines = f.readlines()
+
+        new_header = [
+            "output_repo_commit_message",
+            "output_repo_branch",
+            "output_repo_commit_hash",
+            "project_repo_commit_hash",
+            "project_repo_folder_name",
+            "project_repo_remotes",
+            "python_sys_args",
+            "tags",
+            "options_hash",
+        ]
+        with open(self.output_log_file_path, "w", encoding="utf-8") as f:
+            f.writelines(["\t".join(new_header) + "\n"])
+            f.writelines(lines[1:])
+
+        self.add(self.output_log_file_path)
+        self.commit("Update tsv header", add_all=False)
+
+    def _fix_gitattributes_log_tsv(self):
+        """Update .gitattributes to account for changed logfile name."""
+        file = self.path / ".gitattributes"
+        with open(file, encoding="utf-8") as handle:
+            lines = handle.readlines()
+        lines = [line.replace("rdm-log.tsv", "log.tsv") for line in lines]
+        with open(file, "w", encoding="utf-8") as handle:
+            handle.writelines(lines)
+        self.add(".gitattributes")
+        self.commit("Update .gitattributes", add_all=False)
+
+    def _update_log_hashes(self):
         if self.has_uncomitted_changes:
             self._reset_hard_to_head(force_entry=True)
         if not self.active_branch == self.main_branch:
@@ -1547,26 +1604,6 @@ class OutputRepo(BaseRepo):
         if self.output_log.n_entries > 0:
             log.write()
         self.commit(message="Updated log hashes", add_all=True)
-
-    def print_output_log(self):
-        self.checkout(self.main_branch)
-
-        output_log = self.output_log
-        print(output_log)
-
-        self.checkout(self._most_recent_branch)
-
-    def add_filetype_to_lfs(self, file_type):
-        """
-        Add the filetype given in file_type to the GIT-LFS tracking
-
-        :param file_type:
-        Wildcard formatted string. Examples: "*.png" or "*.xlsx"
-        :return:
-        """
-        init_lfs(lfs_filetypes=[file_type], path=self.path)
-        self.add_all_files()
-        self.commit(f"Add {file_type} to lfs")
 
 
 class JupyterInterfaceRepo(ProjectRepo):
