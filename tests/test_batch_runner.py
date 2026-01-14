@@ -3,7 +3,7 @@ from pathlib import Path
 
 import pytest
 
-from cadetrdm import Options, Study, Case, Environment, ProjectRepo, initialize_repo
+from cadetrdm import Options, Case, Environment, ProjectRepo, initialize_repo
 from cadetrdm.io_utils import delete_path
 
 
@@ -17,7 +17,7 @@ def test_module_import():
 
     rdm_example = ProjectRepo(
         WORK_DIR / 'template',
-        "git@jugit.fz-juelich.de:r.jaepel/rdm_example.git",
+        "git@jugit.fz-juelich.de:IBG-1/ModSim/cadet/rdm_example.git",
     )
 
     assert hasattr(rdm_example.module, "main")
@@ -29,9 +29,9 @@ def test_run_with_non_matching_env():
     WORK_DIR = Path.cwd() / "tmp"
     WORK_DIR.mkdir(parents=True, exist_ok=True)
 
-    rdm_example = Study(
+    rdm_example = ProjectRepo(
         WORK_DIR / 'template',
-        "git@jugit.fz-juelich.de:r.jaepel/rdm_example.git",
+        url="git@jugit.fz-juelich.de:IBG-1/ModSim/cadet/rdm_example.git",
     )
 
     options = Options()
@@ -67,13 +67,13 @@ def test_re_load_results():
     from pathlib import Path
 
     from cadetrdm import Options
-    from cadetrdm import Study, Case
+    from cadetrdm import ProjectRepo, Case
 
     WORK_DIR = Path("batch_repos") / "studies"
 
-    batch_elution = Study(
+    batch_elution = ProjectRepo(
         WORK_DIR / 'batch_elution',
-        "git@jugit.fz-juelich.de:j.schmoelder/batch_elution.git",
+        url="git@jugit.fz-juelich.de:j.schmoelder/batch_elution.git",
         branch="master",
     )
 
@@ -97,9 +97,9 @@ def test_results_loading():
     WORK_DIR = Path.cwd() / "tmp"
     WORK_DIR.mkdir(parents=True, exist_ok=True)
 
-    rdm_example = Study(
+    rdm_example = ProjectRepo(
         WORK_DIR / 'template',
-        "git@jugit.fz-juelich.de:r.jaepel/rdm_example.git",
+        url="git@jugit.fz-juelich.de:IBG-1/ModSim/cadet/rdm_example.git",
     )
 
     class OptionsFixture(Options):
@@ -180,7 +180,7 @@ def test_results_loading():
 def test_case_with_projectrepo():
     class OptionsFixture(Options):
         def get_hash(self):
-            return "za16jkxf3waxxy3mkavy3jnjn5za0b"
+            return "4rhaw644xny9e2f75ht8rw1yambyqz7w"
 
     path_to_repo = Path("test_repo_batch")
     if path_to_repo.exists():
@@ -202,7 +202,7 @@ def test_case_with_projectrepo():
 def test_results_loading_from_within():
     class OptionsFixture(Options):
         def get_hash(self):
-            return "za16jkxf3waxxy3mkavy3jnjn5za0b"
+            return "4rhaw644xny9e2f75ht8rw1yambyqz7w"
 
     root_dir = os.getcwd()
 
@@ -212,18 +212,22 @@ def test_results_loading_from_within():
     if (WORK_DIR / 'template').exists():
         delete_path(WORK_DIR / 'template')
 
-    rdm_example = Study(
+    rdm_example = ProjectRepo(
         WORK_DIR / 'template',
-        "git@jugit.fz-juelich.de:r.jaepel/rdm_example.git",
+        url="git@jugit.fz-juelich.de:IBG-1/ModSim/cadet/rdm_example.git",
+        package_dir="template",
     )
 
     try:
         os.chdir(WORK_DIR / 'template')
-        rdm_example = Study(".", "git@jugit.fz-juelich.de:r.jaepel/rdm_example.git")
-
         case = Case(project_repo=rdm_example, options=OptionsFixture())
         assert case.has_results_for_this_run
         assert case.results_branch == '2025-02-11_17-15-38_main_d1842fd'
+        rdm_example = ProjectRepo(
+            ".",
+            url="git@jugit.fz-juelich.de:IBG-1/ModSim/cadet/rdm_example.git",
+            package_dir="template",
+        )
 
         with open(rdm_example.path / "Readme.md", "a") as handle:
             handle.write("New line\n")
