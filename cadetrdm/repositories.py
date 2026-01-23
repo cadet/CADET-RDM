@@ -1090,7 +1090,7 @@ class ProjectRepo(BaseRepo):
             json.dump(entry.to_dict(), f, indent=2)
 
         if self.options is not None:
-            self.options.dump_json_file(logs_dir / "options.json")
+            self.options.dump_json_file(logs_dir / "options.json", indent=2)
 
         log = OutputLog(self.output_log_file)
         log.entries[output_branch_name] = entry
