@@ -60,10 +60,10 @@ class GitRepo:
         :param kwargs:
             Kwargs handed to git.Repo()
         """
-        if path is None or path == ".":
+        if path is None or path in (".", "./"):
             path = os.getcwd()
 
-        if type(path) is str:
+        if isinstance(path, str):
             path = Path(path)
 
         self._git_repo = git.Repo(path, search_parent_directories=search_parent_directories, *args, **kwargs)
@@ -799,9 +799,11 @@ class ProjectRepo(BaseRepo):
         :param kwargs:
             Additional kwargs to be handed to BaseRepo.
         """
-        if path is not None and not Path(path).exists():
+        path = Path(path).expanduser() if path is not None else None
+
+        if path is not None and not path.expanduser().exists():
             if url is None:
-                raise ValueError(f"Could not find repository at path {path} and no url was given.")
+                raise ValueError(f"Could not find repository at path {path} and no URL was given.")
             ProjectRepo.clone(url=url, to_path=path)
 
         super().__init__(path, search_parent_directories=search_parent_directories, *args, **kwargs)
