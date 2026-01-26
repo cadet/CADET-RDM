@@ -1476,7 +1476,7 @@ class ProjectRepo(BaseRepo):
         new_branch_name = self.enter_context(
             force=force,
             debug=debug,
-            branch_prefix=options.get("branch_prefix"),
+            branch_prefix=options.get("branch_prefix") if options else None,
         )
         try:
             yield new_branch_name

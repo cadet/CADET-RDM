@@ -430,3 +430,7 @@ def test_with_detached_head():
 #         repo.verify_unchanged_cache()
 #
 #     os.chdir("..")
+
+
+if __name__ == "__main__":
+    pytest.main(["-v", __file__])
