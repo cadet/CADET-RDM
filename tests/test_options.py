@@ -1,11 +1,13 @@
-import numpy as np
+from pathlib import Path
 import re
+
+import numpy as np
+import pytest
 
 from cadetrdm import Options
 from cadetrdm.options import remove_invalid_keys
-from cadetrdm import process_example
 from cadetrdm import ProjectRepo
-from pathlib import Path
+
 
 def test_options_hash():
     opt = Options()
@@ -115,7 +117,7 @@ def test_branch_name():
     options.push = False
     options.source_directory = "src"
 
-    repo = ProjectRepo(Path("./test_repo_cli"), options=options)
+    repo = ProjectRepo(Path("./test_repo_cli"))
 
     hash = str(repo.head.commit)[:7]
     active_branch = str(repo.active_branch)
@@ -136,14 +138,18 @@ def test_branch_name_with_prefix():
     options.source_directory = "src"
     options.branch_prefix = "Test_Prefix"
 
-    repo = ProjectRepo(Path("./test_repo_cli"), options=options)
+    repo = ProjectRepo(Path("./test_repo_cli"))
 
     hash = str(repo.head.commit)[:7]
     active_branch = str(repo.active_branch)
-    new_branch = repo.get_new_output_branch_name()
+    new_branch = repo.get_new_output_branch_name(options.branch_prefix)
 
     escaped_branch = re.escape(active_branch)
 
     pattern = rf"^Test_Prefix_\d{{4}}-\d{{2}}-\d{{2}}_\d{{2}}-\d{{2}}-\d{{2}}_{escaped_branch}_{hash}$"
 
     assert re.match(pattern, new_branch), f"Branch name '{new_branch}' does not match expected format"
+
+
+if __name__ == "__main__":
+    pytest.main(["-v", __file__])
