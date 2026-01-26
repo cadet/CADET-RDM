@@ -822,6 +822,8 @@ class ProjectRepo(BaseRepo):
         self._output_uuid = self._metadata["output_uuid"]
         self._output_folder = self._metadata["output_remotes"]["output_folder_name"]
         self.options = options
+        self._update_version()
+
         if not (self.path / self._output_folder).exists():
             print("Output repository was missing, cloning now.")
             self._clone_output_repo()
@@ -829,9 +831,6 @@ class ProjectRepo(BaseRepo):
             self.path / self._output_folder,
             self,
         )
-
-        if self._metadata["cadet_rdm_version"] != cadetrdm.__version__:
-            self._update_version(self._metadata, cadetrdm.__version__)
 
         self._on_context_enter_commit_hash = None
         self._is_in_context_manager = False
@@ -864,58 +863,33 @@ class ProjectRepo(BaseRepo):
             sys.path.remove(str(self.path))
             os.chdir(cur_dir)
 
-    def _update_version(self, metadata, cadetrdm_version):
-        current_version = Version.coerce(metadata["cadet_rdm_version"])
+    def _update_version(self) -> None:
+        """Update project repo to latest CADET-RDM specs."""
+        metadata = self._metadata
+        cadetrdm_version = Version(cadetrdm.__version__)
+        current_version = Version(metadata["cadet_rdm_version"])
+
+        # Skip if versions match
+        if cadetrdm_version == current_version:
+            return
 
         changes_were_made = False
 
-        if SimpleSpec("<0.0.9").match(current_version):
+        if current_version < Version("0.0.9"):
             changes_were_made = True
-            self.output_repo._convert_csv_to_tsv_if_necessary()
             self._add_jupytext_file(self.path)
-        if SimpleSpec("<0.0.24").match(current_version):
+        if current_version < Version("0.0.24"):
             changes_were_made = True
-            self.output_repo._expand_tsv_header()
             output_remotes_path = self.path / "output_remotes.json"
             delete_path(output_remotes_path)
             self.add(output_remotes_path)
-        if SimpleSpec("<=0.0.34").match(current_version):
-            changes_were_made = True
-            if self.output_log_file.exists():
-                warnings.warn(
-                    "Repo version has outdated headers."
-                    "Updating log.tsv."
-                )
-                self.output_repo._update_headers()
-        if SimpleSpec("<0.0.34").match(current_version):
-            changes_were_made = True
-            self.output_repo._fix_gitattributes_log_tsv()
-        if SimpleSpec("<1.1.0").match(current_version):
-            # Note, this needs to be performed before upating the hashes, otherwise
-            # instantiating an `OutputLog` will crash when missing the
-            # `project_repo_branch` attribute.
-            changes_were_made = True
-            if self.output_log_file.exists():
-                warnings.warn(
-                    "Repo version has missing project repo branch_name field."
-                    "Updating log.tsv."
-                )
-                self.output_repo._add_branch_name_to_log()
-        if SimpleSpec("<0.1.7").match(current_version):
-            changes_were_made = True
-            if self.output_repo.output_log.n_entries > 0:
-                warnings.warn(
-                    "Repo version has outdated options hashes. "
-                    "Updating option hashes in output log.tsv."
-                )
-                self.output_repo._update_log_hashes()
         if changes_were_made:
             print(
                 f"Repo version {metadata['cadet_rdm_version']} was outdated. "
                 f"Current CADET-RDM version is {cadetrdm.__version__}.\n"
                 "Repo has been updated."
             )
-            metadata["cadet_rdm_version"] = cadetrdm_version
+            metadata["cadet_rdm_version"] = str(cadetrdm_version)
             with open(self.data_json_path, "w", encoding="utf-8") as f:
                 json.dump(metadata, f, indent=2)
             self.add(self.data_json_path)
@@ -1489,6 +1463,8 @@ class OutputRepo(BaseRepo):
         self.project_repo = project_repo
         super().__init__(*args, **kwargs)
 
+        self._update_version()
+
     @property
     def output_log_file_path(self):
         if not self.active_branch == self.main_branch:
@@ -1561,7 +1537,6 @@ class OutputRepo(BaseRepo):
             mapping[entry.project_repo_commit_hash].append(entry.options_hash)
         return dict(mapping)
 
-
     def add_filetype_to_lfs(self, file_type):
         """
         Add the filetype given in file_type to the GIT-LFS tracking
@@ -1573,6 +1548,69 @@ class OutputRepo(BaseRepo):
         init_lfs(lfs_filetypes=[file_type], path=self.path)
         self.add_all_files()
         self.commit(f"Add {file_type} to lfs")
+
+    def _update_version(self) -> None:
+        """Update output repo to latest CADET-RDM specs."""
+        metadata = self._metadata
+        cadetrdm_version = Version(cadetrdm.__version__)
+        current_version = Version(metadata["cadet_rdm_version"])
+
+        # Skip if versions match
+        if cadetrdm_version == current_version:
+            return
+
+        changes_were_made = False
+
+        if current_version < Version("0.0.9"):
+            changes_were_made = True
+            self._convert_csv_to_tsv_if_necessary()
+        if current_version < Version("0.0.24"):
+            changes_were_made = True
+            self._expand_tsv_header()
+        if current_version < Version("0.0.34"):
+            changes_were_made = True
+            if self.output_log_file_path.exists():
+                warnings.warn(
+                    "Repo version has outdated headers. "
+                    "Updating log.tsv."
+                )
+                self._update_headers()
+        if current_version < Version("0.0.34"):
+            changes_were_made = True
+            self._fix_gitattributes_log_tsv()
+        if current_version < Version("1.1.0"):
+            # Note, this needs to be performed before upating the hashes, otherwise
+            # instantiating an `OutputLog` will crash when missing the
+            # `project_repo_branch` attribute.
+            changes_were_made = True
+            if self.output_log_file_path.exists():
+                warnings.warn(
+                    "Repo version has missing project repo branch_name field. "
+                    "Updating log.tsv."
+                )
+                self._add_branch_name_to_log()
+        if current_version < Version("0.1.7"):
+            changes_were_made = True
+            if self.output_log.n_entries > 0:
+                warnings.warn(
+                    "Repo version has outdated options hashes. "
+                    "Updating option hashes in output log.tsv."
+                )
+                self._update_log_hashes()
+        if changes_were_made:
+            print(
+                f"Repo version {metadata['cadet_rdm_version']} was outdated. "
+                f"Current CADET-RDM version is {cadetrdm.__version__}.\n"
+                "Repo has been updated."
+            )
+            metadata["cadet_rdm_version"] = str(cadetrdm_version)
+            with open(self.data_json_path, "w", encoding="utf-8") as f:
+                json.dump(metadata, f, indent=2)
+            self.add(self.data_json_path)
+            self.commit(
+                f"Update CADET-RDM version to {cadetrdm_version}",
+                add_all=False
+            )
 
     def _convert_csv_to_tsv_if_necessary(self) -> None:
         """Convert logfile from csv to tsv format."""
@@ -1596,6 +1634,9 @@ class OutputRepo(BaseRepo):
             lines=["rdm-log.tsv merge=union"],
             open_type="a"
         )
+        self.add(self.path / "log.csv")
+        self.add(self.path / "log.tsv")
+        self.commit("Convert csv to tsv", add_all=False)
 
     def _expand_tsv_header(self):
         """Update tsv header."""
@@ -1614,7 +1655,8 @@ class OutputRepo(BaseRepo):
             "Project repo remotes",
             "Python sys args",
             "Tags",
-            "Options hash", ]
+            "Options hash",
+        ]
         with open(self.output_log_file_path, "w", encoding="utf-8") as f:
             f.writelines(["\t".join(new_header) + "\n"])
             f.writelines(lines[1:])
@@ -1656,6 +1698,7 @@ class OutputRepo(BaseRepo):
         lines = [line.replace("rdm-log.tsv", "log.tsv") for line in lines]
         with open(file, "w", encoding="utf-8") as handle:
             handle.writelines(lines)
+
         self.add(".gitattributes")
         self.commit("Update .gitattributes", add_all=False)
 
@@ -1680,7 +1723,9 @@ class OutputRepo(BaseRepo):
         self.checkout(self.main_branch)
         if self.output_log.n_entries > 0:
             log.write()
-        self.commit(message="Updated log hashes", add_all=True)
+
+        self.add(self.output_log_file_path)
+        self.commit(message="Updated log hashes", add_all=False)
 
     def _add_branch_name_to_log(self) -> None:
         """
@@ -1713,7 +1758,10 @@ class OutputRepo(BaseRepo):
             writer.writerows(rows)
 
         self.add("log.tsv")
-        self.commit(message="Add project_repo_branch_name to log.tsv")
+        self.commit(
+            message="Add project_repo_branch_name to log.tsv",
+            add_all=False,
+        )
 
 
 class JupyterInterfaceRepo(ProjectRepo):
