@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import contextlib
 import csv
 from functools import wraps
@@ -773,7 +775,6 @@ class ProjectRepo(BaseRepo):
         suppress_lfs_warning: bool = False,
         url: str = None,
         branch: str = None,
-        options: Options | None = None,
         package_dir: str | None = None,
          *args: Any,
          **kwargs: Any,
@@ -798,8 +799,6 @@ class ProjectRepo(BaseRepo):
             Optional branch to check out upon initialization
         :param package_dir:
             Name of the directory containing the main package.
-        :param options:
-            Options dictionary containing ...
         :param args:
             Additional args to be handed to BaseRepo.
         :param kwargs:
@@ -827,7 +826,7 @@ class ProjectRepo(BaseRepo):
         self._project_uuid = self._metadata["project_uuid"]
         self._output_uuid = self._metadata["output_uuid"]
         self._output_folder = self._metadata["output_remotes"]["output_folder_name"]
-        self.options = options
+
         self._update_version()
 
         if not (self.path / self._output_folder).exists():
@@ -840,7 +839,6 @@ class ProjectRepo(BaseRepo):
 
         self._on_context_enter_commit_hash = None
         self._is_in_context_manager = False
-        self.options_hash = None
 
         if branch is not None:
             self.checkout(branch)
@@ -959,9 +957,10 @@ class ProjectRepo(BaseRepo):
         if errors_encountered == 0 and push:
             self.push(push_all=True)
 
-    def get_new_output_branch_name(self):
+    def get_new_output_branch_name(self, branch_prefix: str | None = None) -> str:
         """
         Construct a name for the new branch in the output repository.
+        :param branch_prefix: Optional branch name prefix.
         :return: the new branch name
         """
         project_repo_hash = str(self.head.commit)
@@ -969,8 +968,8 @@ class ProjectRepo(BaseRepo):
 
         branch_name = f"{timestamp}_{self.active_branch}_{project_repo_hash[:7]}"
 
-        if self.options and "branch_prefix" in self.options:
-            branch_name = f"{self.options['branch_prefix']}_{branch_name}"
+        if branch_prefix:
+            branch_name = f"{branch_prefix}_{branch_name}"
 
         return branch_name
 
@@ -1030,7 +1029,11 @@ class ProjectRepo(BaseRepo):
     def output_log(self):
         return self.output_repo.output_log
 
-    def update_output_main_logs(self, output_dict: dict = None):
+    def update_output_main_logs(
+        self,
+        output_dict: dict = None,
+        options: Options | None = None,
+    ):
         """
         Dumps all the metadata information about the project repositories state and
         the commit hash and branch name of the ouput repository into the main branch of
@@ -1063,7 +1066,7 @@ class ProjectRepo(BaseRepo):
             project_repo_remotes=self.remote_urls,
             python_sys_args=str(sys.argv),
             tags=", ".join(self.tags),
-            options_hash=self.options_hash,
+            options_hash=options.get_hash() if options else None,
             filepath=None,
             **output_dict
         )
@@ -1071,8 +1074,8 @@ class ProjectRepo(BaseRepo):
         with open(logs_dir / "metadata.json", "w", encoding="utf-8") as f:
             json.dump(entry.to_dict(), f, indent=2)
 
-        if self.options is not None:
-            self.options.dump_json_file(logs_dir / "options.json", indent=2)
+        if options:
+            options.dump_json_file(logs_dir / "options.json", indent=2)
 
         log = OutputLog(self.output_log_file)
         log.entries[output_branch_name] = entry
@@ -1217,7 +1220,12 @@ class ProjectRepo(BaseRepo):
         self._commit_output_data(commit_message, output_dict={})
         return new_branch_name
 
-    def enter_context(self, force=False, debug=False):
+    def enter_context(
+        self,
+        force=False,
+        debug=False,
+        branch_prefix: str | None = None,
+    ) -> str | None:
         """
         Enter the tracking context. This includes:
          - Ensure no uncommitted changes in the project repository
@@ -1225,11 +1233,12 @@ class ProjectRepo(BaseRepo):
          - Clean up empty branches in the output repository
          - Create a new empty output branch in the output repository
 
-
         :param force:
             If False, wait for user prompts before deleting data during clean up. If True, don't wait, just delete.
         :param debug:
             If True, just return None.
+        :param branch_prefix:
+            Optional branch name prefix.
         :return:
             The name of the newly created output branch.
         """
@@ -1244,10 +1253,14 @@ class ProjectRepo(BaseRepo):
         self._on_context_enter_commit_hash = self.current_commit_hash
         self._is_in_context_manager = True
 
-        new_branch_name = self._get_new_output_branch(force)
+        new_branch_name = self._get_new_output_branch(force, branch_prefix)
         return new_branch_name
 
-    def _get_new_output_branch(self, force=False):
+    def _get_new_output_branch(
+        self,
+        force: bool = False,
+        branch_prefix: str | None = None
+    ):
         """
         Prepares a new branch to receive data. This includes:
          - checking out the output main branch,
@@ -1257,8 +1270,9 @@ class ProjectRepo(BaseRepo):
 
         :param force:
             If False, wait for user prompts before deleting data during clean up. If True, don't wait, just delete.
+        :param branch_prefix:
+            Optional branch name prefix.
         """
-
         output_repo = self.output_repo
 
         # ensure that LFS is properly initialized
@@ -1268,7 +1282,7 @@ class ProjectRepo(BaseRepo):
         if output_repo.has_uncomitted_changes:
             output_repo._reset_hard_to_head(force_entry=force)
         output_repo.delete_active_branch_if_branch_is_empty()
-        new_branch_name = self.get_new_output_branch_name()
+        new_branch_name = self.get_new_output_branch_name(branch_prefix)
 
         # update urls in main branch of output_repo
         output_repo._git.checkout(output_repo.main_branch)
@@ -1367,7 +1381,12 @@ class ProjectRepo(BaseRepo):
 
         return target_folder
 
-    def exit_context(self, message, output_dict: dict = None):
+    def exit_context(
+        self,
+        message,
+        output_dict: dict = None,
+        options: Options | None = None,
+    ):
         """
         After running all project code, this prepares the commit of the results to the output repository. This includes
          - Ensure no uncommitted changes in the project repository
@@ -1386,9 +1405,14 @@ class ProjectRepo(BaseRepo):
         if self._on_context_enter_commit_hash != self.current_commit_hash:
             raise RuntimeError("Code has changed since starting the context. Don't do that.")
 
-        self._commit_output_data(message, output_dict)
+        self._commit_output_data(message, output_dict, options)
 
-    def _commit_output_data(self, message, output_dict):
+    def _commit_output_data(
+        self,
+        message: str,
+        output_dict: dict,
+        options: Options | None = None
+    ):
         """
         Commit the data in the output repository.
          - Stage all changes in the output repository
@@ -1398,6 +1422,8 @@ class ProjectRepo(BaseRepo):
             Commit message for the output repository commit.
         :param output_dict:
             Dictionary containing optional output tracking parameters
+        :param options:
+            Optional case options.
         """
         print("Completed computations, commiting results")
         self.output_repo.add(".")
@@ -1405,7 +1431,7 @@ class ProjectRepo(BaseRepo):
             # This has to be using ._git.commit to raise an error if no results have been written.
             commit_return = self.output_repo._git.commit("-m", message)
             self.copy_data_to_cache()
-            self.update_output_main_logs(output_dict)
+            self.update_output_main_logs(output_dict, options)
             main_cach_path = self.path / (self._output_folder + "_cached") / self.output_repo.main_branch
             if main_cach_path.exists():
                 delete_path(main_cach_path)
@@ -1419,7 +1445,13 @@ class ProjectRepo(BaseRepo):
             self._on_context_enter_commit_hash = None
 
     @contextlib.contextmanager
-    def track_results(self, results_commit_message: str, debug=False, force=False):
+    def track_results(
+        self,
+        results_commit_message: str,
+        debug=False,
+        force=False,
+        options: Options | None = None,
+    ) -> str | None:
         """
         Context manager to be used when running project code that produces output that should
         be tracked in the output repository.
@@ -1429,6 +1461,8 @@ class ProjectRepo(BaseRepo):
             Perform calculations without tracking output.
         :param force:
             Skip confirmation and force tracking of results.
+        :param options:
+            Optional case options.
         """
         if debug:
             yield "debug"
@@ -1439,14 +1473,18 @@ class ProjectRepo(BaseRepo):
             yield "detached_head"
             return
 
-        new_branch_name = self.enter_context(force=force)
+        new_branch_name = self.enter_context(
+            force=force,
+            debug=debug,
+            branch_prefix=options.get("branch_prefix"),
+        )
         try:
             yield new_branch_name
         except Exception as e:
             self.capture_error(e)
             raise e
         else:
-            self.exit_context(message=results_commit_message)
+            self.exit_context(message=results_commit_message, options=options)
 
     def capture_error(self, error):
         print(traceback.format_exc())

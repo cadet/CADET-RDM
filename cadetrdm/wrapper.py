@@ -29,14 +29,13 @@ def tracks_results(func):
         if options.get_hash() != Options.load_json_str(options.dump_json_str()).get_hash():
             raise ValueError("Options are not serializable. Please only use python natives and numpy ndarrays.")
 
-        project_repo = ProjectRepo(repo_path, options=options)
-
-        project_repo.options_hash = options.get_hash()
+        project_repo = ProjectRepo(repo_path)
 
         with project_repo.track_results(
                 options.commit_message,
                 debug=options.debug,
-                force=True
+                force=True,
+                options=options,
         ) as new_branch_name:
             options.dump_json_file(project_repo.output_path / "options.json")
             results = func(project_repo, options)
