@@ -1,5 +1,6 @@
 import contextlib
 import csv
+from functools import wraps
 import glob
 import importlib
 import json
@@ -285,7 +286,12 @@ class GitRepo:
         """
         self._git_repo.remotes[name].set_url(url)
 
-    def commit(self, message: str | None = None, add_all=True, verbosity=1):
+    def commit(
+        self,
+        message: str | None = None,
+        add_all=True,
+        verbosity=1,
+    ) -> None:
         """
         Commit current state of the repository.
 
@@ -1079,8 +1085,7 @@ class ProjectRepo(BaseRepo):
         self.output_repo.add(".")
         self.output_repo._git.commit(
             "-m",
-            f"log for '{output_commit_message}' \n"
-            f"of branch '{output_branch_name}'"
+            f"log for '{output_commit_message}' of branch '{output_branch_name}'",
         )
 
         self.output_repo._git.checkout(output_branch_name)
@@ -1103,20 +1108,15 @@ class ProjectRepo(BaseRepo):
             self.active_branch, output=code_tmp_folder
         )
 
-    def commit(self, message: str | None = None, add_all=True, verbosity=1):
-        """
-        Commit current state of the repository.
-
-        :param message:
-            Commit message
-        :param add_all:
-            Option to add all changed and new files to git automatically.
-        :param verbosity:
-            Option to choose degree of printed feedback.
-        """
+    @wraps(BaseRepo.commit)
+    def commit(
+        self,
+        *args,
+        **kwargs,
+    ):
+        """Update output remotes before committing."""
         self.update_output_remotes_json()
-
-        super().commit(message=message, add_all=add_all, verbosity=verbosity)
+        super().commit(*args, **kwargs)
 
     def check(self, commit=True):
         """
