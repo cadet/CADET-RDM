@@ -5,7 +5,7 @@
 # Required
 version: 2
 
-# Set the version of Python and other tools you might need
+# Set the version of Python and other tools that might be needed
 build:
   os: ubuntu-lts-latest
   tools:
@@ -18,6 +18,6 @@ build:
 sphinx:
   configuration: docs/source/conf.py
 
-# Optionally declare the Python requirements required to build your docs
+# Optionally declare the Python requirements required to build the docs
 conda:
   environment: environment.yml
