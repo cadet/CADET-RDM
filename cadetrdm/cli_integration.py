@@ -33,10 +33,10 @@ def init(path_to_repo: str = None, output_directory_name: (str | bool) = "output
 
 @cli.command(help="Clone a repository into a new empty directory.")
 @click.argument('project_url')
-@click.argument('destination_path', required=False)
-def clone(project_url, destination_path: str = None):
+@click.argument('directory', required=False)
+def clone(project_url, directory: str = None):
     from cadetrdm import ProjectRepo
-    repo = ProjectRepo.clone(url=project_url, to_path=destination_path)
+    repo = ProjectRepo.clone(url=project_url, to_path=directory)
     del repo
 
 
