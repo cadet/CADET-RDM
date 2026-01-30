@@ -4,9 +4,30 @@ import shutil
 from abc import abstractmethod
 from pathlib import Path
 import subprocess
+import stat
+import time
 
 from cadetrdm import ProjectRepo, Options
 from cadetrdm.wrapper import tracks_results
+
+
+def _on_rm_error(func, path, exc_info):
+    try:
+        os.chmod(path, stat.S_IWRITE)
+    except Exception:
+        pass
+    func(path)
+
+def rmtree_with_retries(path: Path, retries: int = 8, sleep_s: float = 0.25):
+    last_err = None
+    for _ in range(retries):
+        try:
+            shutil.rmtree(path, onerror=_on_rm_error)
+            return
+        except PermissionError as e:
+            last_err = e
+            time.sleep(sleep_s)
+    raise last_err
 
 
 class ParallelizationBase:
@@ -136,7 +157,9 @@ def create_output(root_path: Path, output_path: Path, n_cores=1):
     None
     """
     if os.path.exists(output_path):
-        shutil.rmtree(output_path)
+        rmtree_with_retries(output_path)
+
+
     shutil.copytree(root_path, output_path)
 
     # Find all myst files recursively
