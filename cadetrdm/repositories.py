@@ -1768,20 +1768,29 @@ class OutputRepo(BaseRepo):
         """
         Update the TSV file by adding a 'project_repo_branch' column.
 
-        The branch name is extracted from the 'output_repo_commit_message' field.
+        The branch name is extracted from the 'Output repo branch' field.
         """
         self.checkout(self.main_branch)
 
         with open(self.output_log_file_path, "r") as f:
             reader = csv.DictReader(f, delimiter="\t")
             rows = list(reader)
+
+        if not rows:
+            return
+
         fieldnames = list(rows[0].keys())
+
+        # support old/new header names
+        if "output_repo_branch" in rows[0]:
+            branch_col = "output_repo_branch"
+        elif "Output repo branch" in rows[0]:
+            branch_col = "Output repo branch"
 
         # Add new column to header if not present
         if "project_repo_branch" not in rows[0]:
             for row in rows:
-                commit_msg = row["output_repo_branch"]
-                branch = commit_msg.split("_")[2]
+                branch = branch_col.split("_")[2]
                 row["project_repo_branch"] = branch
 
         if "project_repo_branch" not in fieldnames:
