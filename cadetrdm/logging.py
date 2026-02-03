@@ -15,7 +15,7 @@ class LogEntry:
         output_repo_commit_hash: str,
         project_repo_branch: str,
         project_repo_commit_hash: str,
-        project_repo_folder_name: str,
+        project_repo_directory_name: str,
         project_repo_remotes: str,
         python_sys_args: str,
         tags: str,
@@ -28,7 +28,7 @@ class LogEntry:
         self.output_repo_commit_hash = output_repo_commit_hash
         self.project_repo_branch = project_repo_branch
         self.project_repo_commit_hash = project_repo_commit_hash
-        self.project_repo_folder_name = project_repo_folder_name
+        self.project_repo_directory_name = project_repo_directory_name
         self.project_repo_remotes = project_repo_remotes
         self.python_sys_args = python_sys_args
         self.tags = tags
