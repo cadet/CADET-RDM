@@ -47,7 +47,7 @@ The `output_directory_name` can be specified optionally. It defaults to `output`
 .gitignore
 README.md
 ```
-With every run of the project code, a new output branch with the results of the run is created. At the same time, the main branch of the output repository tracks these runs in the `run_history` directory. Every branch has its own sub-directory in the run_history directory. Within this branch, the following files are stored for every run:
+With every run of the project code, a new output branch with the results of the run is created. At the same time, the main branch of the output repository tracks these runs in the `run_history` directory. Every branch has its own sub-directory in the `run_history` directory. Within this branch, the following files are stored for every run:
 
     conda_environment.yml
     conda_independent_environment.yml
@@ -62,7 +62,7 @@ The information stored in these files can be used to reproduce the specific outp
 [Cookiecutter](https://github.com/cookiecutter/cookiecutter) can be used to set a template as a starting position for the repository initialization.
 If `<path-to-repo>` is given as an absolute or relative path, it overwrites the name which may be given to the directory in the cookiecutter prompt. If no `<path-to-repo>` is provided, the repository is initialized in the root directory. No new directory is created, even if the cookiecutter template would normally do so.
 
-From the command line
+From the command line run
 
 ```bash
 rdm init <path-to-repo> --cookiecutter <template_url>

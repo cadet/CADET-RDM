@@ -29,11 +29,11 @@ CADET-RDM projects are structured into two distinct repositories.
 1. The **project repository** that contains the input data, code, software and configurations to execute the computations. The output repository is a directory within the project repository.
 2. The **output repository** that contains the results of these computations, including all calculations, models and figures created by running the project code. Also stored in the output directory is the metadata used to create the specific result. This includes e.g. the software versions and requirements.
 
-:::{figure} figures/RDM-structure.png
-:width: 295
-:alt: Project commits
+:::{figure} figures/RDM_wide.png
+:width: 700
+:alt: RDM structure
 
-Caption for the first figure.
+CADET-RDM repository architechture
 :::
 :::
 
@@ -49,20 +49,21 @@ Every run of the project code creates a new output branch (*result branch*) in t
    :subcaptions: below
 
    .. image:: figures/RDM-project-commits.png
-      :alt: Descriptive Text 1
+      :alt: Project Repository
       :width: 300px
 
    .. image:: figures/RDM-output-commits.png
-      :alt: Descriptive Text 2
+      :alt: Output Repository
       :width: 420px
 
-   Caption for both images.
+   CADET-RDM commit architechture.
+```
 
 
 Because of this simultanious log of the metadata and the environment used to create a specific output, results can be reproduced easily.
 
 ## User function
 
-The tools of CADET-RDM can be used through the command line interface (CLI) or by executing script in python or in jupyter.
+The tools of CADET-RDM can be used through the command line interface (CLI) or by executing script in python or in [Jupyter Lab](https://jupyterlab.readthedocs.io/en/latest/).
 
 The following documentation contains an installation guide, a user guide to quickly start using CADET-RDM and more detailed descriptions on using the command line interface, python interface and jupyter interface.
