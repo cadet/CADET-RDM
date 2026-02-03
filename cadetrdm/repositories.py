@@ -1779,6 +1779,49 @@ class OutputRepo(BaseRepo):
         self.add(self.output_log_file_path)
         self.commit(message="Updated log hashes", add_all=False)
 
+    def _rename_project_repo_folder_to_directory_in_log(self) -> None:
+        """
+        Rename the TSV column header 'project_repo_folder_name'
+        to 'project_repo_directory_name'.
+        """
+        self.checkout(self.main_branch)
+
+        with open(self.output_log_file_path, "r") as f:
+            reader = csv.DictReader(f, delimiter="\t")
+            rows = list(reader)
+
+        if not rows:
+            return
+
+        old_key = "project_repo_folder_name"
+        new_key = "project_repo_directory_name"
+
+        # Nothing to do if the old column does not exist
+        if old_key not in rows[0]:
+            return
+
+        fieldnames = list(rows[0].keys())
+
+        # Rename key in rows
+        for row in rows:
+            row[new_key] = row.pop(old_key)
+
+        # Rename key in header, keep position
+        idx = fieldnames.index(old_key)
+        fieldnames[idx] = new_key
+
+        # Write updated data back to file
+        with open(self.output_log_file_path, "w", newline="") as f:
+            writer = csv.DictWriter(f, fieldnames=fieldnames, delimiter="\t")
+            writer.writeheader()
+            writer.writerows(rows)
+
+        self.add("log.tsv")
+        self.commit(
+            message="Rename 'project_repo_folder_name' to 'project_repo_directory_name' in log.tsv",
+            add_all=False,
+        )
+
     def _add_branch_name_to_log(self) -> None:
         """
         Update the TSV file by adding a 'project_repo_branch' column.
