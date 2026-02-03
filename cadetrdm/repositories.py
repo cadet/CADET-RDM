@@ -1061,7 +1061,7 @@ class ProjectRepo(BaseRepo):
             output_repo_commit_hash=output_repo_hash,
             project_repo_branch=str(self.active_branch),
             project_repo_commit_hash=str(self.head.commit),
-            project_repo_folder_name=self.path.name,
+            project_repo_directory_name=self.path.name,
             project_repo_remotes=self.remote_urls,
             python_sys_args=str(sys.argv),
             tags=", ".join(self.tags),
