@@ -886,6 +886,13 @@ class ProjectRepo(BaseRepo):
             output_remotes_path = self.path / "output_remotes.json"
             delete_path(output_remotes_path)
             self.add(output_remotes_path)
+        if current_version < Version("1.1.1"):
+            output_remotes = metadata.get("output_remotes")
+            if isinstance(output_remotes, dict):
+                if "output_folder_name" in output_remotes:
+                    output_remotes["output_directory_name"] = output_remotes.pop(
+                    "output_folder_name"
+                )
         if changes_were_made:
             print(
                 f"Repo version {metadata['cadet_rdm_version']} was outdated. "
@@ -1598,6 +1605,14 @@ class OutputRepo(BaseRepo):
 
         changes_were_made = False
 
+        if current_version < Version("1.1.1"):
+            changes_were_made = True
+            if self.output_log_file_path.exists():
+                warnings.warn(
+                    "Repo version has outdated options hashes. "
+                    "Updating option hashes in output log.tsv."
+                )
+                self._rename_project_repo_folder_to_directory_in_log()
         if current_version < Version("0.0.9"):
             changes_were_made = True
             self._convert_csv_to_tsv_if_necessary()
