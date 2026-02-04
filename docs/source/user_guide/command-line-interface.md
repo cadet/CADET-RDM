@@ -1,85 +1,112 @@
-
 # Command line interface (CLI)
 
-## Initialize Project Repository
+The command line interface provides access to all CADET-RDM functionality via the `rdm` command. It is suited for scripted workflows, batch execution, and automation.
 
-Create a new project repository or convert an existing repository into a CADET-RDM repository:
+## Repository initialization
 
-```bash
-rdm init <path-to-repo>
-```
-- If no `<path-to-repo>` is provided, the repository is initialized in the root directory without creating a new directory.
-- If `<path-to-repo>` is given as a relative path (e.g. "repository_name"), a new directory with that name is created inside the root directory.
-- If `<path-to-repo>` is given as an absolute path (e.g. C:\Users\me\projects\myrepo), a new directory is created at the specified location.
-
-The `output_directory_name` can be given optionally. It defaults to `output`.
-
-
-## Executing scripts
-
-Python files or arbitray commands can be executed using the CLI:
+Create a new project repository or convert an existing directory into a CADET-RDM repository:
 
 ```bash
-cd path/to/project_repository
-rdm run python <path/to/file> "commit message for the results"
-rdm run command "command as it would be run" "commit message for the results"
+rdm init <path_to_repo> [output_directory_name]
 ```
 
-For the run-command option, the command must be given in quotes, so:
+Options:
+
+- If no `<path_to_repo>` is provided, the repository is initialized in the root directory without creating a new directory.
+- If `<path_to_repo>` is given as a relative path (e.g. "repository_name"), a new directory with that name is created inside the root directory.
+- If `<path_to_repo>` is given as an absolute path (e.g. C:\Users\me\projects\myrepo), a new directory is created at the specified location.
+
+Optionally, an `[output_directory_name]` can be given. Otherwise, it defaults to `output`.
+
+
+### Cookiecutter support
+
+Initialize a repository from a Cookiecutter template:
 
 ```bash
-rdm run command "python example_file.py" "commit message for the results"
+rdm init <path_to_repo> --cookiecutter <template_url>
 ```
 
-## Re-using results from previous iterations
+If `<path_to_repo>` is provided, it overrides any directory name chosen in the Cookiecutter prompt.
+If omitted, initialization happens in the current working directory.
 
-Each result stored with CADET-RDM is given a unique branch name within the output directory, formatted as:
-`<timestamp>_<active_project_branch>_<project_repo_hash[:7]>`
+## Handling results with CADET-RDM
 
-With this branch name, previously generated data can be loaded in as input data for
-further calculations. The following command will copy the contents of the `branch_name` branch to the
-cache directory at `project_root/output_cached/branch_name`.
+### Running code and tracking results
+
+Each execution creates a new output branch containing the generated results and associated metadata.
+
+Run a Python script and track all generated results:
 
 ```bash
-rdm data cache branch_name
+rdm run python <path/to/script.py> "commit message for the results"
 ```
 
-## Using results from another repository
+Run an arbitrary command, for example a bash script:
 
-The Project repository URL, branch_name and location of results can be stored in the .cadet-rdm-cache.json file, like this:
-
-```json
-{
-  "__example/path/to/repo__": {
-    "source_repo_location": "git@jugit.fz-juelich.de:IBG-1/ModSim/cadet/agile_cadet_rdm_presentation_output.git",
-    "branch_name": "output_from_master_3910c84_2023-10-25_00-17-23",
-    "commit_hash": "6e3c26527999036e9490d2d86251258fe81d46dc"
-  }
-}
+```bash
+rdm run command "bash run_simulation.sh" "commit message for the results"
 ```
 
-This cache.json file can be used to load remote repositories.
+The command must be enclosed in quotes.
+
+### Staging, committing, and pushing changes
+
+Check repository consistency and stage changes:
+
+```bash
+rdm check
+```
+
+Commit staged changes:
+
+```bash
+rdm commit -m <message>
+```
+
+Push both project and output repositories:
+
+```bash
+rdm push
+```
+
+### Reusing results from earlier runs
+
+Each run is stored in an output branch named:
+
+```
+<timestamp>_<active_project_branch>_<project_repo_hash[:7]>
+```
+
+Cache results locally:
+
+```bash
+rdm data cache <branch_name>
+```
+
+### Using results from another repository
+
+Fetch repositories listed in `.cadet-rdm-cache.json`:
 
 ```bash
 rdm data fetch
 ```
 
-## Cloning rdm repositories
+## Remote repositories
 
-The command `rdm clone` should be used instead of `git clone` to clone an existing rdm repository to a new location. The destination directory must be empty.
+### Cloning repositories
+
+Clone an existing CADET-RDM repository:
 
 ```bash
 rdm clone <project_url> <destination_path>
 ```
 
+The destination directory must be empty.
 
-## Sharing Results
+### Adding existing remotes
 
-To share the project code and results (`output`) with others, remote repositories have to be configured on e.g.
-[GitHub](https://github.com/) or GitLab. Remotes for both the _project_ repository and the
-_output_ repository have to be created.
-
-Once created, the remotes need to be added to the local repositories.
+Add remotes manually in both repositories:
 
 ```bash
 rdm remote add git@<my_git_server.foo>:<project>.git
@@ -87,16 +114,25 @@ cd output
 rdm remote add git@<my_git_server.foo>:<project>_output.git
 ```
 
-Once remotes are configured, all changes to the project repository and the output repository can be pushed with the following command from within the project repository:
+### Creating remotes automatically
+
+Create project and output remotes using the GitHub or GitLab APIs:
 
 ```bash
-rdm push
+rdm remote create <url> <namespace> <name> <username>
 ```
 
-## Migrating a repository
+Example:
 
-The easiest way to migrate a repository to another remote, is to create the remote
-repositories on GitHub or GitLab and change the `origin` URL for the project and output repositories with:
+```bash
+rdm remote create https://github.com/ githubusers_workproject Workproject githubuser
+```
+
+The output repository name is derived automatically by appending `_output` to the project repository name.
+
+### Migrating repositories
+
+Update the `origin` remote for both repositories and push:
 
 ```bash
 rdm remote set-url origin git@<my_git_server.foo>:<project>.git
