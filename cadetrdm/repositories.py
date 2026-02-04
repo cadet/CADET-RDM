@@ -558,6 +558,11 @@ class BaseRepo(GitRepo):
             metadata["output_remotes"] = output_remotes
         return metadata
 
+    def save_metadata(self) -> None:
+        """Save metadata to file."""
+        with open(self.data_json_path, "w", encoding="utf-8") as f:
+            json.dump(self.metadata, f, indent=2)
+
     def add_remote(self, remote_url, remote_name=None):
         """
         Add a remote to the repository.
@@ -1170,18 +1175,15 @@ class ProjectRepo(BaseRepo):
         if commit:
             self.output_repo.commit(message="Update remote links", add_all=False, verbosity=1)
 
-    def update_output_remotes_json(self):
+    def update_output_remotes_json(self, load_metadata=True):
         output_repo_remotes = self.output_repo.remote_urls
         self.add_list_of_remotes_in_readme_file("Link to Output Repository", output_repo_remotes)
 
-        with open(self.data_json_path, "r", encoding="utf-8") as file_handle:
-            metadata = json.load(file_handle)
-
+        metadata = self.load_metadata() if load_metadata else self.metadata
         remotes_dict = {remote.name: str(remote.url) for remote in self.output_repo.remotes}
         metadata["output_remotes"] = {"output_directory_name": self.output_directory, "output_remotes": remotes_dict}
-
-        with open(self.data_json_path, "w", encoding="utf-8") as file_handle:
-            json.dump(metadata, file_handle, indent=2)
+        self._metadata = metadata
+        self.save_metadata()
 
         self.add(self.data_json_path)
 
