@@ -21,7 +21,7 @@ from types import ModuleType
 from typing import List, Optional, Any
 from urllib.request import urlretrieve
 
-from semantic_version import Version, SimpleSpec
+from semantic_version import Version
 
 import cadetrdm
 from cadetrdm import Options
@@ -83,7 +83,7 @@ class GitRepo:
 
         self.add = self._git.add
 
-    def __enter__(self) -> "Repo":
+    def __enter__(self) -> git.Repo:
         return self
 
     def __exit__(self, *args: Any) -> None:
@@ -541,7 +541,8 @@ class BaseRepo(GitRepo):
         super().__init__(path, search_parent_directories, *args, **kwargs)
         self._metadata = self.load_metadata()
 
-    def load_metadata(self):
+    def load_metadata(self) -> dict:
+        """Load metadata from file."""
         with open(self.data_json_path, "r", encoding="utf-8") as handle:
             metadata = json.load(handle)
         if "output_remotes" not in metadata and metadata["is_project_repo"]:
@@ -817,8 +818,11 @@ class ProjectRepo(BaseRepo):
             test_for_lfs()
 
         if output_directory is not None:
-            print("Deprecation Warning. Setting the output directory manually during repo instantiation is deprecated"
-                  " and will be removed in a future update.")
+            print(
+                "Deprecation Warning. Setting the output directory manually during "
+                "repo instantiation is deprecated and will be removed in a future "
+                " update."
+            )
 
         if not self.data_json_path.exists():
             raise RuntimeError(f"Directory {self.path} does not appear to be a CADET-RDM repository.")
@@ -1780,10 +1784,7 @@ class OutputRepo(BaseRepo):
         self.commit(message="Updated log hashes", add_all=False)
 
     def _rename_project_repo_folder_to_directory_in_log(self) -> None:
-        """
-        Rename the TSV column header 'project_repo_folder_name'
-        to 'project_repo_directory_name'.
-        """
+        """Rename the TSV column header from folder to directory."""
         self.checkout(self.main_branch)
 
         with open(self.output_log_file_path, "r") as f:
