@@ -832,7 +832,7 @@ class ProjectRepo(BaseRepo):
         if not self.data_json_path.exists():
             raise RuntimeError(f"Directory {self.path} does not appear to be a CADET-RDM repository.")
 
-        self._update_version()
+        changes_were_made = self._update_version()
 
         if not (self.path / self.output_directory).exists():
             print("Output repository was missing, cloning now.")
@@ -850,6 +850,21 @@ class ProjectRepo(BaseRepo):
             self.checkout(branch)
 
         self._package_dir = package_dir
+
+        if changes_were_made:
+            cadetrdm_version = Version(cadetrdm.__version__)
+            print(
+                f"Repo version {self.metadata['cadet_rdm_version']} was outdated. "
+                f"Current CADET-RDM version is {cadetrdm.__version__}.\n"
+                "Repo has been updated."
+            )
+            self.metadata["cadet_rdm_version"] = str(cadetrdm_version)
+            self.save_metadata()
+            self.add(self.data_json_path)
+            self.commit(
+                f"Update CADET-RDM version to {cadetrdm_version}",
+                add_all=False
+            )
 
     @property
     def project_uuid(self) -> str:
@@ -908,26 +923,15 @@ class ProjectRepo(BaseRepo):
             delete_path(output_remotes_path)
             self.add(output_remotes_path)
         if current_version < Version("1.1.1"):
+            changes_were_made = True
             output_remotes = self.metadata.get("output_remotes")
             if isinstance(output_remotes, dict):
                 if "output_folder_name" in output_remotes:
                     output_remotes["output_directory_name"] = output_remotes.pop(
                     "output_folder_name"
                 )
-        if changes_were_made:
-            print(
-                f"Repo version {metadata['cadet_rdm_version']} was outdated. "
-                f"Current CADET-RDM version is {cadetrdm.__version__}.\n"
-                "Repo has been updated."
-            )
-            metadata["cadet_rdm_version"] = str(cadetrdm_version)
-            with open(self.data_json_path, "w", encoding="utf-8") as f:
-                json.dump(metadata, f, indent=2)
-            self.add(self.data_json_path)
-            self.commit(
-                f"Update CADET-RDM version to {cadetrdm_version}",
-                add_all=False
-            )
+
+        return changes_were_made
 
     def _clone_output_repo(self, multi_options: List[str] = None):
         output_remotes = self.metadata["output_remotes"]
