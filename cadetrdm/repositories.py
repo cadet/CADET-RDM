@@ -541,6 +541,11 @@ class BaseRepo(GitRepo):
         super().__init__(path, search_parent_directories, *args, **kwargs)
         self._metadata = self.load_metadata()
 
+    @property
+    def metadata(self) -> dict:
+        """Return metadata information about CADET-RDM repository."""
+        return self._metadata
+
     def load_metadata(self) -> dict:
         """Load metadata from file."""
         with open(self.data_json_path, "r", encoding="utf-8") as handle:
@@ -564,7 +569,7 @@ class BaseRepo(GitRepo):
         if remote_name is None:
             remote_name = "origin"
         self._git_repo.create_remote(remote_name, url=remote_url)
-        if self._metadata["is_project_repo"]:
+        if self.metadata["is_project_repo"]:
             # This directory is a project repository. Use a project repo class to easily access the output repo.
             output_repo = ProjectRepo(self.path).output_repo
 
@@ -575,7 +580,7 @@ class BaseRepo(GitRepo):
             output_repo.add_list_of_remotes_in_readme_file("Link to Project Repository", self.remote_urls)
             output_repo.add("README.md")
             output_repo.commit("Add remote for project repo", verbosity=0, add_all=False)
-        if self._metadata["is_output_repo"]:
+        if self.metadata["is_output_repo"]:
             # This directory is an output repository.
             project_repo = ProjectRepo(self.path.parent)
             project_repo.update_output_remotes_json()
@@ -827,16 +832,14 @@ class ProjectRepo(BaseRepo):
         if not self.data_json_path.exists():
             raise RuntimeError(f"Directory {self.path} does not appear to be a CADET-RDM repository.")
 
-        self._project_uuid = self._metadata["project_uuid"]
-        self._output_uuid = self._metadata["output_uuid"]
-        self._output_directory = self._metadata["output_remotes"]["output_directory_name"]
         self._update_version()
 
-        if not (self.path / self._output_directory).exists():
+        if not (self.path / self.output_directory).exists():
             print("Output repository was missing, cloning now.")
             self._clone_output_repo()
+
         self.output_repo = OutputRepo(
-            self.path / self._output_directory,
+            self.path / self.output_directory,
             self,
         )
 
@@ -847,6 +850,21 @@ class ProjectRepo(BaseRepo):
             self.checkout(branch)
 
         self._package_dir = package_dir
+
+    @property
+    def project_uuid(self) -> str:
+        """Return Project UUID."""
+        return self.metadata.project_uuid
+
+    @property
+    def output_uuid(self) -> str:
+        """Return Project UUID."""
+        return self.metadata["output_uuid"]
+
+    @property
+    def output_directory(self) -> str:
+        """Return output directory."""
+        return self.metadata["output_remotes"]["output_directory_name"]
 
     @property
     def name(self):
@@ -872,9 +890,8 @@ class ProjectRepo(BaseRepo):
 
     def _update_version(self) -> None:
         """Update project repo to latest CADET-RDM specs."""
-        metadata = self._metadata
         cadetrdm_version = Version(cadetrdm.__version__)
-        current_version = Version(metadata["cadet_rdm_version"])
+        current_version = Version(self.metadata["cadet_rdm_version"])
 
         # Skip if versions match
         if cadetrdm_version == current_version:
@@ -891,7 +908,7 @@ class ProjectRepo(BaseRepo):
             delete_path(output_remotes_path)
             self.add(output_remotes_path)
         if current_version < Version("1.1.1"):
-            output_remotes = metadata.get("output_remotes")
+            output_remotes = self.metadata.get("output_remotes")
             if isinstance(output_remotes, dict):
                 if "output_folder_name" in output_remotes:
                     output_remotes["output_directory_name"] = output_remotes.pop(
@@ -913,8 +930,7 @@ class ProjectRepo(BaseRepo):
             )
 
     def _clone_output_repo(self, multi_options: List[str] = None):
-        metadata = self.load_metadata()
-        output_remotes = metadata["output_remotes"]
+        output_remotes = self.metadata["output_remotes"]
         output_path = self.path / output_remotes["output_directory_name"]
         ssh_remotes = list(output_remotes["output_remotes"].values())
         if len(ssh_remotes) == 0:
@@ -1158,7 +1174,7 @@ class ProjectRepo(BaseRepo):
             metadata = json.load(file_handle)
 
         remotes_dict = {remote.name: str(remote.url) for remote in self.output_repo.remotes}
-        metadata["output_remotes"] = {"output_directory_name": self._output_directory, "output_remotes": remotes_dict}
+        metadata["output_remotes"] = {"output_directory_name": self.output_directory, "output_remotes": remotes_dict}
 
         with open(self.data_json_path, "w", encoding="utf-8") as file_handle:
             json.dump(metadata, file_handle, indent=2)
@@ -1211,8 +1227,8 @@ class ProjectRepo(BaseRepo):
         """
         Delete all previously cached results.
         """
-        if (self.path / (self._output_directory + "_cached")).exists():
-            delete_path(self.path / (self._output_directory + "_cached"))
+        if (self.path / (self.output_directory + "_cached")).exists():
+            delete_path(self.path / (self.output_directory + "_cached"))
 
     def import_static_data(self, source_path: Path | str, commit_message):
         """
@@ -1333,7 +1349,7 @@ class ProjectRepo(BaseRepo):
         branch_name_path = branch_name.replace("/", "_")
 
         # Define the target directory
-        cache_folder = self.path / f"{self._output_directory}_cached" / str(branch_name_path)
+        cache_folder = self.path / f"{self.output_directory}_cached" / str(branch_name_path)
         return cache_folder
 
     def copy_data_to_cache(self, branch_name=None, target_folder=None):
@@ -1442,7 +1458,7 @@ class ProjectRepo(BaseRepo):
             commit_return = self.output_repo._git.commit("-m", message)
             self.copy_data_to_cache()
             self.update_output_main_logs(output_dict, options)
-            main_cach_path = self.path / (self._output_directory + "_cached") / self.output_repo.main_branch
+            main_cach_path = self.path / (self.output_directory + "_cached") / self.output_repo.main_branch
             if main_cach_path.exists():
                 delete_path(main_cach_path)
             self.copy_data_to_cache(self.output_repo.main_branch)
@@ -1599,7 +1615,7 @@ class OutputRepo(BaseRepo):
 
     def _update_version(self) -> None:
         """Update output repo to latest CADET-RDM specs."""
-        metadata = self._metadata
+        metadata = self.metadata
         cadetrdm_version = Version(cadetrdm.__version__)
         current_version = Version(metadata["cadet_rdm_version"])
 
