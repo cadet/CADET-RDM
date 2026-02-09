@@ -9,7 +9,7 @@
 user_guide/introduction
 user_guide/installation
 user_guide/getting-started
-user_guide/CLI-interface
+user_guide/command-line-interface
 user_guide/python-interface
 user_guide/jupyter-interface
 ```
