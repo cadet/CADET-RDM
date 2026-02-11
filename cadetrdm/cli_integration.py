@@ -90,6 +90,14 @@ def commit(message, all):
     del repo
 
 
+@cli.command(help="Stage changes")
+@click.argument("filepath", type=click.Path())
+def add(filepath):
+    from cadetrdm.repositories import ProjectRepo
+    repo = ProjectRepo(".")
+    repo.add(filepath)
+
+
 @cli.group(help="Execute commands and track the results.")
 def run():
     pass
