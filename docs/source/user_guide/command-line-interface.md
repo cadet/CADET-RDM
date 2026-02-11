@@ -52,16 +52,22 @@ The command must be enclosed in quotes.
 
 ### Staging, committing, and pushing changes
 
-Check repository consistency and stage changes:
+Check repository consistency:
 
 ```bash
 rdm check
 ```
 
-Commit staged changes:
+Stage changes:
 
 ```bash
-rdm commit -m <message>
+rdm add <filepath>
+```
+
+Commit staged changes (option: setting `-a` will stage all changes and commit them):
+
+```bash
+rdm commit -m <message> [-a]
 ```
 
 Push both project and output repositories:
