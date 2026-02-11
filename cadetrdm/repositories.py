@@ -291,7 +291,7 @@ class GitRepo:
     def commit(
         self,
         message: str | None = None,
-        add_all=True,
+        add_all=False,
         verbosity=1,
     ) -> None:
         """
@@ -584,7 +584,7 @@ class BaseRepo(GitRepo):
                 output_repo.checkout(output_repo.main_branch)
             output_repo.add_list_of_remotes_in_readme_file("Link to Project Repository", self.remote_urls)
             output_repo.add("README.md")
-            output_repo.commit("Add remote for project repo", verbosity=0, add_all=False)
+            output_repo.commit("Add remote for project repo", verbosity=0)
         if self.metadata["is_output_repo"]:
             # This directory is an output repository.
             project_repo = ProjectRepo(self.path.parent)
@@ -592,7 +592,7 @@ class BaseRepo(GitRepo):
             project_repo.add_list_of_remotes_in_readme_file("Link to Output Repository", self.remote_urls)
             project_repo.add(project_repo.data_json_path)
             project_repo.add("README.md")
-            project_repo.commit("Add remote for output repo", verbosity=0, add_all=False)
+            project_repo.commit("Add remote for output repo", verbosity=0)
 
     def import_remote_repo(self, source_repo_location, source_repo_branch, target_repo_location=None):
         """
@@ -1167,13 +1167,13 @@ class ProjectRepo(BaseRepo):
         """
         self.update_output_remotes_json()
         if commit:
-            super().commit(message="Update remote links", add_all=False, verbosity=1)
+            super().commit(message="Update remote links", verbosity=1)
 
         # update urls in main branch of output_repo
         self.output_repo._git.checkout(self.output_repo.main_branch)
         self.output_repo.add_list_of_remotes_in_readme_file("Link to Project Repository", self.remote_urls)
         if commit:
-            self.output_repo.commit(message="Update remote links", add_all=False, verbosity=1)
+            self.output_repo.commit(message="Update remote links", verbosity=1)
 
     def update_output_remotes_json(self, load_metadata=True):
         output_repo_remotes = self.output_repo.remote_urls
@@ -1714,7 +1714,7 @@ class OutputRepo(BaseRepo):
         )
         self.add(self.path / "log.csv")
         self.add(self.path / "log.tsv")
-        self.commit("Convert csv to tsv", add_all=False)
+        self.commit("Convert csv to tsv")
 
     def _expand_tsv_header(self):
         """Update tsv header."""
@@ -1740,7 +1740,7 @@ class OutputRepo(BaseRepo):
             f.writelines(lines[1:])
 
         self.add(self.output_log_file_path)
-        self.commit("Update tsv header", add_all=False)
+        self.commit("Update tsv header")
 
     def _update_headers(self):
         """Update tsv header."""
@@ -1766,7 +1766,7 @@ class OutputRepo(BaseRepo):
             f.writelines(lines[1:])
 
         self.add(self.output_log_file_path)
-        self.commit("Update tsv header", add_all=False)
+        self.commit("Update tsv header")
 
     def _fix_gitattributes_log_tsv(self):
         """Update .gitattributes to account for changed logfile name."""
@@ -1778,7 +1778,7 @@ class OutputRepo(BaseRepo):
             handle.writelines(lines)
 
         self.add(".gitattributes")
-        self.commit("Update .gitattributes", add_all=False)
+        self.commit("Update .gitattributes")
 
     def _update_log_hashes(self):
         if self.has_uncomitted_changes:
@@ -1803,7 +1803,7 @@ class OutputRepo(BaseRepo):
             log.write()
 
         self.add(self.output_log_file_path)
-        self.commit(message="Updated log hashes", add_all=False)
+        self.commit(message="Updated log hashes")
 
     def _rename_project_repo_folder_to_directory_in_log(self) -> None:
         """Rename the TSV column header from folder to directory."""
@@ -1892,7 +1892,7 @@ class OutputRepo(BaseRepo):
 
 
 class JupyterInterfaceRepo(ProjectRepo):
-    def commit(self, message: str | None = None, add_all=True, verbosity=1):
+    def commit(self, message: str | None = None, add_all=False, verbosity=1):
         """
         Commit current state of the repository.
 
