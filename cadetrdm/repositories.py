@@ -20,6 +20,7 @@ import tempfile
 from types import ModuleType
 from typing import List, Optional, Any
 from urllib.request import urlretrieve
+import uuid
 
 from semantic_version import Version
 
@@ -1009,7 +1010,8 @@ class ProjectRepo(BaseRepo):
         project_repo_hash = str(self.head.commit)
         timestamp = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
 
-        branch_name = f"{timestamp}_{self.active_branch}_{project_repo_hash[:7]}"
+        suffix = uuid.uuid4().hex[:6]
+        branch_name = f"{timestamp}_{self.active_branch}_{project_repo_hash[:7]}_{suffix}"
 
         if branch_prefix:
             branch_name = f"{branch_prefix}_{branch_name}"
