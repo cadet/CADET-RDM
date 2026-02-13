@@ -1871,7 +1871,7 @@ class OutputRepo(BaseRepo):
         # Add new column to header if not present
         if "project_repo_branch" not in rows[0]:
             for row in rows:
-                branch = branch_colc.split("_")[2]
+                branch = branch_col.split("_")[2]
                 row["project_repo_branch"] = branch
 
         if "project_repo_branch" not in fieldnames:
