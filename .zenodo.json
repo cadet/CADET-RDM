@@ -1,5 +1,5 @@
 {
-  "title": "CADET-RDM: Version 1.1.1",
+  "title": "CADET-RDM: Version 1.1.2",
   "upload_type": "software",
   "creators": [
     {
@@ -32,7 +32,7 @@
   "keywords": [
    "research data management", "simulation", "reproducibility", "containerization"
   ],
-  "version": "1.1.1",
+  "version": "1.1.2",
   "access_right": "open",
   "communities": [
     { "identifier": "open-source" }
