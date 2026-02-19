@@ -224,6 +224,7 @@ def initialize_output_repo(output_directory_name, gitignore: list = None,
     create_output_readme()
 
     repo = OutputRepo(".")
+    repo.add_all_files()
     repo.commit("initial commit")
 
     os.chdir(starting_directory)

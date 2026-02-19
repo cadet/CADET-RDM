@@ -45,8 +45,12 @@ Results are tracked using the `ProjectRepo` interface. All files written inside 
 from cadetrdm import ProjectRepo
 
 repo = ProjectRepo()
+repo.add(path_to_changed_file)
 repo.commit("Commit code changes")
+```
+Optionally, the argument `add_all=True` can be given to `repo.commit()` to stage all changed files and commit them instead of using the preceding `repo.add()`.
 
+```python
 with repo.track_results(results_commit_message="Generate results"):
     data = generate_data()
     write_data_to_file(data, output_directory=repo.output_directory)

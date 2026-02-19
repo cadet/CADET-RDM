@@ -89,6 +89,17 @@ def commit(message, all):
     repo.commit(message, all)
     del repo
 
+@cli.command(help="Stage changes")
+@click.option("--filepath", "-f", help="Stage changes at filepath")
+def add(filepath):
+    if not filepath:
+        raise click.UsageError(
+            "You must specify --filepath/-f"
+        )
+    from cadetrdm.repositories import ProjectRepo
+    repo = ProjectRepo(".")
+    repo.add(filepath)
+    del repo
 
 @cli.group(help="Execute commands and track the results.")
 def run():
