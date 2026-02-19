@@ -179,11 +179,19 @@ class GitRepo:
         try:
             remote = self.remotes[0]
             remote_branches = remote.fetch()
-            correct_remote_branches = [fetch_info for fetch_info in remote_branches
-                                       if fetch_info.name == f"{remote.name}/{self.active_branch.name}"]
+            correct_remote_branches = [
+                remote_branch for remote_branch in remote_branches
+                if remote_branch.name == f"{remote.name}/{self.active_branch.name}"
+            ]
             if len(correct_remote_branches) > 1:
-                raise RuntimeError(f"Remote has multiple branches matching local branch {self.active_branch.name}: "
-                                   f"{[branch.name for branch in correct_remote_branches]}")
+                raise RuntimeError(
+                    f"Remote has multiple branches matching local branch {self.active_branch.name}: "
+                   f"{[branch.name for branch in correct_remote_branches]}"
+                )
+
+            if not correct_remote_branches:
+                print(f"Branch {self.active_branch.name} does not exist upstream yet.")
+                return False
             remote_hash = str(correct_remote_branches[0].commit)
 
             if self.current_commit_hash != remote_hash and remote_hash not in self.log:
