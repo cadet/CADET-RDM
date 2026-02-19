@@ -1161,10 +1161,11 @@ class ProjectRepo(BaseRepo):
             bare output remote HEAD points to main and that main has been pushed once.
         """
         self.output_repo._git.checkout(self.output_repo.main_branch)
-        self.output_repo._git_repo.git.reset(
-            "--hard",
-            f"origin/{self.output_repo.main_branch}",
-        )
+        self.output_repo._git_repo.git.rebase("origin")
+        # self.output_repo._git_repo.git.reset(
+        #     "--hard",
+        #     f"origin/{self.output_repo.main_branch}",
+        # )
 
     def _apply_log_update_on_main(
         self,
