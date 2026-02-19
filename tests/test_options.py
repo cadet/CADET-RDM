@@ -1,4 +1,5 @@
 import re
+import uuid
 
 import numpy as np
 import pytest
@@ -90,7 +91,7 @@ def test_branch_name(clean_repo):
     new_branch = clean_repo.get_new_output_branch_name()
 
     escaped_branch = re.escape(active_branch)
-    pattern = rf"^\d{{4}}-\d{{2}}-\d{{2}}_\d{{2}}-\d{{2}}-\d{{2}}_{escaped_branch}_{hash}$"
+    pattern = rf"^\d{{4}}-\d{{2}}-\d{{2}}_\d{{2}}-\d{{2}}-\d{{2}}_{escaped_branch}_{hash}_[0-9a-f]{{6}}$"
     assert re.match(pattern, new_branch), f"Branch name '{new_branch}' does not match expected format"
 
 
@@ -107,7 +108,7 @@ def test_branch_name_with_prefix(clean_repo):
     new_branch = clean_repo.get_new_output_branch_name(options.branch_prefix)
 
     escaped_branch = re.escape(active_branch)
-    pattern = rf"^Test_Prefix_\d{{4}}-\d{{2}}-\d{{2}}_\d{{2}}-\d{{2}}-\d{{2}}_{escaped_branch}_{hash}$"
+    pattern = rf"^Test_Prefix_\d{{4}}-\d{{2}}-\d{{2}}_\d{{2}}-\d{{2}}-\d{{2}}_{escaped_branch}_{hash}_[0-9a-f]{{6}}$"
     assert re.match(pattern, new_branch), f"Branch name '{new_branch}' does not match expected format"
 
 
