@@ -216,7 +216,7 @@ class GitRepo:
 
             if self.has_changes_upstream:
                 print(f"New changes detected in {self.remotes[0]}, pulling updates...")
-                self.remotes[0].pull()
+                self.remotes[0].pull(rebase=True)
                 self._git.reset(["--hard", f"{self.remotes[0]}/{self.active_branch}"])
 
         except git.GitCommandError as e:
@@ -431,7 +431,7 @@ class GitRepo:
             for remote in remote_list:
                 remote_interface = self._git_repo.remotes[remote]
                 try:
-                    remote_interface.pull()
+                    remote_interface.pull(rebase=True)
                 except Exception as e:
                     print("Pulling from this remote failed with the following error:")
                     print(e)
