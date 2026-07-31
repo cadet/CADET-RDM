@@ -63,16 +63,24 @@ class Environment:
         if packages is None:
             return instance
 
-        instance.name = packages["name"]
-        instance.channels = packages["channels"]
+        instance.name = packages.get("name")
+        instance.channels = packages.get("channels")
 
-        conda_packages = packages["dependencies"]
-        conda_packages = {line.split("=")[0]: line.split("=")[1] for line in conda_packages if isinstance(line, str)}
+        # Some historical environment.yml files (recorded by older cadetrdm
+        # versions, or other yaml content sharing this loader) don't have a
+        # "dependencies" key at all - treat that the same as an empty
+        # environment instead of crashing, matching the "packages is None"
+        # case above.
+        dependencies = packages.get("dependencies")
+        if not dependencies:
+            return instance
+
+        conda_packages = {line.split("=")[0]: line.split("=")[1] for line in dependencies if isinstance(line, str)}
         instance.packages.update(conda_packages)
         instance.conda_packages = conda_packages
 
-        if isinstance(packages["dependencies"][-1], dict):
-            pip_packages = packages["dependencies"][-1]["pip"]
+        if isinstance(dependencies[-1], dict) and "pip" in dependencies[-1]:
+            pip_packages = dependencies[-1]["pip"]
             pip_packages = {line.split("==")[0]: line.split("==")[1] for line in pip_packages}
             instance.packages.update(pip_packages)
             instance.pip_packages = pip_packages
