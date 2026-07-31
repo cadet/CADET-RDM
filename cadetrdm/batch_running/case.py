@@ -294,7 +294,11 @@ class Case:
         Returns:
             Path to results.
         """
-        self.output_repo.update()
+        if not self.options.debug:
+            self.project_repo.update()
+        else:
+            print("WARNING: Not updating the repositories while in debug mode.")
+
         results_branch = self._get_results_branch(
             allow_commit_hash_mismatch=allow_commit_hash_mismatch,
             allow_options_hash_mismatch=allow_options_hash_mismatch,
