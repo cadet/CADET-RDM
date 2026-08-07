@@ -69,6 +69,12 @@ docs = [
     "myst-nb>=0.17.1",
     "sphinx-subfigure>=0.2.4",
 ]
+dev = [
+    {include-group = "docs"},
+    {include-group = "testing"},
+    "pre-commit",
+    "ruff<=0.11.4",
+]
 
 [project.optional-dependencies]
 jupyter = [
@@ -79,6 +85,29 @@ jupyter = [
     "jupytext",
     "jupyterlab",
 ]
+
+[tool.ruff]
+src = ["cadetrdm", "tests"]
+exclude = ["examples", "docs"]
+line-length = 88
+
+[tool.ruff.lint]
+preview = true
+select = ["E", "F", "W", "D", "ANN"]
+ignore = ["D100", "D212", "D203", "ANN401"]
+exclude = ['__init__.py']
+
+[tool.ruff.lint.pydocstyle]
+convention = "numpy"
+
+[tool.ruff.lint.pycodestyle]
+max-line-length = 100
+max-doc-length = 94
+
+[tool.ruff.lint.per-file-ignores]
+"tests/*.py" = ["D", "E731", "ANN", "E402"]
+# E731 are lambda expressions for tests, D are general docstrings
+
 
 [tool.pytest.ini_options]
 markers = [
