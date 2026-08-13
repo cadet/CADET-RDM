@@ -76,6 +76,12 @@ class LogEntry:
             Instance of Environment class, with requirements as key: value pairs.
         :return:
         """
+        # Environment matching is opt-in. Without requirements to check against, the
+        # recorded environment is not read at all, so loading results does not depend
+        # on the run_history files being present in the working tree.
+        if environment is None:
+            return True
+
         if self._environment is None:
             self._load_environment()
 
@@ -136,6 +142,31 @@ class OutputLog:
     def n_entries(self) -> int:
         """int: Number of results stored in the repository."""
         return len(self.entries)
+
+    @classmethod
+    def from_string(cls, content: str, filepath=None):
+        """
+        Create an OutputLog from the raw contents of a log.tsv file.
+
+        Used to read the log out of a git ref without checking that ref out. The
+        filepath is not read from, but is retained so that LogEntry can resolve the
+        run_history files next to it.
+
+        :param content:
+            Raw tab-separated contents of a log.tsv file.
+        :param filepath:
+            Optional path the contents belong to.
+        """
+        instance = cls()
+        instance._filepath = filepath
+
+        lines = [line.split("\t") for line in content.splitlines() if line]
+        if not lines:
+            return instance
+
+        instance._entry_list = lines
+        instance.entries: dict[str, LogEntry] = instance._entries_from_entry_list(instance._entry_list)
+        return instance
 
     @classmethod
     def from_list(cls, entry_list: list[list[str]]):

@@ -1095,6 +1095,9 @@ class ProjectRepo(BaseRepo):
         Dumps all the metadata information about the project repositories state and
         the commit hash and branch name of the ouput repository into the main branch of
         the output repository.
+        This is the write path for the output log: it intentionally checks out the
+        output repository's main branch, updates the run history, commits it, and then
+        returns to the result branch.
         :param output_dict:
         Dictionary containing key-value pairs to be added to the log.
         """
@@ -1565,11 +1568,21 @@ class OutputRepo(BaseRepo):
 
     @property
     def output_log(self):
-        if self.has_uncomitted_changes:
-            self._reset_hard_to_head(force_entry=True)
-        if not self.active_branch == self.main_branch:
-            self.checkout(self.main_branch)
-        return OutputLog(filepath=self.output_log_file_path)
+        """
+        OutputLog: The run history recorded on the main branch.
+
+        Read directly from the main branch ref, so that inspecting the log neither
+        checks out that branch nor touches the working tree. Reading the log used to
+        discard uncommitted changes and check out the main branch, which made loading
+        results a destructive operation.
+        """
+        try:
+            log_content = self._git.show(f"{self.main_branch}:log.tsv")
+        except git.GitCommandError:
+            # No log.tsv on the main branch yet, e.g. in a freshly initialized repo.
+            return OutputLog()
+
+        return OutputLog.from_string(log_content, filepath=self.path / "log.tsv")
 
     def print_output_log(self):
         self.checkout(self.main_branch)
