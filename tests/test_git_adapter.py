@@ -1,5 +1,5 @@
 import os
-import random
+import uuid
 from pathlib import Path
 
 import git
@@ -27,7 +27,7 @@ def path_to_repo():
 
 def modify_code(path_to_repo):
     # Add changes to the project code
-    random_number = random.randint(0, 265)
+    random_number = uuid.uuid4().int
     filepath = path_to_repo / f"print_random_number.py"
     with open(filepath, "w") as file:
         file.write(f"print({random_number})\n")
