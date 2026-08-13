@@ -282,6 +282,7 @@ class Case:
         allow_commit_hash_mismatch: bool = False,
         allow_options_hash_mismatch: bool = False,
         allow_environment_mismatch: bool = False,
+        fetch: bool = False,
     ) -> Path | None:
         """
         Load results for the current case.
@@ -290,14 +291,13 @@ class Case:
             allow_commit_hash_mismatch: If True, allow loading results with mismatched study commit hash.
             allow_options_hash_mismatch: If True, allow loading results with mismatched options hash.
             allow_environment_mismatch: If True, allow loading results with mismatched environment.
+            fetch: If True, fetch output repository refs before looking for matching results.
 
         Returns:
             Path to results.
         """
-        if not self.options.debug:
-            self.project_repo.update()
-        else:
-            print("WARNING: Not updating the repositories while in debug mode.")
+        if fetch:
+            self.output_repo.fetch()
 
         results_branch = self._get_results_branch(
             allow_commit_hash_mismatch=allow_commit_hash_mismatch,
