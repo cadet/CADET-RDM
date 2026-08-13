@@ -1403,12 +1403,10 @@ class ProjectRepo(BaseRepo):
             target_folder = self.cache_folder_for_branch(branch_name)
         target_folder = Path(target_folder)
 
-        # Ensure that the branch is available locally. If it's only a remote branch, git.archive will fail.
+        archive_ref = branch_name
         local_branches = [head.name for head in self.output_repo._git_repo.heads]
         if branch_name not in local_branches:
-            self.output_repo._git_repo.create_head(
-                branch_name, f"origin/{branch_name}"
-            )
+            archive_ref = f"origin/{branch_name}"
 
         # Create the target directory if it doesn't exist
         if not target_folder.exists():
@@ -1419,7 +1417,7 @@ class ProjectRepo(BaseRepo):
             os.close(handle)
             # Create an archive of the specified branch
             self.output_repo._git_repo.git.archive(
-                branch_name, output=temp_archive_name
+                archive_ref, output=temp_archive_name
             )
 
             # Open the temporary file in read mode

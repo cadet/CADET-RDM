@@ -10,6 +10,7 @@ from pathlib import Path
 import pytest
 
 from cadetrdm import ProjectRepo, initialize_repo
+from cadetrdm.io_utils import delete_path
 
 
 def git_state(repo):
@@ -97,3 +98,27 @@ def test_output_log_is_empty_when_no_results_are_recorded(tmp_path):
     repo = ProjectRepo(path_to_repo)
 
     assert repo.output_repo.output_log.n_entries == 0
+
+
+def test_copy_data_to_cache_uses_remote_ref_without_creating_local_branch(repo_with_results):
+    output_repo = repo_with_results.output_repo
+    result_branch = str(output_repo.active_branch)
+    result_commit = output_repo.current_commit_hash
+    cache_folder = repo_with_results.cache_folder_for_branch(result_branch)
+
+    delete_path(cache_folder)
+    output_repo.checkout(output_repo.main_branch)
+    output_repo._git_repo.git.update_ref(
+        f"refs/remotes/origin/{result_branch}",
+        result_commit,
+    )
+    output_repo._git_repo.delete_head(result_branch, force=True)
+
+    state_before = git_state(output_repo)
+    assert result_branch not in state_before["branches"]
+
+    cache_path = repo_with_results.copy_data_to_cache(result_branch)
+
+    assert (cache_path / "result.csv").read_text() == "1,2,3\n"
+    assert git_state(output_repo) == state_before
+    assert result_branch not in [head.name for head in output_repo._git_repo.heads]
