@@ -9,7 +9,7 @@ from pathlib import Path
 
 import pytest
 
-from cadetrdm import ProjectRepo, initialize_repo
+from cadetrdm import Case, Options, ProjectRepo, initialize_repo
 from cadetrdm.io_utils import delete_path
 
 
@@ -44,6 +44,25 @@ def repo_with_results(tmp_path):
     assert str(repo.output_repo.active_branch) != repo.output_repo.main_branch
 
     return repo
+
+
+@pytest.fixture
+def case_with_results(tmp_path):
+    path_to_repo = tmp_path / "project"
+    initialize_repo(path_to_repo, "results")
+
+    repo = ProjectRepo(path_to_repo)
+    options = Options({"case": "read-only-load"})
+    options.branch_prefix = "read-only-load"
+
+    with repo.track_results(results_commit_message="Add result", options=options):
+        (repo.output_path / "result.csv").write_text("1,2,3\n")
+
+    case = Case(project_repo=repo, options=options, name="read-only-load")
+    cache_folder = repo.cache_folder_for_branch(str(repo.output_repo.active_branch))
+    delete_path(cache_folder)
+
+    return case
 
 
 def test_reading_output_log_leaves_output_repo_untouched(repo_with_results):
@@ -122,3 +141,44 @@ def test_copy_data_to_cache_uses_remote_ref_without_creating_local_branch(repo_w
     assert (cache_path / "result.csv").read_text() == "1,2,3\n"
     assert git_state(output_repo) == state_before
     assert result_branch not in [head.name for head in output_repo._git_repo.heads]
+
+
+def test_case_load_does_not_update_project_repo(case_with_results, monkeypatch):
+    project_repo = case_with_results.project_repo
+    project_state_before = git_state(project_repo)
+    output_state_before = git_state(project_repo.output_repo)
+
+    def fail_update():
+        raise AssertionError("Case.load() updated the project repository")
+
+    def fail_fetch():
+        raise AssertionError("Case.load() fetched output repository refs by default")
+
+    monkeypatch.setattr(project_repo, "update", fail_update)
+    monkeypatch.setattr(project_repo.output_repo, "fetch", fail_fetch)
+
+    results_path = case_with_results.load()
+
+    assert (results_path / "result.csv").read_text() == "1,2,3\n"
+    assert git_state(project_repo) == project_state_before
+    assert git_state(project_repo.output_repo) == output_state_before
+
+
+def test_case_load_can_fetch_output_refs_explicitly(case_with_results, monkeypatch):
+    project_repo = case_with_results.project_repo
+    fetched = False
+
+    def fail_update():
+        raise AssertionError("Case.load() updated the project repository")
+
+    def fetch_output_refs():
+        nonlocal fetched
+        fetched = True
+
+    monkeypatch.setattr(project_repo, "update", fail_update)
+    monkeypatch.setattr(project_repo.output_repo, "fetch", fetch_output_refs)
+
+    results_path = case_with_results.load(fetch=True)
+
+    assert fetched is True
+    assert (results_path / "result.csv").read_text() == "1,2,3\n"
