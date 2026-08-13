@@ -1095,6 +1095,9 @@ class ProjectRepo(BaseRepo):
         Dumps all the metadata information about the project repositories state and
         the commit hash and branch name of the ouput repository into the main branch of
         the output repository.
+        This is the write path for the output log: it intentionally checks out the
+        output repository's main branch, updates the run history, commits it, and then
+        returns to the result branch.
         :param output_dict:
         Dictionary containing key-value pairs to be added to the log.
         """
