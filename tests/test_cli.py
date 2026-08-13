@@ -11,6 +11,11 @@ from cadetrdm.io_utils import delete_path
 runner = CliRunner()
 
 
+@pytest.fixture(autouse=True)
+def isolated_cwd(tmp_path, monkeypatch):
+    monkeypatch.chdir(tmp_path)
+
+
 def create_repo():
     if os.path.exists("test_repo_cli"):
         delete_path("test_repo_cli")

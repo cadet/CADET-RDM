@@ -1,5 +1,5 @@
 import os
-import random
+import uuid
 from pathlib import Path
 
 import git
@@ -14,6 +14,11 @@ from cadetrdm.web_utils import ssh_url_to_http_url
 from cadetrdm.wrapper import tracks_results
 
 
+@pytest.fixture(autouse=True)
+def isolated_cwd(tmp_path, monkeypatch):
+    monkeypatch.chdir(tmp_path)
+
+
 @pytest.fixture(scope="module")
 def path_to_repo():
     # a "fixture" serves up shared, ready variables to test functions that should use the fixture as a kwarg
@@ -22,7 +27,7 @@ def path_to_repo():
 
 def modify_code(path_to_repo):
     # Add changes to the project code
-    random_number = random.randint(0, 265)
+    random_number = uuid.uuid4().int
     filepath = path_to_repo / f"print_random_number.py"
     with open(filepath, "w") as file:
         file.write(f"print({random_number})\n")

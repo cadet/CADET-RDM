@@ -7,6 +7,11 @@ from cadetrdm import Options, Case, Environment, ProjectRepo, initialize_repo
 from cadetrdm.io_utils import delete_path
 
 
+@pytest.fixture(autouse=True)
+def isolated_cwd(tmp_path, monkeypatch):
+    monkeypatch.chdir(tmp_path)
+
+
 @pytest.mark.server_api
 def test_module_import():
     WORK_DIR = Path.cwd() / "tmp"
