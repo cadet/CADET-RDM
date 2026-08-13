@@ -3,7 +3,7 @@
 [![CI](https://github.com/cadet/CADET-RDM/actions/workflows/CI.yml/badge.svg)](https://github.com/cadet/CADET-RDM/actions/workflows/CI.yml)
 [![Documentation](https://readthedocs.org/projects/cadet-rdm/badge/?version=latest)](https://cadet-rdm.readthedocs.io)
 [![License](https://img.shields.io/github/license/cadet/cadet-rdm)](LICENSE)
-[![Python](https://img.shields.io/badge/python-3.9%2B-blue)](https://www.python.org/)
+[![Python](https://img.shields.io/badge/python-3.11%2B-blue)](https://www.python.org/)
 
 CADET-RDM is a Research Data Management toolbox developed at Forschungszentrum Jülich.
 It supports computational research projects by tracking code, data, environments, and generated results in a reproducible and shareable way.
@@ -89,4 +89,5 @@ It includes installation instructions, usage guides for the different interfaces
 ## Project information
 
 - **License:** see [LICENSE](LICENSE)
+- **Contributing:** see [CONTRIBUTING](CONTRIBUTING.md)
 - **Authors and contributors:** see [AUTHORS](AUTHORS.md)
