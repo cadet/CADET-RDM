@@ -1,4 +1,4 @@
-```{include} ./user_guide/introduction.md
+```{include} ../../README.md
 ```
 
 ```{toctree}
