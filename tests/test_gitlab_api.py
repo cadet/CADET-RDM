@@ -9,6 +9,11 @@ from cadetrdm.remote_integration import GitHubRemote, GitLabRemote
 from cadetrdm.repositories import BaseRepo
 
 
+@pytest.fixture(autouse=True)
+def isolated_cwd(tmp_path, monkeypatch):
+    monkeypatch.chdir(tmp_path)
+
+
 @pytest.mark.server_api
 def test_gitlab_create():
     url = "https://jugit.fz-juelich.de/"

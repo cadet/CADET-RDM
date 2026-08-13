@@ -14,6 +14,11 @@ from cadetrdm.web_utils import ssh_url_to_http_url
 from cadetrdm.wrapper import tracks_results
 
 
+@pytest.fixture(autouse=True)
+def isolated_cwd(tmp_path, monkeypatch):
+    monkeypatch.chdir(tmp_path)
+
+
 @pytest.fixture(scope="module")
 def path_to_repo():
     # a "fixture" serves up shared, ready variables to test functions that should use the fixture as a kwarg
