@@ -89,4 +89,5 @@ It includes installation instructions, usage guides for the different interfaces
 ## Project information
 
 - **License:** see [LICENSE](LICENSE)
+- **Contributing:** see [CONTRIBUTING](CONTRIBUTING.md)
 - **Authors and contributors:** see [AUTHORS](AUTHORS.md)
