@@ -191,9 +191,9 @@ class OutputLog:
         return {entry["output_repo_branch"]: LogEntry(**entry, filepath=self._filepath) for entry in entry_dictionaries}
 
     def _read_file(self, filepath):
-        with open(filepath) as handle:
+        with open(filepath, encoding="utf-8") as handle:
             lines = handle.readlines()
-        lines = [line.replace("\n", "").split("\t") for line in lines]
+        lines = [line.rstrip("\n").rstrip("\r").split("\t") for line in lines]
         return lines
 
     def _convert_header(self, header):
@@ -215,12 +215,40 @@ class OutputLog:
 
         return collection_of_keys.keys()
 
+    @staticmethod
+    def _sanitize(value):
+        """Make a value safe to write as one tab-separated field.
+
+        Tabs and line breaks are replaced by spaces, because a log entry must
+        stay on a single line: log.tsv is tracked with `merge=union`, and the
+        reader splits on tabs rather than parsing csv.
+        """
+        if value is None:
+            return ""
+        text = str(value)
+        for char in ("\t", "\r", "\n"):
+            text = text.replace(char, " ")
+        return text
+
     def write(self):
         if self._filepath is None:
             raise ValueError("No filepath set for output log. Can not write to filepath")
 
-        with open(self._filepath, "w", newline="") as tsv_file_handle:
-            writer = csv.DictWriter(tsv_file_handle, fieldnames=self.header, delimiter="\t")
+        # Quoting is disabled because the reader does not unquote. Were a value
+        # containing a quote written out quoted, the quotes would be read back
+        # as part of the value and escaped again on the next write, doubling
+        # the field in size with every run.
+        with open(self._filepath, "w", newline="", encoding="utf-8") as tsv_file_handle:
+            writer = csv.DictWriter(
+                tsv_file_handle,
+                fieldnames=self.header,
+                delimiter="\t",
+                quoting=csv.QUOTE_NONE,
+                quotechar=None,
+                escapechar=None,
+            )
             writer.writeheader()
             for entry in self.entries.values():
-                writer.writerow(entry.to_dict())
+                writer.writerow(
+                    {key: self._sanitize(value) for key, value in entry.to_dict().items()}
+                )

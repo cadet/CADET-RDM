@@ -176,3 +176,34 @@ def test_update_environment():
     check = subprocess.run("conda env export -n testing_env_cadet_rdm ", shell=True, capture_output=True)
     current_env = Environment.from_yml_string(check.stdout.decode())
     assert current_env.fulfils_environment(target_env)
+
+
+def test_output_log_roundtrip_is_stable(tmp_path):
+    """A value containing quotes must survive rewriting unchanged.
+
+    The writer used to quote such a field and the reader took the quoting in as
+    part of the value, so every rewrite doubled the number of quotes.
+    """
+    header = [
+        "output_repo_commit_message", "output_repo_branch", "output_repo_commit_hash",
+        "project_repo_branch", "project_repo_commit_hash", "project_repo_directory_name",
+        "project_repo_remotes", "python_sys_args", "tags", "options_hash",
+    ]
+    sys_args = "['pytest', '--commit-message=\"my run\"']"
+    entry = [
+        "my run", "2026-01-08_16-40-08_main", "8eaf262", "main", "5030418",
+        "cadet-verification", "['https://github.com/cadet/CADET-Verification.git']",
+        sys_args, "", "a1b2c3",
+    ]
+
+    filepath = tmp_path / "log.tsv"
+    filepath.write_text("\t".join(header) + "\n" + "\t".join(entry) + "\n")
+
+    OutputLog(filepath=filepath).write()
+    written = filepath.read_text()
+
+    for _ in range(3):
+        OutputLog(filepath=filepath).write()
+        assert filepath.read_text() == written
+
+    assert OutputLog(filepath=filepath).entries[entry[1]].python_sys_args == sys_args
