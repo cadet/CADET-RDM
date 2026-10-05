@@ -13,7 +13,7 @@ repo = Repo(".")
 repo.git.checkout("main")
 
 filepath = "log.tsv"
-with open(filepath) as handle:
+with open(filepath, encoding="utf-8") as handle:
     lines = handle.readlines()
 lines = [line.replace("\n", "").split("\t") for line in lines]
 
@@ -41,7 +41,7 @@ for line in lines[1:]:
 repo.git.checkout("main")
 lines = ["\t".join(line) for line in lines]
 
-with open(filepath, "w") as handle:
+with open(filepath, "w", encoding="utf-8") as handle:
     handle.writelines("\n".join(lines))
 
 # os.system("git add . & git commit --amend --no-edit")

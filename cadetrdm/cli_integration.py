@@ -273,7 +273,7 @@ def print_data_log():
 
     repo = BaseRepo(".")
 
-    with open(repo.data_json_path, "r") as handle:
+    with open(repo.data_json_path, "r", encoding="utf-8") as handle:
         rdm_data = json.load(handle)
     if rdm_data["is_project_repo"]:
         repo = ProjectRepo(".")

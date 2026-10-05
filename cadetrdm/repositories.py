@@ -1842,7 +1842,7 @@ class OutputRepo(BaseRepo):
         """Rename the TSV column header from folder to directory."""
         self.checkout(self.main_branch)
 
-        with open(self.output_log_file_path, "r") as f:
+        with open(self.output_log_file_path, "r", encoding="utf-8") as f:
             reader = csv.DictReader(f, delimiter="\t")
             rows = list(reader)
 
@@ -1867,7 +1867,7 @@ class OutputRepo(BaseRepo):
         fieldnames[idx] = new_key
 
         # Write updated data back to file
-        with open(self.output_log_file_path, "w", newline="") as f:
+        with open(self.output_log_file_path, "w", newline="", encoding="utf-8") as f:
             writer = csv.DictWriter(f, fieldnames=fieldnames, delimiter="\t")
             writer.writeheader()
             writer.writerows(rows)
@@ -1886,7 +1886,7 @@ class OutputRepo(BaseRepo):
         """
         self.checkout(self.main_branch)
 
-        with open(self.output_log_file_path, "r") as f:
+        with open(self.output_log_file_path, "r", encoding="utf-8") as f:
             reader = csv.DictReader(f, delimiter="\t")
             rows = list(reader)
 
@@ -1912,7 +1912,7 @@ class OutputRepo(BaseRepo):
             fieldnames.insert(3, "project_repo_branch")
 
         # Write updated data back to file
-        with open(self.output_log_file_path, "w", newline="") as f:
+        with open(self.output_log_file_path, "w", newline="", encoding="utf-8") as f:
             writer = csv.DictWriter(f, fieldnames=fieldnames, delimiter="\t")
             writer.writeheader()
             writer.writerows(rows)

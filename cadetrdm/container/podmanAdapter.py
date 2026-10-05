@@ -26,7 +26,7 @@ class PodmanAdapter(ContainerAdapter):
         return log, return_code
 
     def run_yml(self, yml_path):
-        with open(yml_path, "r") as stream:
+        with open(yml_path, "r", encoding="utf-8") as stream:
             instructions = yaml.safe_load(stream)
 
         instructions = {key.lower(): value for key, value in instructions.items()}

@@ -70,12 +70,12 @@ class Options(Dict):
 
     @classmethod
     def load_json_file(cls, file_path, **loader_kwargs):
-        with open(file_path, "r") as handle:
+        with open(file_path, "r", encoding="utf-8") as handle:
             json_data = json.load(handle, cls=CustomDecoder, **loader_kwargs)
         return cls(json_data)
 
     def dump_json_file(self, file_path, **dumper_kwargs):
-        with open(file_path, "w") as handle:
+        with open(file_path, "w", encoding="utf-8") as handle:
             json.dump(dict(self), handle, cls=CustomEncoder, **dumper_kwargs)
 
     def dump_json_str(self, **dumper_kwargs):
