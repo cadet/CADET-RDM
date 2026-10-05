@@ -26,7 +26,8 @@ The following checklist describes the steps to execute sequentially for creating
   - `cadetrdm/__init__.py`
   - `.zenodo.json` (two places: `title` and `version`)
 - [ ] Update `.zenodo.json` if authorship or other metadata changed.
-- [ ] Run the tests that CI does not run, which need network access and API tokens:
+- [ ] Run the tests that CI does not run, which need network access and API tokens
+  (see *Tests* in `CONTRIBUTING.md` for the required environment variables and tokens):
   ```bash
   pytest tests -m "slow or server_api"
   ```

@@ -96,12 +96,24 @@ CI also measures test coverage with pytest-cov and uploads it to [Codecov](https
 To see the coverage locally, add `--cov=cadetrdm --cov-report=term-missing` to the pytest call.
 The marked subsets require credentials or network access and are expected to be run deliberately, not by default.
 
-The `server_api` tests create and delete repositories through the GitLab and GitHub APIs.
-They read a Personal Access Token from the Python keyring, stored under the URL of the instance and your username:
+The `server_api` tests create and delete repositories through the GitLab and GitHub APIs, using your own accounts.
+They need, for each host you want to test:
+
+- the namespace (user, group or organization) to create the test repositories in, set as an environment variable,
+- a Personal Access Token in the Python keyring, stored under the URL of the host and a username,
+- SSH access to the host, since the tests clone and push over SSH.
 
 ```bash
-keyring set "https://jugit.fz-juelich.de/" <username>
+export CADET_RDM_TEST_GITLAB_NAMESPACE=<gitlab user or group>
+export CADET_RDM_TEST_GITHUB_NAMESPACE=<github user or organization>
+keyring set "https://jugit.fz-juelich.de/" <gitlab username>
+keyring set "https://github.com/" <github username>
+pytest tests -m server_api
 ```
+
+`CADET_RDM_TEST_GITLAB_URL` selects another GitLab instance (default: `https://jugit.fz-juelich.de/`), and `CADET_RDM_TEST_GITLAB_USERNAME` and `CADET_RDM_TEST_GITHUB_USERNAME` set the keyring usernames if they differ from the namespaces.
+Tests for a host without a namespace are skipped.
+Every test run uses repositories with a random name and deletes them afterwards.
 
 On GitHub, create a fine-grained token with
 
