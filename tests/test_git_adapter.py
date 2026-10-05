@@ -7,9 +7,8 @@ import numpy as np
 import pytest
 
 from cadetrdm import initialize_repo, ProjectRepo, Options
-from cadetrdm.initialize_repo import init_lfs
 from cadetrdm.io_utils import delete_path
-from cadetrdm.repositories import OutputRepo, BaseRepo
+from cadetrdm.repositories import BaseRepo
 from cadetrdm.web_utils import ssh_url_to_http_url
 from cadetrdm.wrapper import tracks_results
 
@@ -28,7 +27,7 @@ def path_to_repo():
 def modify_code(path_to_repo):
     # Add changes to the project code
     random_number = uuid.uuid4().int
-    filepath = path_to_repo / f"print_random_number.py"
+    filepath = path_to_repo / "print_random_number.py"
     with open(filepath, "w") as file:
         file.write(f"print({random_number})\n")
 
@@ -178,7 +177,7 @@ def test_init_over_existing_repo(monkeypatch):
         delete_path(path_to_repo)
     os.makedirs(path_to_repo)
     os.chdir(path_to_repo)
-    os.system(f"git init --initial-branch=master")
+    os.system("git init --initial-branch=master")
     with open("README.md", "w") as handle:
         handle.write("Readme-line 1\n")
     with open(".gitignore", "w") as handle:
@@ -222,7 +221,7 @@ def test_cache_with_non_rdm_repo(monkeypatch):
         delete_path(path_to_repo)
     os.makedirs(path_to_repo)
     os.chdir(path_to_repo)
-    os.system(f"git init")
+    os.system("git init")
     with open("README.md", "w") as handle:
         handle.write("Readme-line 1\n")
     with open(".gitignore", "w") as handle:
@@ -295,7 +294,7 @@ def test_copy_external_data():
         delete_path(path_to_source)
     os.makedirs(path_to_source)
 
-    filepath = path_to_source / f"static_data_contents"
+    filepath = path_to_source / "static_data_contents"
     with open(filepath, "w") as file:
         file.write("This is static data")
 
@@ -384,7 +383,7 @@ def test_with_detached_head():
     for i in range(2):
         with open("README.md", "a") as handle:
             handle.write(f"Readme-line {i}\n")
-        os.system(f"git add .")
+        os.system("git add .")
         os.system(f"git commit -m foobar{i}")
 
     os.system("git checkout HEAD~1")

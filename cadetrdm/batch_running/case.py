@@ -18,7 +18,7 @@ class Case:
         self,
         project_repo: ProjectRepo | os.PathLike = "./",
         options: Options | None = None,
-        environment: Environment| None  = None,
+        environment: Environment | None = None,
         name: str | None = None,
         study: Study | None = None,
         run_method: str = "main"
@@ -72,7 +72,6 @@ class Case:
     @status.setter
     def status(self, status):
         """Update the status file with the current execution status."""
-
         with open(self.status_file, "w", encoding="utf-8") as f:
             f.write(f"{status}@{self.project_repo.current_commit_hash}")
 
@@ -87,11 +86,11 @@ class Case:
         Args:
             repo_path (Path): The path to the repository containing the status file.
 
-        Returns:
+        Returns
+        -------
             tuple: A tuple containing the status string and the current hash,
             or None, None if the status cannot be determined.
         """
-
         if not self.status_file.exists():
             return None, None
 
@@ -144,7 +143,7 @@ class Case:
             return results_path
 
         if self.can_run_study is False:
-            print(f"Current environment does not match required environment. Skipping...")
+            print("Current environment does not match required environment. Skipping...")
             self.status = 'failed'
             return
 
@@ -160,7 +159,7 @@ class Case:
             results_path = self.load()
             return results_path
 
-        except (KeyboardInterrupt, Exception) as e:
+        except (KeyboardInterrupt, Exception):
             traceback.print_exc()
             self.status = 'failed'
             return
@@ -178,7 +177,7 @@ class Case:
     def current_environment(self):
         if self._current_environment is None:
             existing_environment = subprocess.check_output(
-                f"conda env export", shell=True
+                "conda env export", shell=True
             ).decode()
             self._current_environment = Environment.from_yml_string(
                 existing_environment
@@ -211,7 +210,8 @@ class Case:
             allow_options_hash_mismatch: If True, allow mismatched options hash.
             allow_environment_mismatch: If True, allow mismatched environment.
 
-        Returns:
+        Returns
+        -------
             str | None: Name of the results branch, or None if no match found.
         """
         options_hash = self.options_hash
@@ -283,7 +283,8 @@ class Case:
             allow_options_hash_mismatch: If True, allow loading results with mismatched options hash.
             allow_environment_mismatch: If True, allow loading results with mismatched environment.
 
-        Returns:
+        Returns
+        -------
             Path to results.
         """
         results_branch = self._get_results_branch(

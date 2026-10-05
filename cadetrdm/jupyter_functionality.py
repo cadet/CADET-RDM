@@ -17,7 +17,7 @@ class Notebook:
             from nbconvert.nbconvertapp import NbConvertApp
             self.ExecutePreprocessor = ExecutePreprocessor
             self.NbConvertApp = NbConvertApp
-        except ModuleNotFoundError as e:
+        except ModuleNotFoundError:
             traceback.print_exc()
             print("No working nbconvert installation found OR a conflict in your packages found.")
             print("For more information, import nbconvert and check the error.")
@@ -62,7 +62,7 @@ class Notebook:
             -------
             bool
             """
-            return not None in execution_counts
+            return None not in execution_counts
 
         def _check_in_order(execution_counts: list) -> bool:
             """Check that execution counts that aren't None go from 1 to N.

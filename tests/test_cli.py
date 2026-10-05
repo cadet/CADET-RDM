@@ -28,7 +28,7 @@ def create_repo():
 def modify_code(path_to_repo):
     # Add changes to the project code
     random_number = random.randint(0, 265)
-    filepath = Path(path_to_repo) / f"print_random_number.py"
+    filepath = Path(path_to_repo) / "print_random_number.py"
     with open(filepath, "w") as file:
         file.write(
             'with open("output/data.txt", "w") as handle:\n'
@@ -133,7 +133,7 @@ def test_05b_execute_command():
         print(result.output)
         assert result.exit_code == 0
 
-        filepath = Path(".") / f"print_random_number.py"
+        filepath = Path(".") / "print_random_number.py"
         result = runner.invoke(cli, ["run", "command", f"python {filepath.absolute().as_posix()}",
                                      "create data"])
         print(result.output)

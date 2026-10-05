@@ -3,7 +3,6 @@ import os
 import shutil
 import uuid
 from pathlib import Path
-from typing import List
 
 from cookiecutter.main import cookiecutter
 
@@ -16,6 +15,7 @@ except ImportError:
 import cadetrdm
 from cadetrdm.repositories import ProjectRepo, OutputRepo
 from cadetrdm.io_utils import write_lines_to_file, wait_for_user, init_lfs, test_for_lfs
+
 
 def initialize_repo(path_to_repo: str | Path, output_directory_name: (str | bool) = "output", gitignore: list = None,
                     gitattributes: list = None, output_repo_kwargs: dict = None, cookiecutter_template: str = None):
@@ -161,7 +161,7 @@ def initialize_git(folder="."):
         if not proceed:
             raise KeyboardInterrupt
     except git.exc.InvalidGitRepositoryError:
-        os.system(f"git init -b main")
+        os.system("git init -b main")
 
     if folder != ":":
         os.chdir(starting_directory)
@@ -269,4 +269,3 @@ def create_output_readme():
         "[Link to Project Repository]() (not actually set yet because no remote has been configured at this moment)"
     ]
     write_lines_to_file("README.md", readme_lines, open_type="a")
-

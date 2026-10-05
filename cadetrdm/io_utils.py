@@ -30,7 +30,6 @@ def write_lines_to_file(path, lines, open_type="a"):
     :param open_type:
         The way the file should be opened. I.e. "a" for append and "w" for fresh write.
     """
-
     add_initial_linebreak = False
 
     if os.path.exists(path) and open_type == "a":
@@ -45,7 +44,6 @@ def write_lines_to_file(path, lines, open_type="a"):
 
 def is_tool(name):
     """Check whether `name` is on PATH and marked as executable."""
-
     from shutil import which
     return which(name) is not None
 
@@ -95,7 +93,7 @@ def init_lfs(lfs_filetypes: list, path: str | Path = None):
     else:
         previous_path = "."
 
-    os.system(f"git lfs install")
+    os.system("git lfs install")
     lfs_filetypes_string = " ".join(lfs_filetypes)
     os.system(f"git lfs track {lfs_filetypes_string}")
 

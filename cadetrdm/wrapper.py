@@ -1,6 +1,5 @@
 from functools import wraps
 from pathlib import Path
-from copy import deepcopy
 
 from cadetrdm.repositories import ProjectRepo
 from cadetrdm import Options

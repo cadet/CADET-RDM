@@ -7,7 +7,7 @@ import subprocess
 import stat
 import time
 
-from cadetrdm import ProjectRepo, Options
+from cadetrdm import ProjectRepo
 from cadetrdm.wrapper import tracks_results
 
 
@@ -17,6 +17,7 @@ def _on_rm_error(func, path, exc_info):
     except Exception:
         pass
     func(path)
+
 
 def rmtree_with_retries(path: Path, retries: int = 8, sleep_s: float = 0.25):
     last_err = None
@@ -58,6 +59,7 @@ class SequentialBackend(ParallelizationBase):
         for args in args_list:
             results.append(func(*args))
         return results
+
 
 #
 class JoblibBackend(ParallelizationBase):
@@ -158,7 +160,6 @@ def create_output(root_path: Path, output_path: Path, n_cores=1):
     """
     if os.path.exists(output_path):
         rmtree_with_retries(output_path)
-
 
     shutil.copytree(root_path, output_path)
 
