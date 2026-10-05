@@ -308,3 +308,68 @@ def test_push_with_uncommitted_changes(tmp_path: Path) -> None:
 
         # If reset --hard was used in the active checkout, this would revert.
         assert local_file.read_text(encoding="utf-8") == "LOCAL UNCOMMITTED CHANGE"
+
+
+def test_push_output_only(tmp_path: Path) -> None:
+    """rdm push --output-only pushes the output repository but not the project repository."""
+    with runner.isolated_filesystem():
+        root = Path.cwd()
+
+        remote_project = root / "remote_project.git"
+        remote_output = root / "remote_output.git"
+        git(["init", "--bare", str(remote_project)], root)
+        git(["init", "--bare", str(remote_output)], root)
+
+        project = root / "project"
+        result = rdm(["init", str(project)], root)
+        assert result.exit_code == 0, result.output
+        git(["config", "user.email", "p@example.org"], project)
+        git(["config", "user.name", "project"], project)
+        git(["branch", "-M", "main"], project)
+        git(["remote", "add", "origin", str(remote_project.resolve())], project)
+        git(["push", "-u", "origin", "main"], project)
+
+        output = project / "output"
+        ensure_output_origin(output, remote_output)
+        git(["checkout", "-B", "main"], output)
+        git(["push", "-u", "origin", "main"], output)
+        result = rdm(["check"], project)
+        assert result.exit_code == 0, result.output
+        git(["push", "origin", "main"], project)
+
+        result = rdm(
+            [
+                "run",
+                "command",
+                (
+                    "python -c "
+                    "\"from pathlib import Path; "
+                    "Path('output/result.txt').write_text('result\\n', encoding='utf-8')\""
+                ),
+                "run",
+            ],
+            project,
+        )
+        assert result.exit_code == 0, result.output
+
+        (project / "new_file.txt").write_text("unpushed\n", encoding="utf-8")
+        git(["add", "new_file.txt"], project)
+        git(["commit", "-m", "unpushed project commit"], project)
+
+        output_branches = git(
+            ["for-each-ref", "--format=%(refname:short)", "refs/heads"], output
+        ).stdout.split()
+        run_branches = [branch for branch in output_branches if branch != "main"]
+        assert len(run_branches) == 1
+
+        result = rdm(["push", "--output-only"], project)
+        assert result.exit_code == 0, result.output
+
+        remote_output_branches = git(
+            ["for-each-ref", "--format=%(refname:short)", "refs/heads"], remote_output
+        ).stdout.split()
+        assert run_branches[0] in remote_output_branches
+
+        local_main = git(["rev-parse", "main"], project).stdout.strip()
+        remote_main = git(["rev-parse", "main"], remote_project).stdout.strip()
+        assert local_main != remote_main
