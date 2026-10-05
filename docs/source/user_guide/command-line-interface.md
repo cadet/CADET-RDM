@@ -112,7 +112,13 @@ Each run is stored in an output branch named:
 The random six-character suffix keeps runs that start at the same time apart.
 The prefix is optional and set with `options.branch_prefix`.
 
-Cache results locally:
+List all runs in the output log, including their output branches and options hashes:
+
+```bash
+rdm data log
+```
+
+Cache the results of a run locally:
 
 ```bash
 rdm data cache <branch_name>

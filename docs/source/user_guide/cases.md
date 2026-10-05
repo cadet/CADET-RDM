@@ -148,6 +148,23 @@ results_path = case.load(
 )
 ```
 
+### Loading results from the command line
+
+Cases are created and run in Python, but their results can also be loaded with the CLI.
+`rdm data log` lists all runs in the output log, with their output branch, project commit and options hash:
+
+```bash
+rdm data log
+```
+
+Copy the results of a run into the cache by its output branch:
+
+```bash
+rdm data cache <branch_name>
+```
+
+The CLI does not look up results by options or environment; use `Case.load()` for that.
+
 ## Results are unique and read-only
 
 Every run creates its own output branch, named after the time of the run, the project branch and commit, plus a random suffix (see {ref}`Python interface <python_interface>`).
