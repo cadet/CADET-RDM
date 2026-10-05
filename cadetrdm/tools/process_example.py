@@ -6,12 +6,13 @@ from pathlib import Path
 import subprocess
 import stat
 import time
+from typing import Any, Callable, Iterable
 
-from cadetrdm import ProjectRepo
+from cadetrdm import Options, ProjectRepo
 from cadetrdm.wrapper import tracks_results
 
 
-def _on_rm_error(func, path, exc_info):
+def _on_rm_error(func: Callable[[str], Any], path: str, exc_info: tuple) -> None:
     try:
         os.chmod(path, stat.S_IWRITE)
     except Exception:
@@ -19,7 +20,24 @@ def _on_rm_error(func, path, exc_info):
     func(path)
 
 
-def rmtree_with_retries(path: Path, retries: int = 8, sleep_s: float = 0.25):
+def rmtree_with_retries(path: Path, retries: int = 8, sleep_s: float = 0.25) -> None:
+    """
+    Remove a directory tree, retrying on permission errors.
+
+    Parameters
+    ----------
+    path : Path
+        Directory to remove.
+    retries : int, optional
+        Number of attempts.
+    sleep_s : float, optional
+        Time to wait between attempts in seconds.
+
+    Raises
+    ------
+    PermissionError
+        If the directory could not be removed in any attempt.
+    """
     last_err = None
     for _ in range(retries):
         try:
@@ -32,12 +50,15 @@ def rmtree_with_retries(path: Path, retries: int = 8, sleep_s: float = 0.25):
 
 
 class ParallelizationBase:
-    def __init__(self, n_cores=1):
+    """Interface for running a function over a list of arguments."""
+
+    def __init__(self, n_cores: int = 1) -> None:
         self.n_cores = n_cores
 
     @abstractmethod
-    def run(self, func, args_list):
-        """Run a function over a list of input args and return the output.
+    def run(self, func: Callable, args_list: Iterable[tuple]) -> list | None:
+        """
+        Run a function over a list of input args and return the output.
 
         Parameters
         ----------
@@ -48,37 +69,90 @@ class ParallelizationBase:
 
         Returns
         -------
-        List of function returns
+        list | None
+            List of function returns.
         """
         return
 
 
 class SequentialBackend(ParallelizationBase):
-    def run(self, func, args_list):
+    """Run all calls one after another in the current process."""
+
+    def run(self, func: Callable, args_list: Iterable[tuple]) -> list:
+        """
+        Run a function over a list of input args and return the output.
+
+        Parameters
+        ----------
+        func : callable
+            The function wrapping the shell command.
+        args_list : list | iterable
+            List of args to the func.
+
+        Returns
+        -------
+        list
+            List of function returns.
+        """
         results = []
         for args in args_list:
             results.append(func(*args))
         return results
 
 
-#
 class JoblibBackend(ParallelizationBase):
-    def run(self, func, args_list):
+    """Run calls in parallel with joblib."""
+
+    def run(self, func: Callable, args_list: Iterable[tuple]) -> None:
+        """
+        Run a function over a list of input args.
+
+        Parameters
+        ----------
+        func : callable
+            The function wrapping the shell command.
+        args_list : list | iterable
+            List of args to the func.
+        """
         from joblib import Parallel, delayed
         Parallel(n_jobs=self.n_cores)(delayed(func)(*args) for args in args_list)
 
 
 class PathosBackend(ParallelizationBase):
-    def run(self, func, args_list):
+    """Run calls in parallel with a pathos process pool."""
+
+    def run(self, func: Callable, args_list: Iterable[tuple]) -> list:
+        """
+        Run a function over a list of input args and return the output.
+
+        Parameters
+        ----------
+        func : callable
+            The function wrapping the shell command.
+        args_list : list | iterable
+            List of args to the func.
+
+        Returns
+        -------
+        list
+            List of function returns.
+        """
         import pathos
         with pathos.pools.ProcessPool(ncpus=self.n_cores) as pool:
-            # *zip(*args_list) because for multiple args, pathos expects (func, args1_list, args2_list)
+            # *zip(*args_list) because for multiple args,
+            # pathos expects (func, args1_list, args2_list)
             results = pool.map(func, *zip(*args_list))
         return results
 
 
-def run_func_over_args_list(func, args_list, backend=None, n_cores=1):
-    """Run a function over a list of input args and return the output.
+def run_func_over_args_list(
+    func: Callable,
+    args_list: list,
+    backend: ParallelizationBase | None = None,
+    n_cores: int = 1,
+) -> list | None:
+    """
+    Run a function over a list of input args and return the output.
 
     Parameters
     ----------
@@ -93,7 +167,8 @@ def run_func_over_args_list(func, args_list, backend=None, n_cores=1):
 
     Returns
     -------
-    List of function returns
+    list | None
+        List of function returns.
     """
     if type(args_list[0]) not in (list, tuple):
         args_list = [(x,) for x in args_list]
@@ -106,28 +181,37 @@ def run_func_over_args_list(func, args_list, backend=None, n_cores=1):
     return backend.run(func, args_list)
 
 
-def run_command(command):
-    """Run a shell command and return its output.
+def run_command(command: str) -> subprocess.CompletedProcess:
+    """
+    Run a shell command and return its output.
 
     Parameters
     ----------
     command : str
-        The shell command to run_yml.
+        The shell command to run.
 
     Returns
     -------
-    None
+    subprocess.CompletedProcess
+        The completed process.
     """
     print(command)
     return subprocess.run(command, shell=True, check=True)
 
 
-def remove_non_jupytext_files(file_list):
+def remove_non_jupytext_files(file_list: list[Path]) -> list[Path]:
     """
     Filter out all python files that do not have a 'jupytext:' header section.
 
-    :param file_list:
-    :return:
+    Parameters
+    ----------
+    file_list : list[Path]
+        Python files to filter.
+
+    Returns
+    -------
+    list[Path]
+        Python files with a jupytext header.
     """
     if len(file_list) == 0:
         raise RuntimeError("No python files found in repository")
@@ -142,8 +226,9 @@ def remove_non_jupytext_files(file_list):
     return filtered_list
 
 
-def create_output(root_path: Path, output_path: Path, n_cores=1):
-    """Create solution files.
+def create_output(root_path: Path, output_path: Path, n_cores: int = 1) -> None:
+    """
+    Create solution files.
 
     Parameters
     ----------
@@ -153,10 +238,6 @@ def create_output(root_path: Path, output_path: Path, n_cores=1):
         Root directory where all compiled .ipynbs should be placed
     n_cores : int, optional
         Number of cpu cores to use for parallelization
-
-    Returns
-    -------
-    None
     """
     if os.path.exists(output_path):
         rmtree_with_retries(output_path)
@@ -188,21 +269,26 @@ def create_output(root_path: Path, output_path: Path, n_cores=1):
     )
 
 
-def convert_python_to_ipynb(myst_file_path, ipynb_file_path):
-    """Run jupytext with --output ipynb flag on myst_file_path. Will skip README files.
-    Will run_yml the jupyter notebooks.
+def convert_python_to_ipynb(
+    myst_file_path: str,
+    ipynb_file_path: str,
+) -> subprocess.CompletedProcess | None:
+    """
+    Run jupytext with --output ipynb flag on myst_file_path and execute the notebook.
+
+    README files are skipped.
 
     Parameters
     ----------
     myst_file_path : str
         path to myst file as posix.
-
     ipynb_file_path : str
         path to output ipynb file as posix.
 
     Returns
     -------
-    None
+    subprocess.CompletedProcess | None
+        The completed jupytext process, or None for README files.
     """
     if "README" in myst_file_path:
         return
@@ -213,12 +299,18 @@ def convert_python_to_ipynb(myst_file_path, ipynb_file_path):
 
 
 @tracks_results
-def process_example(repo: ProjectRepo, options, **kwargs):
-    """Run post-commit tasks based on command-line arguments.
+def process_example(repo: ProjectRepo, options: Options, **kwargs: Any) -> None:
+    """
+    Convert and execute all jupytext files of the source directory into the output.
 
-    Returns
-    -------
-    None
+    Parameters
+    ----------
+    repo : ProjectRepo
+        Project repository.
+    options : Options
+        Options with the source_directory to process.
+    **kwargs : Any
+        Overrides for the command-line arguments.
     """
     parser = argparse.ArgumentParser(description="Perform post-commit tasks.")
     parser.add_argument("--n_cores", help="Number of cores to use.")

@@ -7,8 +7,9 @@ from cadetrdm.io_utils import wait_for_user
 
 
 class Notebook:
-    def __init__(self, notebook_path):
+    """A Jupyter notebook that can be checked, rerun and exported."""
 
+    def __init__(self, notebook_path: str | os.PathLike) -> None:
         import nbformat as nbf
         self.nbf = nbf
 
@@ -25,23 +26,46 @@ class Notebook:
         self.notebook_path = Path(notebook_path)
 
     @property
-    def notebook_name(self):
+    def notebook_name(self) -> str:
+        """File name of the notebook with dots replaced by underscores."""
         return str(self.notebook_path.name).replace(".", "_")
 
-    def check_execution_order(self,
-                              check_all_executed=False,
-                              check_top_to_bottom=False,
-                              check_in_order=True,
-                              exclude_last_cell=False):
+    def check_execution_order(
+        self,
+        check_all_executed: bool = False,
+        check_top_to_bottom: bool = False,
+        check_in_order: bool = True,
+        exclude_last_cell: bool = False,
+    ) -> bool:
+        """
+        Check the execution counts of the non-empty code cells.
+
+        Parameters
+        ----------
+        check_all_executed : bool, optional
+            Require that all cells were executed.
+        check_top_to_bottom : bool, optional
+            Require that all cells were executed in order.
+        check_in_order : bool, optional
+            Require that the executed cells were executed in order.
+        exclude_last_cell : bool, optional
+            Ignore the last cell for the order check.
+
+        Returns
+        -------
+        bool
+            True if all selected checks pass or no cell was executed.
+        """
         notebook = self.nbf.read(self.notebook_path, self.nbf.NO_CONVERT)
 
-        # extract all code cells (disregard markdown, raw and others), then extract the execution order
+        # extract all code cells (disregard markdown, raw and others),
+        # then extract the execution order
         output_cells = [cell for cell in notebook.cells if cell["cell_type"] == "code"]
         # remove empty cells
         non_empty_cells = [cell for cell in output_cells if cell["source"] != ""]
         execution_counts = [cell["execution_count"] for cell in non_empty_cells]
 
-        def _all_none(item_list):
+        def _all_none(item_list: list) -> bool:
             return all([i is None for i in item_list])
 
         # return early if no cells were executed
@@ -51,7 +75,8 @@ class Notebook:
         pass_check = [True]
 
         def _check_all_executed(execution_counts: list) -> bool:
-            """Check all cells were executed.
+            """
+            Check all cells were executed.
 
             Parameters
             ----------
@@ -65,7 +90,8 @@ class Notebook:
             return None not in execution_counts
 
         def _check_in_order(execution_counts: list) -> bool:
-            """Check that execution counts that aren't None go from 1 to N.
+            """
+            Check that execution counts that aren't None go from 1 to N.
 
             Parameters
             ----------
@@ -81,7 +107,9 @@ class Notebook:
             if exclude_last_cell:
                 count_range = count_range - 1
             print(execution_counts)
-            is_in_order = all([execution_counts[i] < execution_counts[i + 1] for i in range(count_range)])
+            is_in_order = all(
+                [execution_counts[i] < execution_counts[i + 1] for i in range(count_range)]
+            )
             return is_in_order
 
         if check_in_order:
@@ -97,7 +125,8 @@ class Notebook:
         return all(pass_check)
 
     @staticmethod
-    def save_ipynb():
+    def save_ipynb() -> None:
+        """Save the notebook currently open in JupyterLab."""
         from ipylab import JupyterFrontEnd
         app = JupyterFrontEnd()
         print("Saving", end="")
@@ -108,12 +137,23 @@ class Notebook:
         time.sleep(0.1)
         print("")
 
-    def reload_notebook(self):
+    def reload_notebook(self) -> None:
+        """Reload the notebook currently open in JupyterLab from disk."""
         from ipylab import JupyterFrontEnd
         app = JupyterFrontEnd()
         app.commands.execute('docmanager:reload')
 
-    def check_and_rerun_notebook(self, force_rerun=False, timeout=600):
+    def check_and_rerun_notebook(self, force_rerun: bool = False, timeout: int = 600) -> None:
+        """
+        Save the notebook and rerun it if its cells were not executed in order.
+
+        Parameters
+        ----------
+        force_rerun : bool, optional
+            If True, rerun without checking the execution order or asking the user.
+        timeout : int, optional
+            Timeout per cell in seconds.
+        """
         if "nbconvert_call" in sys.argv:
             return
 
@@ -137,7 +177,9 @@ class Notebook:
         with open(self.notebook_path, encoding="utf-8") as f:
             nb = self.nbf.read(f, as_version=4)
 
-        ep = self.ExecutePreprocessor(timeout=timeout, kernel_name='python3', extra_arguments=["nbconvert_call"])
+        ep = self.ExecutePreprocessor(
+            timeout=timeout, kernel_name='python3', extra_arguments=["nbconvert_call"]
+        )
         ep.preprocess(nb, )
 
         with open(self.notebook_path, 'w', encoding='utf-8') as f:
@@ -145,7 +187,21 @@ class Notebook:
 
         self.reload_notebook()
 
-    def convert_ipynb(self, output_dir, formats: list = None):
+    def convert_ipynb(
+        self,
+        output_dir: str | os.PathLike,
+        formats: list[str] | None = None,
+    ) -> None:
+        """
+        Export the notebook with nbconvert.
+
+        Parameters
+        ----------
+        output_dir : str | os.PathLike
+            Directory in which a subdirectory for the notebook is created.
+        formats : list[str] | None, optional
+            Export formats. Defaults to html and ipynb.
+        """
         if formats is None:
             formats = ["html", "ipynb"]
         app = self.NbConvertApp()
@@ -160,10 +216,18 @@ class Notebook:
                 os.makedirs(output_root_directory)
             app.start()
 
-    def export_all_figures(self, output_dir):
+    def export_all_figures(self, output_dir: str | os.PathLike) -> None:
+        """
+        Export all images in the notebook outputs.
+
+        Parameters
+        ----------
+        output_dir : str | os.PathLike
+            Directory in which a subdirectory for the notebook is created.
+        """
         import junix
 
         file_without_extension = self.notebook_path.stem
-        images = junix.export_images(filepath=str(self.notebook_path),
-                                     output_dir=os.path.join(output_dir, self.notebook_name),
-                                     prefix=file_without_extension)
+        junix.export_images(filepath=str(self.notebook_path),
+                            output_dir=os.path.join(output_dir, self.notebook_name),
+                            prefix=file_without_extension)

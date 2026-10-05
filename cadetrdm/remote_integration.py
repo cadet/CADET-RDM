@@ -1,3 +1,5 @@
+from typing import Any, Iterable
+
 import gitlab
 import github
 import keyring
@@ -5,50 +7,89 @@ from abc import abstractmethod
 
 
 class Remote:
+    """Interface for creating and deleting repositories on a git hosting service."""
+
     @staticmethod
-    def load_token(url_options, username):
+    def load_token(url_options: Iterable[str], username: str) -> str:
+        """
+        Load an access token from the keyring.
+
+        Parameters
+        ----------
+        url_options : Iterable[str]
+            Keyring service names to try, in order.
+        username : str
+            Username the token is stored under.
+
+        Returns
+        -------
+        str
+            The first token found.
+
+        Raises
+        ------
+        RuntimeError
+            If no token is stored for any of the services.
+        """
         token = None
         url_options_iter = iter(url_options)
         try:
             while token is None:
                 token = keyring.get_password(next(url_options_iter), username)
         except StopIteration:
-            raise RuntimeError(f"No token found in keyring for url {url_options} and username {username}")
+            raise RuntimeError(
+                f"No token found in keyring for url {url_options} and username {username}"
+            )
 
         return token
 
     @abstractmethod
-    def create_remote(self, url, namespace, name, username):
+    def create_remote(self, url: str, namespace: str, name: str, username: str) -> Any:
+        """Create a remote repository."""
         return
 
     @abstractmethod
-    def delete_remote(self, url, namespace, name, username):
+    def delete_remote(self, url: str, namespace: str, name: str, username: str) -> None:
+        """Delete a remote repository."""
         return
 
 
 class GitLabRemote(Remote):
+    """Remote repositories on a GitLab instance."""
 
     @property
-    def url_fallbacks(self):
+    def url_fallbacks(self) -> list[str]:
+        """Keyring service names tried after the instance URL."""
         return ["gitlab"]
 
-    def create_remote(self, url, namespace, name, username):
+    def create_remote(self, url: str, namespace: str, name: str, username: str) -> Any:
         """
-        Create remotes on gitlab within the given url / namespace / name. Use the token
-        stored in the keyring under the username and url combination.
+        Create a remote on GitLab within the given url / namespace / name.
 
-        :param namespace:
-        :param name:
-        :param url:
-        :param username:
-        :return:
-        Query response
+        Use the token stored in the keyring under the username and url combination.
+
+        Parameters
+        ----------
+        url : str
+            URL of the GitLab instance.
+        namespace : str
+            Group or user namespace of the new project.
+        name : str
+            Name of the new project.
+        username : str
+            Username the token is stored under.
+
+        Returns
+        -------
+        Any
+            Query response.
         """
         namespace = namespace.lower()
         token = self.load_token([url] + self.url_fallbacks, username)
         gl = gitlab.Gitlab(url, private_token=token)
-        # We need the groups list, because for some ineffable reason, gitlab doesn't always give all namespaces.
-        # This assumes, that the group_id and the corresponding namespace_id are identical. So far this has been true.
+        # We need the groups list, because for some ineffable reason, gitlab doesn't
+        # always give all namespaces. This assumes, that the group_id and the
+        # corresponding namespace_id are identical. So far this has been true.
         gl_groups = gl.groups.list(get_all=True)
         # We also need the namespace list for the personal namespace.
         gl_namespaces = gl.namespaces.list(get_all=True)
@@ -61,25 +102,32 @@ class GitLabRemote(Remote):
         if len(matching_namespace) >= 2:
             matching_namespace_id_set = set({group.id for group in matching_namespace})
             if len(matching_namespace_id_set) > 1:
-                raise ValueError(f"Not unique namespace {namespace} "
-                                 f"in {[gl_namespace.full_path.lower() for gl_namespace in gl_groups]}")
+                raise ValueError(
+                    f"Not unique namespace {namespace} "
+                    f"in {[gl_namespace.full_path.lower() for gl_namespace in gl_groups]}"
+                )
 
         namespace_id = matching_namespace[0].id
 
         response = gl.projects.create({"name": name, "namespace_id": namespace_id})
         return response
 
-    def delete_remote(self, url, namespace, name, username):
+    def delete_remote(self, url: str, namespace: str, name: str, username: str) -> None:
         """
-        Deletes remotes on gitlab within the given url / namespace / name. Use the token
-        stored in the keyring under the username and url combination.
+        Delete remotes on GitLab within the given url / namespace / name.
 
-        :param namespace:
-        :param name:
-        :param url:
-        :param username:
-        :return:
-        None
+        Use the token stored in the keyring under the username and url combination.
+
+        Parameters
+        ----------
+        url : str
+            URL of the GitLab instance.
+        namespace : str
+            Namespace of the project.
+        name : str
+            Name of the project.
+        username : str
+            Username the token is stored under.
         """
         token = self.load_token([url] + self.url_fallbacks, username)
         gl = gitlab.Gitlab(url, private_token=token)
@@ -97,22 +145,41 @@ class GitLabRemote(Remote):
 
 
 class GitHubRemote(Remote):
+    """Remote repositories on GitHub."""
 
     @property
-    def url_fallbacks(self):
+    def url_fallbacks(self) -> list[str]:
+        """Keyring service names tried after the API URL."""
         return ["https://github.com/", "https://github.com", "github", "github.com"]
 
-    def create_remote(self, name, namespace=None, url="https://api.github.com", username=None):
+    def create_remote(
+        self,
+        name: str,
+        namespace: str | None = None,
+        url: str = "https://api.github.com",
+        username: str | None = None,
+    ) -> Any:
         """
-        Create remotes on GitHub within the given url / namespace / name. Use the token
-        stored in the keyring under the username and url combination.
+        Create a remote on GitHub within the given url / namespace / name.
 
-        :param namespace:
-        :param name:
-        :param url:
-        :param username:
-        :return:
-        Query response
+        Use the token stored in the keyring under the username and url combination.
+
+        Parameters
+        ----------
+        name : str
+            Name of the new repository.
+        namespace : str | None, optional
+            User or organization.
+            If None, the repository is created for the authenticated user.
+        url : str, optional
+            URL of the GitHub API.
+        username : str | None, optional
+            Username the token is stored under. Defaults to the namespace.
+
+        Returns
+        -------
+        Any
+            Query response.
         """
         if username is None and namespace is not None:
             username = namespace
@@ -143,7 +210,27 @@ class GitHubRemote(Remote):
         )
         return response
 
-    def delete_remote(self, name, namespace, url="https://api.github.com", username=None):
+    def delete_remote(
+        self,
+        name: str,
+        namespace: str,
+        url: str = "https://api.github.com",
+        username: str | None = None,
+    ) -> None:
+        """
+        Delete a remote on GitHub.
+
+        Parameters
+        ----------
+        name : str
+            Name of the repository.
+        namespace : str
+            User or organization owning the repository.
+        url : str, optional
+            URL of the GitHub API.
+        username : str | None, optional
+            Username the token is stored under. Defaults to the namespace.
+        """
         if username is None:
             username = namespace
 

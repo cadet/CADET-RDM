@@ -8,12 +8,14 @@ import subprocess
 from typing import Any
 
 from cadetrdm.batch_running import Study
-from cadetrdm.repositories import ProjectRepo
+from cadetrdm.repositories import OutputRepo, ProjectRepo
 from cadetrdm import Options
 from cadetrdm.environment import Environment
 
 
 class Case:
+    """A project repository run with a specific set of options and environment."""
+
     def __init__(
         self,
         project_repo: ProjectRepo | os.PathLike = "./",
@@ -25,8 +27,8 @@ class Case:
      ) -> None:
         if study is not None:
             warnings.warn(
-                "Initializing Case() with the study= kwarg is deprecated and will be removed in the future. "
-                "Please use project_repo=",
+                "Initializing Case() with the study= kwarg is deprecated "
+                "and will be removed in the future. Please use project_repo=",
                 FutureWarning
             )
             project_repo = study
@@ -49,46 +51,50 @@ class Case:
         self._results_branch = None
         self._results_path = None
 
-    def __str__(self):
+    def __str__(self) -> str:
+        """Return the name of the case."""
         return self.name
 
     @property
-    def options_hash(self):
+    def options_hash(self) -> str:
+        """Hash of the case options."""
         return self.options.get_hash()
 
     @property
-    def output_repo(self):
+    def output_repo(self) -> OutputRepo:
+        """Output repository of the project repository."""
         return self.project_repo.output_repo
 
     @property
-    def status_file(self):
+    def status_file(self) -> Path:
+        """File next to the project repository that stores the execution status."""
         return Path(self.project_repo.path).parent / (Path(self.project_repo.path).name + ".status")
 
     @property
-    def status(self):
+    def status(self) -> str | None:
+        """Execution status of the case."""
         status, _ = self._read_status()
         return status
 
     @status.setter
-    def status(self, status):
-        """Update the status file with the current execution status."""
+    def status(self, status: str) -> None:
         with open(self.status_file, "w", encoding="utf-8") as f:
             f.write(f"{status}@{self.project_repo.current_commit_hash}")
 
     @property
-    def status_hash(self):
+    def status_hash(self) -> str | None:
+        """Project repository commit hash the status was written for."""
         _, status_hash = self._read_status()
         return status_hash
 
-    def _read_status(self):
-        """Check the status of the study and decide whether to proceed.
-
-        Args:
-            repo_path (Path): The path to the repository containing the status file.
+    def _read_status(self) -> tuple[str | None, str | None]:
+        """
+        Read the execution status and commit hash from the status file.
 
         Returns
         -------
-            tuple: A tuple containing the status string and the current hash,
+        tuple[str | None, str | None]
+            The status string and the commit hash,
             or None, None if the status cannot be determined.
         """
         if not self.status_file.exists():
@@ -107,7 +113,8 @@ class Case:
             return status, current_hash
 
     @property
-    def is_running(self, ):
+    def is_running(self) -> bool:
+        """True if the status file marks the case as running."""
         if self.status == 'running':
             return True
 
@@ -121,9 +128,18 @@ class Case:
         """
         Run specified study commands in the given repository.
 
-        :returns
-            Return path to results for this case if available (either
-           pre-computed or newly computed), else return None.
+        Parameters
+        ----------
+        force : bool, optional
+            If True, run even if the case is marked as running or results already exist.
+        **load_kwargs : Any
+            Keyword arguments passed to load() when looking for existing results.
+
+        Returns
+        -------
+        Path | None
+            Path to results for this case if available (either pre-computed or newly
+            computed), else None.
         """
         if not force and self.is_running:
             print(f"{self.project_repo.name} is currently running. Skipping...")
@@ -139,7 +155,10 @@ class Case:
         results_path = self.load(**load_kwargs)
 
         if results_path and not force:
-            print(f"{self.project_repo.path} has already been computed with these options. Skipping...")
+            print(
+                f"{self.project_repo.path} has already been computed with these options. "
+                "Skipping..."
+            )
             return results_path
 
         if self.can_run_study is False:
@@ -166,7 +185,7 @@ class Case:
 
     @property
     def can_run_study(self) -> bool:
-
+        """True if the current environment fulfils the required environment."""
         return (
             self.environment is None
             or
@@ -174,7 +193,8 @@ class Case:
         )
 
     @property
-    def current_environment(self):
+    def current_environment(self) -> Environment:
+        """Environment exported from the active conda environment."""
         if self._current_environment is None:
             existing_environment = subprocess.check_output(
                 "conda env export", shell=True
@@ -186,7 +206,8 @@ class Case:
         return self._current_environment
 
     @property
-    def has_results_for_this_run(self):
+    def has_results_for_this_run(self) -> bool:
+        """True if results exist for the current options and commit."""
         if self.results_branch is None:
             return False
         else:
@@ -194,6 +215,7 @@ class Case:
 
     @property
     def results_branch(self) -> str | None:
+        """Output branch with results for the current options and commit."""
         return self._get_results_branch()
 
     def _get_results_branch(
@@ -205,14 +227,19 @@ class Case:
         """
         Return the output branch matching the current study and options.
 
-        Args:
-            allow_commit_hash_mismatch: If True, allow mismatched study commit hash.
-            allow_options_hash_mismatch: If True, allow mismatched options hash.
-            allow_environment_mismatch: If True, allow mismatched environment.
+        Parameters
+        ----------
+        allow_commit_hash_mismatch : bool, optional
+            If True, allow mismatched study commit hash.
+        allow_options_hash_mismatch : bool, optional
+            If True, allow mismatched options hash.
+        allow_environment_mismatch : bool, optional
+            If True, allow mismatched environment.
 
         Returns
         -------
-            str | None: Name of the results branch, or None if no match found.
+        str | None
+            Name of the results branch, or None if no match found.
         """
         options_hash = self.options_hash
         commit_hash = self.project_repo.current_commit_hash
@@ -267,6 +294,7 @@ class Case:
 
     @property
     def results_path(self) -> Path | None:
+        """Path to the cached results of this case."""
         return self.load()
 
     def load(
@@ -278,14 +306,19 @@ class Case:
         """
         Load results for the current case.
 
-        Args:
-            allow_commit_hash_mismatch: If True, allow loading results with mismatched study commit hash.
-            allow_options_hash_mismatch: If True, allow loading results with mismatched options hash.
-            allow_environment_mismatch: If True, allow loading results with mismatched environment.
+        Parameters
+        ----------
+        allow_commit_hash_mismatch : bool, optional
+            If True, allow loading results with mismatched study commit hash.
+        allow_options_hash_mismatch : bool, optional
+            If True, allow loading results with mismatched options hash.
+        allow_environment_mismatch : bool, optional
+            If True, allow loading results with mismatched environment.
 
         Returns
         -------
-            Path to results.
+        Path | None
+            Path to results, or None if no results are available.
         """
         results_branch = self._get_results_branch(
             allow_commit_hash_mismatch=allow_commit_hash_mismatch,
