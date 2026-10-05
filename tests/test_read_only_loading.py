@@ -5,11 +5,12 @@ observable git state of both repositories, perform a read, and assert the snapsh
 unchanged.
 """
 
+import subprocess
 from pathlib import Path
 
 import pytest
 
-from cadetrdm import ProjectRepo, initialize_repo
+from cadetrdm import Case, Options, ProjectRepo, initialize_repo
 from cadetrdm.io_utils import delete_path
 
 
@@ -122,3 +123,85 @@ def test_copy_data_to_cache_uses_remote_ref_without_creating_local_branch(repo_w
     assert (cache_path / "result.csv").read_text() == "1,2,3\n"
     assert git_state(output_repo) == state_before
     assert result_branch not in [head.name for head in output_repo._git_repo.heads]
+
+
+@pytest.fixture
+def case_with_results(tmp_path):
+    path_to_repo = tmp_path / "project"
+    initialize_repo(path_to_repo, "results")
+
+    repo = ProjectRepo(path_to_repo)
+    options = Options({"case": "read-only-load"})
+    options.branch_prefix = "read-only-load"
+
+    with repo.track_results(results_commit_message="Add result", options=options):
+        (repo.output_path / "result.csv").write_text("1,2,3\n")
+
+    case = Case(project_repo=repo, options=options, name="read-only-load")
+    cache_folder = repo.cache_folder_for_branch(str(repo.output_repo.active_branch))
+    delete_path(cache_folder)
+
+    return case
+
+
+def test_case_load_leaves_both_repos_untouched(case_with_results, monkeypatch):
+    project_repo = case_with_results.project_repo
+    output_repo = project_repo.output_repo
+    project_state_before = git_state(project_repo)
+    output_state_before = git_state(output_repo)
+
+    def fail(*args, **kwargs):
+        raise AssertionError("Case.load() synced a repository")
+
+    monkeypatch.setattr(project_repo, "update", fail)
+    monkeypatch.setattr(output_repo, "update", fail)
+    monkeypatch.setattr(output_repo, "update_main", fail)
+    monkeypatch.setattr(output_repo, "fetch", fail)
+
+    results_path = case_with_results.load()
+
+    assert (results_path / "result.csv").read_text() == "1,2,3\n"
+    assert git_state(project_repo) == project_state_before
+    assert git_state(output_repo) == output_state_before
+
+
+def git(cwd, *args):
+    subprocess.run(
+        ["git", "-c", "user.name=test", "-c", "user.email=test@example.com", *args],
+        cwd=cwd, check=True, capture_output=True,
+    )
+
+
+@pytest.mark.parametrize("on_main", [False, True])
+def test_update_main_lists_results_pushed_from_elsewhere(repo_with_results, tmp_path, on_main):
+    output_repo = repo_with_results.output_repo
+    main = output_repo.main_branch
+    remote = tmp_path / "output_remote.git"
+    other = tmp_path / "other_output"
+
+    git(tmp_path, "clone", "--bare", str(output_repo.path), str(remote))
+    git(output_repo.path, "remote", "add", "origin", str(remote))
+    git(output_repo.path, "fetch", "origin")
+    git(tmp_path, "clone", "--branch", main, str(remote), str(other))
+
+    log_file = other / "log.tsv"
+    row = log_file.read_text().splitlines()[-1]
+    existing_branch = row.split("\t")[1]
+    other_branch = "result-from-elsewhere"
+    with open(log_file, "a", newline="") as handle:
+        handle.write(row.replace(existing_branch, other_branch) + "\n")
+    git(other, "commit", "-am", "Add result from elsewhere")
+    git(other, "push", "origin", main)
+
+    if on_main:
+        output_repo.checkout(main)
+    state_before = git_state(output_repo)
+    assert other_branch not in output_repo.output_log.entries
+
+    output_repo.update_main()
+
+    assert other_branch in output_repo.output_log.entries
+    state_after = git_state(output_repo)
+    assert state_after["branch"] == state_before["branch"]
+    assert state_after["branches"] == state_before["branches"]
+    assert not state_after["is_dirty"]
