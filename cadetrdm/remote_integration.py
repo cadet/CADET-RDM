@@ -53,9 +53,20 @@ class Remote:
         """Delete a remote repository."""
         return
 
+    @staticmethod
+    @abstractmethod
+    def ssh_url(response: Any) -> str:
+        """Return the SSH URL of a repository returned by create_remote()."""
+        return
+
 
 class GitLabRemote(Remote):
     """Remote repositories on a GitLab instance."""
+
+    @staticmethod
+    def ssh_url(response: Any) -> str:
+        """Return the SSH URL of a GitLab project."""
+        return response.ssh_url_to_repo
 
     @property
     def url_fallbacks(self) -> list[str]:
@@ -132,13 +143,13 @@ class GitLabRemote(Remote):
         token = self.load_token([url] + self.url_fallbacks, username)
         gl = gitlab.Gitlab(url, private_token=token)
 
-        potential_projects = gl.projects.list(get_all=True, search=[namespace, name])
+        potential_projects = gl.projects.list(get_all=True, search=name)
 
         for project in potential_projects:
             if project.name != name:
-                pass
-            if project.namespace["name"] != namespace:
-                pass
+                continue
+            if project.namespace["full_path"].lower() != namespace.lower():
+                continue
 
             gl.projects.delete(project.id)
         return
@@ -146,6 +157,11 @@ class GitLabRemote(Remote):
 
 class GitHubRemote(Remote):
     """Remote repositories on GitHub."""
+
+    @staticmethod
+    def ssh_url(response: Any) -> str:
+        """Return the SSH URL of a GitHub repository."""
+        return response.ssh_url
 
     @property
     def url_fallbacks(self) -> list[str]:
