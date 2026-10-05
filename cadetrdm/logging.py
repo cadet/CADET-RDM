@@ -196,10 +196,10 @@ class OutputLog:
 
     @staticmethod
     def _split_content(content: str) -> list[list[str]]:
-        """Split log.tsv contents into rows of fields.
+        """Split log.tsv contents into rows of tab-separated fields.
 
-        Rows are separated by line feeds only. `str.splitlines` would also break
-        on characters such as U+2028 that `_sanitize` leaves in values.
+        A row ends at a line feed, optionally preceded by a carriage return.
+        Empty lines are skipped.
         """
         return [line.rstrip("\r").split("\t") for line in content.split("\n") if line]
 
