@@ -53,11 +53,11 @@ def test_01_initialize_repo():
 def test_02_add_remote():
     try:
         create_repo()
-        result = runner.invoke(cli, ["remote", "add", "https://jugit.fz-juelich.de/r.jaepel/API_test_project"])
+        result = runner.invoke(cli, ["remote", "add", "https://github.com/cadet/RDM-Testing-Template"])
         print(result.output)
         assert result.exit_code == 0
         os.chdir("output")
-        result = runner.invoke(cli, ["remote", "add", "https://jugit.fz-juelich.de/r.jaepel/API_test_project_output"])
+        result = runner.invoke(cli, ["remote", "add", "https://github.com/cadet/RDM-Testing-Template-Output"])
         print(result.output)
         os.chdir("..")
         assert result.exit_code == 0

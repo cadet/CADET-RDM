@@ -5,8 +5,8 @@ from cadetrdm.web_utils import ssh_url_to_http_url
 
 def test_ssh_url_to_http_url():
     assert (
-        ssh_url_to_http_url("git@jugit.fz-juelich.de:IBG-1/ModSim/cadet/rdm_example.git")
-        == "https://jugit.fz-juelich.de/IBG-1/ModSim/cadet/rdm_example"
+        ssh_url_to_http_url("git@github.com:cadet/RDM-Testing-Template.git")
+        == "https://github.com/cadet/RDM-Testing-Template"
     )
     assert ssh_url_to_http_url("https://github.com/cadet/CADET-RDM") == "https://github.com/cadet/CADET-RDM"
 

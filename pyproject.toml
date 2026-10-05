@@ -57,6 +57,7 @@ testing = [
     "matplotlib",
     "numpy",
     "build",
+    "CADET-Process", # imported by the RDM-Testing-Template fixture
 ]
 docs = [
     "sphinx>=5.3.0",
