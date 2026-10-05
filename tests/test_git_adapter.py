@@ -20,7 +20,8 @@ def isolated_cwd(tmp_path, monkeypatch):
 
 @pytest.fixture(scope="module")
 def path_to_repo():
-    # a "fixture" serves up shared, ready variables to test functions that should use the fixture as a kwarg
+    # a "fixture" serves up shared, ready variables to test functions that should use the
+    # fixture as a kwarg
     return Path("test_repo")
 
 
@@ -244,9 +245,14 @@ def test_cache_with_non_rdm_repo(monkeypatch):
     if Path("foo/bar/non_rdm_repo").exists():
         delete_path("foo/bar/non_rdm_repo")
     # import two repos and confirm verify works.
-    base_repo.import_remote_repo(source_repo_location=".." / path_to_repo, source_repo_branch=source_branch)
-    base_repo.import_remote_repo(source_repo_location=".." / path_to_repo, source_repo_branch=source_branch,
-                            target_repo_location="foo/bar/non_rdm_repo")
+    base_repo.import_remote_repo(
+        source_repo_location=".." / path_to_repo, source_repo_branch=source_branch
+    )
+    base_repo.import_remote_repo(
+        source_repo_location=".." / path_to_repo,
+        source_repo_branch=source_branch,
+        target_repo_location="foo/bar/non_rdm_repo",
+    )
     base_repo.verify_unchanged_cache()
     os.chdir("..")
 
@@ -352,7 +358,8 @@ def test_cookiecutter_with_url(monkeypatch):
 
 
 def test_cadet_rdm(path_to_repo):
-    # because these depend on one-another and there is no native support afaik for sequential tests
+    # because these depend on one-another and there is no native support afaik for
+    # sequential tests
     # these tests are called sequentially here as try_ functions.
     try_initialize_git_repo(path_to_repo)
     try_initialize_from_remote()
@@ -410,9 +417,14 @@ def test_with_detached_head():
 #     repo = ProjectRepo(".")
 #
 #     # import two repos and confirm verify works.
-#     repo.import_remote_repo(source_repo_location="../test_repo/results", source_repo_branch=branch_name)
-#     repo.import_remote_repo(source_repo_location="../test_repo/results", source_repo_branch=branch_name,
-#                             target_repo_location="foo/bar/repo")
+#     repo.import_remote_repo(
+#         source_repo_location="../test_repo/results", source_repo_branch=branch_name
+#     )
+#     repo.import_remote_repo(
+#         source_repo_location="../test_repo/results",
+#         source_repo_branch=branch_name,
+#         target_repo_location="foo/bar/repo",
+#     )
 #     # delete directory and reload
 #     delete_path("foo/bar/repo")
 #

@@ -23,6 +23,7 @@ def create_repo():
     os.makedirs("test_repo_cli", exist_ok=True)
     os.chdir("test_repo_cli")
     result = runner.invoke(cli, ["init", ])
+    assert result.exit_code == 0, result.output
 
 
 def modify_code(path_to_repo):
