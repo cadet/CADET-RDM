@@ -5,6 +5,7 @@ results
 __pycache__
 tests/test_repo*
 .coverage
+coverage.xml
 dist
 .token
 tmp

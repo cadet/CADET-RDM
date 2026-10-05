@@ -51,6 +51,7 @@ documentation = "https://cadet-rdm.readthedocs.io/en/latest/index.html"
 testing = [
     "setuptools",
     "pytest",
+    "pytest-cov",
     "certifi", # tries to prevent certificate problems on windows
     "pre-commit", # system tests run_yml pre-commit
     "flake8", # system tests run_yml flake8

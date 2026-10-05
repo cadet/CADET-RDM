@@ -1,6 +1,7 @@
 # CADET-RDM
 
 [![CI](https://github.com/cadet/CADET-RDM/actions/workflows/CI.yml/badge.svg)](https://github.com/cadet/CADET-RDM/actions/workflows/CI.yml)
+[![codecov](https://codecov.io/gh/cadet/CADET-RDM/graph/badge.svg)](https://codecov.io/gh/cadet/CADET-RDM)
 [![Documentation](https://readthedocs.org/projects/cadet-rdm/badge/?version=latest)](https://cadet-rdm.readthedocs.io)
 [![License](https://img.shields.io/github/license/cadet/cadet-rdm)](LICENSE)
 [![Python](https://img.shields.io/badge/python-3.11%2B-blue)](https://www.python.org/)
