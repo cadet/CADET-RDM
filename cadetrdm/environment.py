@@ -220,51 +220,6 @@ class Environment:
 
         return True
 
-    def prepare_install_instructions(self):
-
-        conda_command = ""
-        pip_command = ""
-
-        if self.conda_packages is not None:
-            conda_command = "conda install -y"
-            for package, spec in self.conda_packages.items():
-                if "git+" in spec:
-                    raise ValueError(f"Conda can not use git+ dependencies for {package} {spec}")
-                elif "~" in spec:
-                    conda_command += f" {package}={spec.replace('~', '').replace('=', '')}"
-                elif ">" in spec or "<" in spec or "=" in spec:
-                    conda_command += f" {package}{spec}"
-                else:
-                    conda_command += f" {package}={spec}"
-
-        if self.pip_packages is not None:
-            pip_command = "pip install"
-            pip_reinstall_command = "pip install --force-reinstall --no-deps"
-            reinstall_necessary = False
-            for package, spec in self.pip_packages.items():
-                if "git+" in spec:
-                    pip_command += f" '{spec}'"
-                    pip_reinstall_command += f" '{spec}' "
-                    reinstall_necessary = True
-                elif "~" in spec:
-                    pip_command += f" '{package}={spec.replace('~', '').replace('=', '')}'"
-                elif ">" in spec or "<" in spec or "=" in spec:
-                    pip_command += f" '{package}{spec}'"
-                else:
-                    pip_command += f" '{package}=={spec}'"
-            if reinstall_necessary:
-                pip_command = pip_command + " && " + pip_reinstall_command
-
-        if conda_command and pip_command:
-            install_instructions = conda_command + " && " + pip_command
-            return install_instructions
-        elif conda_command:
-            return conda_command
-        elif pip_command:
-            return pip_command
-        else:
-            return None
-
     def __repr__(self):
         return (f"Environment("
                 f"conda_packages = {repr(self.conda_packages)},  "
