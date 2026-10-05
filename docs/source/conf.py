@@ -117,7 +117,7 @@ myst_enable_extensions = [
 
 # The theme to use for HTML and HTML Help pages.
 html_theme = "sphinx_book_theme"
-html_logo = "_static/logo.png"
+html_logo = "_static/figures/logo.png"
 
 html_theme_options = {
     "show_toc_level": 2,

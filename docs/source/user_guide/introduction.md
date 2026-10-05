@@ -33,14 +33,14 @@ CADET-RDM projects are structured into two distinct repositories.
 :width: 700
 :alt: RDM structure
 
-CADET-RDM repository architechture
+CADET-RDM repository architecture
 :::
 
 Both the **project** and the **output** repository are their own git repositories. The commit architecture of CADET-RDM allows for easy tracking and reproducing of results and their respective project code.
 
 ## RDM commit architecture
 
-Every run of the project code creates a new output branch (*result branch*) in the **output directory**. The repository on this new branch uniquely contains the files created by the execution of the project code. <br> At the same time, for every run of the project code the `run_history` directory on the master branch of the output repository is updated. This directory is unique to the master branch and contains the metadata and software specifications for every branch in the output repository. This directory also links the results in the output branch to the corresponding commit in the project repository used to create them. For transparency and easy accessibility, the most important specifications for every result branch are also documented in the `log.tsv` on the master branch of the output repository.
+Every run of the project code creates a new output branch (*result branch*) in the **output directory**. The repository on this new branch uniquely contains the files created by the execution of the project code. <br> At the same time, for every run of the project code the `run_history` directory on the main branch of the output repository is updated. This directory is unique to the main branch and contains the metadata and software specifications for every branch in the output repository. This directory also links the results in the output branch to the corresponding commit in the project repository used to create them. For transparency and easy accessibility, the most important specifications for every result branch are also documented in the `log.tsv` on the main branch of the output repository.
 
 ```{eval-rst}
 .. subfigure:: AB
@@ -55,14 +55,15 @@ Every run of the project code creates a new output branch (*result branch*) in t
       :alt: Output Repository
       :width: 420px
 
-   CADET-RDM commit architechture.
+   CADET-RDM commit architecture.
 ```
 
 
-Because of this simultanious log of the metadata and the environment used to create a specific output, results can be reproduced easily.
+Because of this simultaneous log of the metadata and the environment used to create a specific output, results can be reproduced easily.
 
 ## User function
 
 The tools of CADET-RDM can be used through the command line interface (CLI), via context tracking in Python scripts or within [Jupyter Lab](https://jupyterlab.readthedocs.io/en/latest/).
 
 The following documentation contains an installation guide, a user guide to quickly start using CADET-RDM and more detailed descriptions on using the command line interface, python interface and jupyter interface.
+The page on [cases](cases.md) explains how projects, options and environments together identify a result, and how results are reused instead of recomputed.
