@@ -93,5 +93,5 @@ It includes installation instructions, usage guides for the different interfaces
 ## Project information
 
 - **License:** see [LICENSE](LICENSE)
-- **Contributing:** see [CONTRIBUTING](CONTRIBUTING.md)
-- **Authors and contributors:** see [AUTHORS](AUTHORS.md)
+- **Contributing:** see [CONTRIBUTING](https://github.com/cadet/CADET-RDM/blob/main/CONTRIBUTING.md)
+- **Authors and contributors:** see [AUTHORS](https://github.com/cadet/CADET-RDM/blob/main/AUTHORS.md)
