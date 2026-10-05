@@ -1442,7 +1442,7 @@ class ProjectRepo(BaseRepo):
         self.update_output_remotes_json()
         super().commit(*args, **kwargs)
 
-    def check(self, commit: bool = True) -> None:
+    def check(self, commit: bool = True, update_output_repo: bool = True) -> None:
         """
         Check the repository for consistency. Update remote links.
 
@@ -1450,10 +1450,17 @@ class ProjectRepo(BaseRepo):
         ----------
         commit : bool, optional
             Automatically commit changes to the changed files.
+            If False, the changes in the project repository are staged.
+        update_output_repo : bool, optional
+            Also update the link to the project repository in the README of the output
+            repository. This checks out the main branch of the output repository.
         """
         self.update_output_remotes_json()
         if commit:
             super().commit(message="Update remote links", verbosity=1)
+
+        if not update_output_repo:
+            return
 
         # update urls in main branch of output_repo
         self.output_repo._git.checkout(self.output_repo.main_branch)
