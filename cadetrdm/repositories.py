@@ -7,6 +7,7 @@ import glob
 import importlib
 import json
 import os
+import re
 import shutil
 import sys
 import traceback
@@ -2264,11 +2265,54 @@ class OutputRepo(BaseRepo):
             add_all=False,
         )
 
+    @staticmethod
+    def _project_branch_from_output_branch(output_branch: str, commit_hash: str) -> str:
+        """
+        Extract the project repo branch from an output branch name.
+
+        Output branch names of older versions have the formats
+        ``{branch}_{hash}_{output}_{timestamp}``,
+        ``{date}_{time}_{output}_from_{branch}_{hash}`` and
+        ``[{prefix}_]{date}_{time}_{branch}_{hash}``. The abbreviated commit hash marks
+        the end of the branch name, which may itself contain underscores.
+
+        Parameters
+        ----------
+        output_branch : str
+            Name of the output repo branch.
+        commit_hash : str
+            Project repo commit hash recorded for the output branch.
+
+        Returns
+        -------
+        str
+            Project repo branch, or an empty string if it can not be determined.
+        """
+        tokens = output_branch.split("_")
+        short_hash = commit_hash[:7]
+        if not short_hash or short_hash not in tokens:
+            return ""
+        tokens = tokens[:tokens.index(short_hash)]
+
+        for i in range(len(tokens) - 1):
+            if (
+                re.fullmatch(r"\d{4}-\d{2}-\d{2}", tokens[i])
+                and re.fullmatch(r"\d{2}-\d{2}-\d{2}", tokens[i + 1])
+            ):
+                tokens = tokens[i + 2:]
+                break
+
+        if len(tokens) > 2 and tokens[1] == "from":
+            tokens = tokens[2:]
+
+        return "_".join(tokens)
+
     def _add_branch_name_to_log(self) -> None:
         """
         Update the TSV file by adding a 'project_repo_branch' column.
 
-        The branch name is extracted from the 'Output repo branch' field.
+        The branch name is extracted from the output repo branch name of each entry.
+        Entries whose branch can not be determined get an empty value.
         """
         self.checkout(self.main_branch)
 
@@ -2282,15 +2326,26 @@ class OutputRepo(BaseRepo):
         fieldnames = list(rows[0].keys())
 
         # support old/new header names
-        if "output_repo_branch" in rows[0]:
-            branch_col = "output_repo_branch"
-        elif "Output repo branch" in rows[0]:
-            branch_col = "Output repo branch"
+        branch_col = next(
+            (col for col in ("output_repo_branch", "Output repo branch") if col in rows[0]),
+            None,
+        )
+        hash_col = next(
+            (
+                col for col in ("project_repo_commit_hash", "Project repo commit hash")
+                if col in rows[0]
+            ),
+            None,
+        )
 
         # Add new column to header if not present
         if "project_repo_branch" not in rows[0]:
             for row in rows:
-                branch = branch_col.split("_")[2]
+                branch = ""
+                if branch_col is not None and hash_col is not None:
+                    branch = self._project_branch_from_output_branch(
+                        row[branch_col] or "", row[hash_col] or ""
+                    )
                 row["project_repo_branch"] = branch
 
         if "project_repo_branch" not in fieldnames:
