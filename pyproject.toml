@@ -34,7 +34,6 @@ dependencies = [
     "numpy",
     "pyyaml",
     "semantic-version",
-    "docker", # python-docker interface
     "cookiecutter",
 ]
 
@@ -83,8 +82,7 @@ jupyter = [
 [tool.pytest.ini_options]
 markers = [
     "slow: marks tests as slow (deselect with '-m \"not slow\"')",
-    "server_api: marks tests as using the GitLab/GitHub API",
-    "container: marks tests as using containerization interfaces such as Docker or Apptainer"
+    "server_api: marks tests as using the GitLab/GitHub API"
 ]
 
 [tool.setuptools]

@@ -161,19 +161,6 @@ def test_08_data_import():
         os.chdir("..")
 
 
-@pytest.mark.container
-def test_run_dockered():
-    try:
-        create_repo()
-        result = runner.invoke(
-            cli,
-            ["run_yml", "dockered", (Path(__file__).parent.resolve() / "case.yml").as_posix()]
-        )
-        print(result.output)
-        assert result.exit_code == 0
-    finally:
-        os.chdir("..")
-
 # def test_09_data_verify():
 #     with open()
 #     result = runner.invoke(cli, ["data", "verify"])

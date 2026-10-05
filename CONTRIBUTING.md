@@ -36,21 +36,20 @@ git config --global user.email "you@example.com"
 The suite lives in `tests/` and runs under pytest.
 Tests create real Git repositories in temporary directories, so they are slower and more side-effect-heavy than pure unit tests.
 
-Four markers are defined in `pyproject.toml`:
+Three markers are defined in `pyproject.toml`:
 
 - `slow` for long-running tests,
 - `server_api` for tests that talk to the GitLab or GitHub API,
-- `container` for tests that require Docker, Podman, or Apptainer,
 - unmarked tests, which need nothing beyond a local Git installation.
 
 CI runs only the unmarked subset:
 
 ```bash
-pytest tests -m "not server_api and not container and not slow"
+pytest tests -m "not server_api and not slow"
 ```
 
 Run that selection locally before opening a pull request.
-The marked subsets require credentials or a container runtime and are expected to be run deliberately, not by default.
+The marked subsets require credentials or network access and are expected to be run deliberately, not by default.
 
 Tests are executed on Ubuntu against Python 3.11, 3.12, and 3.13, plus one Windows and one macOS job on 3.13.
 The minimum supported Python version is 3.11.

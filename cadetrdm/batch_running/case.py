@@ -7,7 +7,6 @@ from pathlib import Path
 import subprocess
 from typing import Any
 
-# from cadetrdm.container.containerAdapter import ContainerAdapter
 from cadetrdm.batch_running import Study
 from cadetrdm.repositories import ProjectRepo
 from cadetrdm import Options
@@ -118,8 +117,6 @@ class Case:
     def run_study(
         self,
         force: bool = False,
-        container_adapter: "ContainerAdapter" | None = None,
-        command: str | None = None,
         **load_kwargs: Any,
     ) -> Path | None:
         """
@@ -146,7 +143,7 @@ class Case:
             print(f"{self.project_repo.path} has already been computed with these options. Skipping...")
             return results_path
 
-        if container_adapter is None and self.can_run_study is False:
+        if self.can_run_study is False:
             print(f"Current environment does not match required environment. Skipping...")
             self.status = 'failed'
             return
@@ -154,15 +151,9 @@ class Case:
         try:
             self.status = 'running'
 
-            if container_adapter is not None:
-                log, return_code = container_adapter.run_case(self, command=command)
-                if return_code != 0:
-                    self.status = "failed"
-                    return
-            else:
-                module = self.project_repo.module
-                run_method = getattr(module, self.run_method)
-                run_method(self.options, str(self.project_repo.path))
+            module = self.project_repo.module
+            run_method = getattr(module, self.run_method)
+            run_method(self.options, str(self.project_repo.path))
 
             print("Command execution successful.")
             self.status = 'finished'
