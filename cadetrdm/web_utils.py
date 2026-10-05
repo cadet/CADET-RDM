@@ -3,6 +3,7 @@ from pathlib import Path
 
 
 def ssh_url_to_http_url(url):
+    url = str(url)
     if "https" in url:
         return url
     if Path(url).exists():

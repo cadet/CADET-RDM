@@ -2,6 +2,7 @@ import pytest
 from pathlib import Path
 import random
 import os
+import subprocess
 
 from click.testing import CliRunner
 
@@ -64,13 +65,29 @@ def test_02_add_remote():
         os.chdir("..")
 
 
-@pytest.mark.server_api
 def test_02b_clone():
-    if os.path.exists("test_repo_cli_cloned"):
-        delete_path("test_repo_cli_cloned")
-    result = runner.invoke(cli, ["clone", "test_repo_cli", "test_repo_cli_cloned"])
+    root = Path.cwd()
+    remote_project = root / "remote_project.git"
+    remote_output = root / "remote_output.git"
+    subprocess.run(["git", "init", "--bare", "-b", "main", str(remote_project)], check=True)
+    subprocess.run(["git", "init", "--bare", "-b", "main", str(remote_output)], check=True)
+
+    try:
+        create_repo()
+        os.chdir("output")
+        result = runner.invoke(cli, ["remote", "add", str(remote_output)])
+        assert result.exit_code == 0, result.output
+        subprocess.run(["git", "push", "-u", "origin", "main"], check=True)
+        os.chdir("..")
+        subprocess.run(["git", "remote", "add", "origin", str(remote_project)], check=True)
+        subprocess.run(["git", "push", "-u", "origin", "main"], check=True)
+    finally:
+        os.chdir(root)
+
+    result = runner.invoke(cli, ["clone", str(remote_project), "test_repo_cli_cloned"])
     print(result.output)
     assert result.exit_code == 0
+    assert (root / "test_repo_cli_cloned" / "output" / ".git").exists()
 
 
 def test_03_commit_results_with_uncommited_code_changes():

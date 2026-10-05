@@ -22,48 +22,26 @@ def test_module_import():
 
     rdm_example = ProjectRepo(
         WORK_DIR / 'template',
-        "git@jugit.fz-juelich.de:IBG-1/ModSim/cadet/rdm_example.git",
+        url="https://jugit.fz-juelich.de/IBG-1/ModSim/cadet/rdm_example.git",
     )
 
     assert hasattr(rdm_example.module, "main")
     assert hasattr(rdm_example.module, "setup_optimization_problem")
 
 
-@pytest.mark.server_api
 def test_run_with_non_matching_env():
-    WORK_DIR = Path.cwd() / "tmp"
-    WORK_DIR.mkdir(parents=True, exist_ok=True)
+    initialize_repo("test_repo_env")
+    project_repo = ProjectRepo("test_repo_env")
+    current_environment = Environment(conda_packages={"cadet": "5.0.0"})
 
-    rdm_example = ProjectRepo(
-        WORK_DIR / 'template',
-        url="git@jugit.fz-juelich.de:IBG-1/ModSim/cadet/rdm_example.git",
-    )
-
-    options = Options()
-    options.debug = True
-    options.push = False
-    options.commit_message = 'Trying out new things'
-    options.optimizer_options = {
-        "optimizer": "U_NSGA3",
-        "pop_size": 2,
-        "n_cores": 2,
-        "n_max_gen": 1,
-    }
-
-    matching_environment = Environment(conda_packages={
-            "cadet": ">1.0.0"
-        }
-    )
-
-    case = Case(project_repo=rdm_example, options=options, environment=matching_environment)
+    matching_environment = Environment(conda_packages={"cadet": ">1.0.0"})
+    case = Case(project_repo=project_repo, options=Options(), environment=matching_environment)
+    case._current_environment = current_environment
     assert case.can_run_study is True
 
-    non_matching_environment = Environment(conda_packages={
-            "cadet": "17.0.0"
-        }
-    )
-
-    case = Case(project_repo=rdm_example, options=options, environment=non_matching_environment)
+    non_matching_environment = Environment(conda_packages={"cadet": "17.0.0"})
+    case = Case(project_repo=project_repo, options=Options(), environment=non_matching_environment)
+    case._current_environment = current_environment
     assert case.can_run_study is False
 
 
@@ -104,7 +82,7 @@ def test_results_loading():
 
     rdm_example = ProjectRepo(
         WORK_DIR / 'template',
-        url="git@jugit.fz-juelich.de:IBG-1/ModSim/cadet/rdm_example.git",
+        url="https://jugit.fz-juelich.de/IBG-1/ModSim/cadet/rdm_example.git",
     )
 
     class OptionsFixture(Options):
@@ -219,7 +197,7 @@ def test_results_loading_from_within():
 
     rdm_example = ProjectRepo(
         WORK_DIR / 'template',
-        url="git@jugit.fz-juelich.de:IBG-1/ModSim/cadet/rdm_example.git",
+        url="https://jugit.fz-juelich.de/IBG-1/ModSim/cadet/rdm_example.git",
         package_dir="template",
     )
 
@@ -227,7 +205,7 @@ def test_results_loading_from_within():
         os.chdir(WORK_DIR / 'template')
         rdm_example = ProjectRepo(
             ".",
-            url="git@jugit.fz-juelich.de:IBG-1/ModSim/cadet/rdm_example.git",
+            url="https://jugit.fz-juelich.de/IBG-1/ModSim/cadet/rdm_example.git",
             package_dir="template",
         )
 

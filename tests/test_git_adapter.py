@@ -230,6 +230,7 @@ def test_cache_with_non_rdm_repo(monkeypatch):
     git_repo = git.Repo(".")
     git_repo.git.add(".")
     git_repo.git.commit("-m", "Initial commit")
+    source_branch = git_repo.active_branch.name
 
     os.chdir("..")
     if Path("test_repo_non_rdm_imports").exists():
@@ -244,8 +245,8 @@ def test_cache_with_non_rdm_repo(monkeypatch):
     if Path("foo/bar/non_rdm_repo").exists():
         delete_path("foo/bar/non_rdm_repo")
     # import two repos and confirm verify works.
-    base_repo.import_remote_repo(source_repo_location=".." / path_to_repo, source_repo_branch="master")
-    base_repo.import_remote_repo(source_repo_location=".." / path_to_repo, source_repo_branch="master",
+    base_repo.import_remote_repo(source_repo_location=".." / path_to_repo, source_repo_branch=source_branch)
+    base_repo.import_remote_repo(source_repo_location=".." / path_to_repo, source_repo_branch=source_branch,
                             target_repo_location="foo/bar/non_rdm_repo")
     base_repo.verify_unchanged_cache()
     os.chdir("..")
