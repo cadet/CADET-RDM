@@ -159,7 +159,7 @@ rdm remote create <url> <namespace> <name> <username>
 Example:
 
 ```bash
-rdm remote create https://github.com/ githubusers_workproject Workproject githubuser
+rdm remote create https://api.github.com githubusers_workproject Workproject githubuser
 ```
 
 The output repository name is derived automatically by appending `_output` to the project repository name.

@@ -151,6 +151,7 @@ repo.output_repo.add_remote("git@<my_git_server.foo>:<project>_output.git")
 ### Creating remotes automatically
 
 Remote repositories can be created automatically using the GitHub or GitLab APIs if a Personal Access Token is available in the Python keyring.
+The token is stored under `https://github.com/` for GitHub, or the URL of the GitLab instance (see [getting started](getting-started.md)), and `url` is the API URL `https://api.github.com` for GitHub, or the URL of the GitLab instance.
 
 ```python
 from cadetrdm import ProjectRepo
@@ -159,7 +160,7 @@ repo = ProjectRepo()
 repo.create_remotes(
     name="Workproject",
     namespace="githubusers_workproject",
-    url="https://github.com/",
+    url="https://api.github.com",
     username="githubuser"
 )
 ```

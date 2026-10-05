@@ -280,20 +280,22 @@ repo.output_repo.add_remote("git@<my_git_server.foo>:<project>_output.git")
 
 CADET-RDM can create both remotes automatically if a Personal Access Token is available in the Python keyring.
 
-The URL must match the GitHub or GitLab instance used for remote creation, for example:
+Store the token under the URL of the host: `https://github.com/` for GitHub, or the URL of the GitLab instance, e.g. `https://gitlab.com/`.
 
 Store a token (Python):
 
 ```python
 import keyring
-keyring.set_password("https://jugit.fz-juelich.de/", "username", "token")
+keyring.set_password("https://github.com/", "githubuser", "token")
 ```
 
 Store a token (CLI):
 
 ```bash
-keyring set "https://jugit.fz-juelich.de/" <username>
+keyring set "https://github.com/" githubuser
 ```
+
+When creating the remotes, pass the API URL `https://api.github.com` for GitHub, or the URL of the GitLab instance.
 
 Create remotes (Python):
 
@@ -304,7 +306,7 @@ repo = ProjectRepo()
 repo.create_remotes(
     name="Workproject",
     namespace="githubusers_workproject",
-    url="https://github.com/",
+    url="https://api.github.com",
     username="githubuser"
 )
 ```
@@ -318,7 +320,7 @@ rdm remote create <url> <namespace> <name> <username>
 Example:
 
 ```bash
-rdm remote create https://github.com/ githubusers_workproject Workproject githubuser
+rdm remote create https://api.github.com githubusers_workproject Workproject githubuser
 ```
 
 The output repository name is derived automatically by appending `_output` to the project repository name.
