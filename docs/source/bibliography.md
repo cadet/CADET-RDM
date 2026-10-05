@@ -1,5 +1,5 @@
 ```{eval-rst}
-.. only:: html 
+.. only:: html
 
   Bibliography
   ============
