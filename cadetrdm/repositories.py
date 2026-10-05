@@ -1582,6 +1582,26 @@ class OutputRepo(BaseRepo):
 
         return OutputLog.from_string(log_content, filepath=self.path / "log.tsv")
 
+    def update_main(self):
+        """
+        Update the local main branch from the remote.
+
+        The output log is read from the local main branch, so results pushed from
+        another machine only show up after this. Only fast-forwards: if local main has
+        commits the remote lacks, nothing changes. Other branches are not touched.
+        """
+        if len(self.remotes) == 0:
+            return
+
+        remote = self.remotes[0].name
+        try:
+            if str(self.active_branch) == self.main_branch:
+                self._git.pull("--ff-only", remote, self.main_branch)
+            else:
+                self._git.fetch(remote, f"{self.main_branch}:{self.main_branch}")
+        except git.GitCommandError as e:
+            print(f"Could not fast-forward {self.main_branch} in {self.path}: {e}")
+
     def print_output_log(self):
         self.checkout(self.main_branch)
 

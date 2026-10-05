@@ -136,6 +136,7 @@ class Case:
         print(f"Running {self.name} in {self.project_repo.path} with: {self.options}")
         if not self.options.debug:
             self.project_repo.update()
+            self.output_repo.update_main()
         else:
             print("WARNING: Not updating the repositories while in debug mode.")
 
@@ -294,11 +295,6 @@ class Case:
         Returns:
             Path to results.
         """
-        if not self.options.debug:
-            self.project_repo.update()
-        else:
-            print("WARNING: Not updating the repositories while in debug mode.")
-
         results_branch = self._get_results_branch(
             allow_commit_hash_mismatch=allow_commit_hash_mismatch,
             allow_options_hash_mismatch=allow_options_hash_mismatch,
