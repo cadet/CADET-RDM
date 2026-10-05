@@ -14,6 +14,7 @@ a host whose namespace is not set are skipped:
 
 import os
 import uuid
+import warnings
 from dataclasses import dataclass
 from time import sleep
 
@@ -21,7 +22,7 @@ import git
 import pytest
 
 from cadetrdm import initialize_repo, ProjectRepo
-from cadetrdm.remote_integration import GitHubRemote, GitLabRemote, Remote
+from cadetrdm.remote_integration import GitHubRemote, GitLabRemote
 from cadetrdm.repositories import BaseRepo
 
 GITHUB_API_URL = "https://api.github.com"
@@ -65,32 +66,61 @@ def isolated_cwd(tmp_path, monkeypatch):
     monkeypatch.chdir(tmp_path)
 
 
-def delete_quietly(remote: Remote, account: Account, name: str) -> None:
-    try:
-        remote.delete_remote(
-            url=account.url, namespace=account.namespace, name=name, username=account.username
-        )
-    except Exception:
-        pass
+@pytest.fixture
+def created_remotes(monkeypatch):
+    """
+    Record the repositories created during a test and delete only those afterwards.
+
+    Repositories are recorded after create_remote() succeeded, so a name that already
+    existed on the host is never deleted.
+    """
+    created = []
+    for remote_class in (GitHubRemote, GitLabRemote):
+        original_create_remote = remote_class.create_remote
+
+        def create_and_record(self, _original=original_create_remote, **kwargs):
+            response = _original(self, **kwargs)
+            created.append((self, kwargs))
+            return response
+
+        monkeypatch.setattr(remote_class, "create_remote", create_and_record)
+
+    yield created
+
+    for remote, kwargs in created:
+        try:
+            remote.delete_remote(
+                url=kwargs["url"],
+                namespace=kwargs["namespace"],
+                name=kwargs["name"],
+                username=kwargs["username"],
+            )
+        except Exception as error:
+            warnings.warn(
+                f"Could not delete test repository {kwargs['namespace']}/{kwargs['name']}: "
+                f"{error}"
+            )
 
 
 @pytest.mark.server_api
 @pytest.mark.parametrize("host", ["gitlab", "github"])
-def test_create_and_delete_remote(host, repo_name, request):
+def test_create_and_delete_remote(host, repo_name, created_remotes, request):
     account = request.getfixturevalue(f"{host}_account")
     remote = GitLabRemote() if host == "gitlab" else GitHubRemote()
 
-    try:
-        response = remote.create_remote(
-            url=account.url,
-            namespace=account.namespace,
-            name=repo_name,
-            username=account.username,
-        )
-        sleep(3)
-        BaseRepo.clone(remote.ssh_url(response), "cloned_remote")
-    finally:
-        delete_quietly(remote, account, repo_name)
+    response = remote.create_remote(
+        url=account.url,
+        namespace=account.namespace,
+        name=repo_name,
+        username=account.username,
+    )
+    sleep(3)
+    BaseRepo.clone(remote.ssh_url(response), "cloned_remote")
+
+    remote.delete_remote(
+        url=account.url, namespace=account.namespace, name=repo_name, username=account.username
+    )
+    created_remotes.clear()
 
     sleep(3)
     with pytest.raises(git.exc.GitCommandError):
@@ -99,23 +129,19 @@ def test_create_and_delete_remote(host, repo_name, request):
 
 @pytest.mark.server_api
 @pytest.mark.parametrize("host", ["gitlab", "github"])
-def test_create_remotes_for_project(host, repo_name, request):
+def test_create_remotes_for_project(host, repo_name, created_remotes, request):
     account = request.getfixturevalue(f"{host}_account")
-    remote = GitLabRemote() if host == "gitlab" else GitHubRemote()
 
     initialize_repo("project")
     repo = ProjectRepo("project")
-    try:
-        repo.create_remotes(
-            url=account.url,
-            namespace=account.namespace,
-            name=repo_name,
-            username=account.username,
-        )
+    repo.create_remotes(
+        url=account.url,
+        namespace=account.namespace,
+        name=repo_name,
+        username=account.username,
+    )
 
-        assert len(repo.remote_urls) == 1
-        assert len(repo.output_repo.remote_urls) == 1
-        assert repo.has_changes_upstream is False
-    finally:
-        delete_quietly(remote, account, repo_name)
-        delete_quietly(remote, account, repo_name + "_output")
+    assert len(created_remotes) == 2
+    assert len(repo.remote_urls) == 1
+    assert len(repo.output_repo.remote_urls) == 1
+    assert repo.has_changes_upstream is False
