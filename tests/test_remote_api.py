@@ -23,7 +23,7 @@ import pytest
 
 from cadetrdm import initialize_repo, ProjectRepo
 from cadetrdm.remote_integration import GitHubRemote, GitLabRemote
-from cadetrdm.repositories import BaseRepo
+from cadetrdm.repositories import GitRepo
 
 GITHUB_API_URL = "https://api.github.com"
 
@@ -115,7 +115,7 @@ def test_create_and_delete_remote(host, repo_name, created_remotes, request):
         username=account.username,
     )
     sleep(3)
-    BaseRepo.clone(remote.ssh_url(response), "cloned_remote")
+    GitRepo.clone(remote.ssh_url(response), "cloned_remote")
 
     remote.delete_remote(
         url=account.url, namespace=account.namespace, name=repo_name, username=account.username
@@ -124,7 +124,7 @@ def test_create_and_delete_remote(host, repo_name, created_remotes, request):
 
     sleep(3)
     with pytest.raises(git.exc.GitCommandError):
-        BaseRepo.clone(remote.ssh_url(response), "cloned_after_delete")
+        GitRepo.clone(remote.ssh_url(response), "cloned_after_delete")
 
 
 @pytest.mark.server_api
