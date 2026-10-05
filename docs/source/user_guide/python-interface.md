@@ -70,6 +70,12 @@ Project and output repositories can be pushed together using a single command.
 repo.push()
 ```
 
+To push only the output repository:
+
+```python
+repo.output_repo.push()
+```
+
 Consistency checks and staging are handled automatically by the Python interface before pushing.
 
 ### Reusing results from earlier runs
@@ -77,8 +83,11 @@ Consistency checks and staging are handled automatically by the Python interface
 Each run is stored in an output branch named:
 
 ```
-<timestamp>_<active_project_branch>_<project_repo_hash[:7]>
+[<branch_prefix>_]<timestamp>_<active_project_branch>_<project_repo_hash[:7]>_<suffix>
 ```
+
+The random six-character suffix keeps runs that start at the same time apart.
+The prefix is optional and set with `options.branch_prefix`.
 
 Reuse results from a previous run by loading them into the local cache:
 

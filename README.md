@@ -75,8 +75,11 @@ Detailed descriptions of commands and APIs are provided in the dedicated interfa
 5. Push project and output repositories to their remotes
 6. Reuse or reference results via their output branches
 
+The links between the project and output repositories are kept up to date by every commit made through CADET-RDM.
+For commits made with plain git, an optional [pre-commit](https://pre-commit.com/) hook, `rdm-check`, does the same; see the [command line interface](https://cadet-rdm.readthedocs.io/en/latest/user_guide/command-line-interface.html) documentation.
 
-Results are referenced by unique output branch names that encode the timestamp, active project branch, and project commit hash. CADET-RDM provides a local cache mechanism that allows results from previous runs or from other CADET-RDM projects to be reused as input data while preserving provenance information.
+
+Results are referenced by unique output branch names that encode the timestamp, active project branch, and project commit hash, followed by a random suffix. CADET-RDM provides a local cache mechanism that allows results from previous runs or from other CADET-RDM projects to be reused as input data while preserving provenance information.
 
 
 ## Getting started

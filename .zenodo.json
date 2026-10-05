@@ -30,7 +30,7 @@
   ],
   "license": "GPL-3.0",
   "keywords": [
-   "research data management", "simulation", "reproducibility", "containerization"
+   "research data management", "simulation", "reproducibility"
   ],
   "version": "1.1.2",
   "access_right": "open",

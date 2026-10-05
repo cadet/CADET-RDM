@@ -106,8 +106,11 @@ rdm push --output-only
 Each run is stored in an output branch named:
 
 ```
-<timestamp>_<active_project_branch>_<project_repo_hash[:7]>
+[<branch_prefix>_]<timestamp>_<active_project_branch>_<project_repo_hash[:7]>_<suffix>
 ```
+
+The random six-character suffix keeps runs that start at the same time apart.
+The prefix is optional and set with `options.branch_prefix`.
 
 Cache results locally:
 
