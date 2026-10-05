@@ -74,10 +74,14 @@ def check() -> None:
 
 @cli.command(help="Push all changes to the project and output repositories.")
 @click.option('--single', "-s", is_flag=True, help="Push only changes of the current branch.")
-def push(single: bool = False) -> None:
+@click.option('--output-only', "-o", is_flag=True, help="Push only the output repository.")
+def push(single: bool = False, output_only: bool = False) -> None:
     """Push all changes to the project and output repositories."""
     repo = get_project_repo()
-    repo.push(push_all=not single)
+    if output_only:
+        repo.output_repo.push(push_all=not single)
+    else:
+        repo.push(push_all=not single)
     del repo
 
 

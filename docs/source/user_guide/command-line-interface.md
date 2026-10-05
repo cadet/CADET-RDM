@@ -76,6 +76,12 @@ Push both project and output repositories:
 rdm push
 ```
 
+Push only the output repository, e.g. to publish results without pushing unfinished project changes:
+
+```bash
+rdm push --output-only
+```
+
 ### Reusing results from earlier runs
 
 Each run is stored in an output branch named:
