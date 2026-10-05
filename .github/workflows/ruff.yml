@@ -8,9 +8,9 @@ on:
 jobs:
   ruff:
     runs-on: ubuntu-latest
-    continue-on-error: true
     steps:
       - uses: actions/checkout@v4
       - uses: astral-sh/ruff-action@v3
         with:
+          version: "0.16.10"
           args: check --output-format=github

@@ -73,7 +73,7 @@ dev = [
     {include-group = "docs"},
     {include-group = "testing"},
     "pre-commit",
-    "ruff<=0.11.4",
+    "ruff==0.16.10",
 ]
 
 [project.optional-dependencies]
@@ -93,8 +93,17 @@ line-length = 88
 
 [tool.ruff.lint]
 preview = true
-select = ["E", "F", "W", "D", "ANN"]
-ignore = ["D100", "D212", "D203", "ANN401"]
+select = [
+  "ANN",  # type annotations
+  "D",    # docstrings
+  "E",    # pycodestyle errors
+  "F",    # pyflakes
+  "W",    # pycodestyle warnings
+]
+ignore = [
+  "ANN401",  # Allow dynamically typed expressions like `Any`
+  "D100",    # Allow missing docstring in public module
+]
 exclude = ['__init__.py']
 
 [tool.ruff.lint.pydocstyle]
@@ -105,9 +114,12 @@ max-line-length = 100
 max-doc-length = 94
 
 [tool.ruff.lint.per-file-ignores]
-"tests/*.py" = ["D", "E731", "ANN", "E402"]
-# E731 are lambda expressions for tests, D are general docstrings
-
+"tests/**" = [
+  "ANN",   # type annotations
+  "D",     # docstrings
+  "E402",  # imports not at top of module
+  "E731",  # lambda assignments
+]
 
 [tool.pytest.ini_options]
 markers = [
