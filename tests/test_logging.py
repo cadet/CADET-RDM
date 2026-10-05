@@ -1,5 +1,6 @@
 import io
 import subprocess
+import sys
 
 import pytest
 
@@ -93,7 +94,7 @@ def test_environment_from_yml():
 
     assert environment.fulfils_environment(fulfilled_requirements)
 
-    instructions = ("conda install -y cadet>=4.4.0 && "
+    instructions = ("conda install -y 'cadet>=4.4.0' && "
                     "pip install 'text-unidecode==1.3' 'xarray<=2024.2.0' 'zipp==3.18' 'scikit-learn=1.4.1'")
     assert instructions == fulfilled_requirements.prepare_install_instructions()
 
@@ -115,7 +116,7 @@ def test_environment():
     assert environment.fulfils("cadet", "~4.4.0")
     assert not environment.fulfils("cadet", ">4.4.0")
 
-    install_instructions = "conda install -y cadet=4.4.0 tbb=2024.0.0 && pip install 'xarray==2024.2.0'"
+    install_instructions = "conda install -y 'cadet=4.4.0' 'tbb=2024.0.0' && pip install 'xarray==2024.2.0'"
     assert environment.prepare_install_instructions() == install_instructions
 
     yml_dict = {'name': None,
@@ -147,10 +148,21 @@ def test_environment():
         pip_packages={"xarray": ">2024.2.0", "pydantic": "<=2.6.4", }
     )
 
-    install_instructions = ("conda install -y cadet>4.4.0 tbb>=2024.0.0 mkl=2024.0.0 && "
+    install_instructions = ("conda install -y 'cadet>4.4.0' 'tbb>=2024.0.0' 'mkl=2024.0.0' && "
                             "pip install 'xarray>2024.2.0' 'pydantic<=2.6.4'")
 
     assert complex_environment.prepare_install_instructions() == install_instructions
+
+
+@pytest.mark.skipif(sys.platform == "win32", reason="install instructions target POSIX shells")
+def test_conda_specs_survive_the_shell(tmp_path):
+    environment = Environment(conda_packages={"cadet": ">4.4.0", "openssl": ">=3.3", "tbb": "<2025"})
+    command = environment.prepare_install_instructions().replace("conda install -y", "printf '%s\\n'")
+
+    result = subprocess.run(command, shell=True, cwd=tmp_path, capture_output=True, text=True, check=True)
+
+    assert result.stdout.splitlines() == ["cadet>4.4.0", "openssl>=3.3", "tbb<2025"]
+    assert list(tmp_path.iterdir()) == []
 
 
 @pytest.mark.slow
