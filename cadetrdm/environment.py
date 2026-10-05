@@ -2,7 +2,6 @@ import io
 import re
 from typing import Self, List
 from typing import Dict as DictType
-import subprocess
 
 import yaml
 from semantic_version import Version, SimpleSpec
@@ -50,7 +49,6 @@ class Environment:
         :param yml_string:
         :return:
         """
-
         # Remove special formatting characters from the string
         ansi_escape_pattern = re.compile(r'\x1b\[[0-9;]*[a-zA-Z]')
         yml_string = re.sub(ansi_escape_pattern, "", yml_string)
@@ -155,17 +153,18 @@ class Environment:
             package (str): The name of the package to check.
             version (str): The version or specification string to match against.
 
-        Returns:
+        Returns
+        -------
             bool: True if the installed package version matches the specified version, False otherwise.
 
-        Examples:
+        Examples
+        --------
             check_package_version("conda", ">=0.1.1") -> true if larger or equal
             check_package_version("conda", "~0.1.1") -> true if approximately equal (tolerant of pre-release suffixes)
             check_package_version("conda", "0.1.1") -> true if exactly equal (must match pre-release suffixes)
 
         Uses semantic versioning to compare the versions.
         """
-
         installed_version = self.package_version(package)
         if installed_version is None:
             return False
@@ -200,7 +199,6 @@ class Environment:
             Instance of Environment class, with requirements as key: value pairs.
         :return:
         """
-
         if environment is None:
             return True
 

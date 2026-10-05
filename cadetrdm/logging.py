@@ -94,7 +94,8 @@ class LogEntry:
         Args:
             package (str): The name of the package for which the version is to be retrieved.
 
-        Returns:
+        Returns
+        -------
             str: The version of the specified package.
         """
         if self._environment is None:
@@ -110,10 +111,12 @@ class LogEntry:
             package (str): The name of the package to check.
             version (str): The version or specification string to match against.
 
-        Returns:
+        Returns
+        -------
             bool: True if the installed package version matches the specified version, False otherwise.
 
-        Examples:
+        Examples
+        --------
             check_package_version("conda", ">=0.1.1") -> true if larger or equal
             check_package_version("conda", "~0.1.1") -> true if approximately equal (excluding pre-release suffixes)
             check_package_version("conda", "0.1.1") -> true if exactly equal

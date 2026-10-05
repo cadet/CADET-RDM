@@ -248,7 +248,6 @@ class GitRepo:
             '--recurse-submodule=repo1_path', '--recurse-submodule=repo2_path']
         :return:
         """
-
         # prevent git terminal prompts from interrupting the process.
         previous_environment_variables = cls._git_environ_setup()
 
@@ -325,7 +324,6 @@ class GitRepo:
         :param verbosity:
             Option to choose degree of printed feedback.
         """
-
         if not self.has_uncomitted_changes:
             if verbosity >= 1:
                 print(f"No changes to commit in repo {self.path}")
@@ -370,7 +368,7 @@ class GitRepo:
 
     def print_status(self):
         """
-        prints git status
+        Prints git status
         """
         print(self._git.status())
 
@@ -717,7 +715,6 @@ class BaseRepo(GitRepo):
 
         :return:
         """
-
         with open(self.cache_json_path, "r", encoding="utf-8") as file_handle:
             rdm_cache = json.load(file_handle)
 
@@ -786,7 +783,7 @@ class BaseRepo(GitRepo):
                     line_to_be_modified = filelines_giving_output_repo[0]
                     filelines[line_to_be_modified] = output_link_line
                 elif len(filelines_giving_output_repo) == 0:
-                    filelines.append("The output repository can be found at:\n") #method can be used for project and output repositories, "the corresponding repository can be found at... would be better"
+                    filelines.append("The output repository can be found at:\n")  # method can be used for project and output repositories, "the corresponding repository can be found at... would be better"
                     filelines.append(output_link_line)
                 else:
                     raise RuntimeError(f"Multiple lines in the README.md at {readme_filepath}"
@@ -802,7 +799,7 @@ class ProjectRepo(BaseRepo):
     def __init__(
         self,
         path: os.PathLike = None,
-        output_directory = None,
+        output_directory=None,
         search_parent_directories: bool = True,
         suppress_lfs_warning: bool = False,
         url: str = None,
@@ -1055,7 +1052,6 @@ class ProjectRepo(BaseRepo):
         If true: delete and re-load all data. If false, existing data will be left as-is.
         :return:
         """
-
         with open(self.cache_json_path, "r", encoding="utf-8") as file_handle:
             rdm_cache = json.load(file_handle)
 
@@ -1376,7 +1372,6 @@ class ProjectRepo(BaseRepo):
         :return Path:
         Path to directory in cache
         """
-
         branch_name_path = branch_name.replace("/", "_")
 
         # Define the target directory
@@ -1639,7 +1634,8 @@ class OutputRepo(BaseRepo):
         """
         Maps each option hash to the commit hashes where it was run.
 
-        Returns:
+        Returns
+        -------
             dict: Keys are option hashes, values are lists of commit hashes.
         """
         mapping = defaultdict(list)
@@ -1652,7 +1648,8 @@ class OutputRepo(BaseRepo):
         """
         Map each commit hash to the option hashes run at that commit.
 
-        Returns:
+        Returns
+        -------
             dict: Keys are commit hashes, values are lists of option hashes.
         """
         mapping = defaultdict(list)
@@ -1956,7 +1953,6 @@ class JupyterInterfaceRepo(ProjectRepo):
         :param verbosity:
             Option to choose degree of printed feedback.
         """
-
         if "nbconvert_call" in sys.argv:
             print("Not committing during nbconvert.")
             return

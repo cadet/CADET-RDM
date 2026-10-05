@@ -7,11 +7,9 @@ import subprocess
 from pathlib import Path
 from typing import Mapping, Sequence
 
-import pytest
 from click.testing import CliRunner, Result
 
 from cadetrdm.cli_integration import cli
-from cadetrdm import ProjectRepo
 
 runner = CliRunner()
 
@@ -205,6 +203,7 @@ def test_two_machines_output_branch_collision(tmp_path: Path) -> None:
             or "fetch first" in lower_output
             or result.exception is not None
         ), result.output
+
 
 def test_push_with_uncommitted_changes(tmp_path: Path) -> None:
     """
