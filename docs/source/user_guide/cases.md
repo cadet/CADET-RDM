@@ -1,5 +1,5 @@
 (cases)=
-# Cases: options, environments and reproducible results
+# Cases
 
 CADET-RDM identifies every result by the combination of three things:
 
