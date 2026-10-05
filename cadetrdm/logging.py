@@ -160,7 +160,7 @@ class OutputLog:
         instance = cls()
         instance._filepath = filepath
 
-        lines = [line.split("\t") for line in content.splitlines() if line]
+        lines = cls._split_content(content)
         if not lines:
             return instance
 
@@ -191,10 +191,17 @@ class OutputLog:
         return {entry["output_repo_branch"]: LogEntry(**entry, filepath=self._filepath) for entry in entry_dictionaries}
 
     def _read_file(self, filepath):
-        with open(filepath, encoding="utf-8") as handle:
-            lines = handle.readlines()
-        lines = [line.rstrip("\n").rstrip("\r").split("\t") for line in lines]
-        return lines
+        with open(filepath, encoding="utf-8", newline="") as handle:
+            return self._split_content(handle.read())
+
+    @staticmethod
+    def _split_content(content: str) -> list[list[str]]:
+        """Split log.tsv contents into rows of fields.
+
+        Rows are separated by line feeds only. `str.splitlines` would also break
+        on characters such as U+2028 that `_sanitize` leaves in values.
+        """
+        return [line.rstrip("\r").split("\t") for line in content.split("\n") if line]
 
     def _convert_header(self, header):
         return [entry.lower().replace(" ", "_") for entry in header]

@@ -207,3 +207,50 @@ def test_output_log_roundtrip_is_stable(tmp_path):
         assert filepath.read_text() == written
 
     assert OutputLog(filepath=filepath).entries[entry[1]].python_sys_args == sys_args
+
+
+LOG_HEADER = [
+    "output_repo_commit_message", "output_repo_branch", "output_repo_commit_hash",
+    "project_repo_branch", "project_repo_commit_hash", "project_repo_directory_name",
+    "project_repo_remotes", "python_sys_args", "tags", "options_hash",
+]
+LOG_ENTRY = [
+    "my run", "2026-01-08_16-40-08_main", "8eaf262", "main", "5030418",
+    "cadet-verification", "[]", "['run.py']", "", "a1b2c3",
+]
+
+
+@pytest.fixture
+def log_file(tmp_path):
+    filepath = tmp_path / "log.tsv"
+    filepath.write_text("\t".join(LOG_HEADER) + "\n" + "\t".join(LOG_ENTRY) + "\n")
+    return filepath
+
+
+def test_output_log_write_keeps_entries_on_one_line(log_file):
+    log = OutputLog(filepath=log_file)
+    entry = log.entries[LOG_ENTRY[1]]
+    entry.output_repo_commit_message = "first\tsecond\r\nthird\nfourth"
+    entry.tags = None
+    log.write()
+
+    assert len(log_file.read_text(encoding="utf-8").splitlines()) == 2
+
+    entry = OutputLog(filepath=log_file).entries[LOG_ENTRY[1]]
+    assert entry.output_repo_commit_message == "first second  third fourth"
+    assert entry.tags == ""
+    assert entry.options_hash == LOG_ENTRY[-1]
+
+
+@pytest.mark.parametrize("separator", [" ", " ", "\x0b", "\x0c", "\x1c", "\x85"])
+def test_output_log_from_string_matches_file(log_file, separator):
+    log = OutputLog(filepath=log_file)
+    log.entries[LOG_ENTRY[1]].output_repo_commit_message = f"pasted{separator}text"
+    log.write()
+
+    from_file = OutputLog(filepath=log_file)
+    from_string = OutputLog.from_string(log_file.read_text(encoding="utf-8"))
+
+    assert list(from_string.entries) == [LOG_ENTRY[1]]
+    assert from_string.entries[LOG_ENTRY[1]].to_dict() == from_file.entries[LOG_ENTRY[1]].to_dict()
+    assert from_file.entries[LOG_ENTRY[1]].output_repo_commit_message == f"pasted{separator}text"
