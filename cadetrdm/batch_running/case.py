@@ -74,7 +74,7 @@ class Case:
     def status(self, status):
         """Update the status file with the current execution status."""
 
-        with open(self.status_file, "w") as f:
+        with open(self.status_file, "w", encoding="utf-8") as f:
             f.write(f"{status}@{self.project_repo.current_commit_hash}")
 
     @property
@@ -96,7 +96,7 @@ class Case:
         if not self.status_file.exists():
             return None, None
 
-        with open(self.status_file) as f:
+        with open(self.status_file, encoding="utf-8") as f:
             status = f.read().strip()
             try:
                 status, current_hash = status.split("@")

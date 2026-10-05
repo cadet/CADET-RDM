@@ -78,10 +78,10 @@ def initialize_repo(path_to_repo: str | Path, output_directory_name: (str | bool
         "cadet_rdm_version": cadetrdm.__version__,
         "output_remotes": {"output_directory_name": output_directory_name, "output_remotes": {}}
     }
-    with open(".cadet-rdm-data.json", "w") as f:
+    with open(".cadet-rdm-data.json", "w", encoding="utf-8") as f:
         json.dump(rdm_data, f, indent=2)
 
-    with open(".cadet-rdm-cache.json", "w") as f:
+    with open(".cadet-rdm-cache.json", "w", encoding="utf-8") as f:
         json.dump({"__example/path/to/repo__": {
             "source_repo_location": "git@jugit.fz-juelich.de:IBG-1/ModSim/cadet"
                                     "/agile_cadet_rdm_presentation_output.git",
@@ -216,7 +216,7 @@ def initialize_output_repo(output_directory_name, gitignore: list = None,
         "project_uuid": project_repo_uuid, "output_uuid": output_repo_uuid,
         "cadet_rdm_version": cadetrdm.__version__
     }
-    with open(".cadet-rdm-data.json", "w") as f:
+    with open(".cadet-rdm-data.json", "w", encoding="utf-8") as f:
         json.dump(rdm_data, f, indent=2)
 
     init_lfs(lfs_filetypes)

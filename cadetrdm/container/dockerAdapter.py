@@ -22,7 +22,7 @@ class DockerAdapter(ContainerAdapter):
         self.image = None
 
     def run_yml(self, yml_path):
-        with open(yml_path, "r") as stream:
+        with open(yml_path, "r", encoding="utf-8") as stream:
             instructions = yaml.safe_load(stream)
 
         instructions = {key.lower(): value for key, value in instructions.items()}
@@ -178,7 +178,7 @@ class DockerAdapter(ContainerAdapter):
         if install_command is None:
             return
 
-        with open(dockerfile, "a") as handle:
+        with open(dockerfile, "a", encoding="utf-8") as handle:
             handle.write(f"\n{install_command}\n")
 
     def __del__(self):

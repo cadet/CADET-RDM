@@ -134,7 +134,7 @@ class Notebook:
                     return
 
         print("Rerunning.")
-        with open(self.notebook_path) as f:
+        with open(self.notebook_path, encoding="utf-8") as f:
             nb = self.nbf.read(f, as_version=4)
 
         ep = self.ExecutePreprocessor(timeout=timeout, kernel_name='python3', extra_arguments=["nbconvert_call"])

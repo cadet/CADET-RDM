@@ -36,7 +36,7 @@ class Environment:
         :param yml_path:
         :return:
         """
-        with open(yml_path) as handle:
+        with open(yml_path, encoding="utf-8") as handle:
             yml_string = "".join(handle.readlines())
 
         instance = cls.from_yml_string(yml_string)
