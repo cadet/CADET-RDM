@@ -65,11 +65,31 @@ def print_log() -> None:
 
 
 @cli.command(name="check", help="Ensure metadata is consistent.")
-def check() -> None:
+@click.option(
+    "--no-commit", is_flag=True,
+    help="Stage the updated files in the project repository instead of committing them.",
+)
+@click.option(
+    "--project-only", is_flag=True,
+    help="Only update the project repository and leave the output repository untouched.",
+)
+@click.option(
+    "--warn-only", is_flag=True,
+    help="Report errors as a warning and exit successfully, e.g. when run as a git hook.",
+)
+def check(no_commit: bool = False, project_only: bool = False, warn_only: bool = False) -> None:
     """Ensure metadata is consistent."""
-    repo = get_project_repo()
-    repo.check()
-    del repo
+    try:
+        repo = get_project_repo()
+        repo.check(commit=not no_commit, update_output_repo=not project_only)
+        del repo
+    except Exception as error:
+        if not warn_only:
+            raise
+        click.echo(
+            f"Warning: rdm check failed, the remote links were not updated: {error}",
+            err=True,
+        )
 
 
 @cli.command(help="Push all changes to the project and output repositories.")

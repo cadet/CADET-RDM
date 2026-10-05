@@ -58,6 +58,25 @@ Check repository consistency:
 rdm check
 ```
 
+`rdm check` updates the links between the project and output repositories in both READMEs and in `.cadet-rdm-data.json`, and commits the changes.
+With `--no-commit`, the changes in the project repository are staged instead of committed, and with `--project-only`, the output repository is left untouched.
+
+Commits made through CADET-RDM update these links automatically.
+To also keep them up to date when committing with plain git, e.g. after changing a remote with `git remote set-url`, add the `rdm-check` hook to the `.pre-commit-config.yaml` of the project repository:
+
+```yaml
+repos:
+-   repo: https://github.com/cadet/CADET-RDM
+    rev: v1.2.0
+    hooks:
+    -   id: rdm-check
+```
+
+and install it with `pre-commit install`.
+The hook is optional and never blocks a commit.
+It runs `rdm check --no-commit --project-only --warn-only` before every commit, so updated links are included in the commit.
+If the check fails, e.g. because git-lfs is not installed, it prints a warning and the commit proceeds.
+
 Stage changes:
 
 ```bash
