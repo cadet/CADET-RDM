@@ -170,7 +170,7 @@ def remote() -> None:
     pass
 
 
-@remote.command(name="add", help="Add")
+@remote.command(name="add", help="Add a remote to the repository.")
 @click.option('--name', '-n', default=None)
 @click.argument('remote_url')
 def add_remote(name: str | None = None, remote_url: str | None = None) -> None:
@@ -182,7 +182,7 @@ def add_remote(name: str | None = None, remote_url: str | None = None) -> None:
     del repo
 
 
-@remote.command(name="set-url", help="Add")
+@remote.command(name="set-url", help="Set the URL of a remote.")
 @click.argument('name')
 @click.argument('remote_url')
 def set_url(name: str, remote_url: str) -> None:
