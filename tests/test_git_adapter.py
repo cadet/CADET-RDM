@@ -155,7 +155,7 @@ def try_load_previous_output(path_to_repo, branch_name):
 
 def try_add_remote(path_to_repo):
     repo = ProjectRepo(path_to_repo)
-    repo.add_remote("git@jugit.fz-juelich.de:IBG-1/ModSim/cadet/CADET-RDM.git")
+    repo.add_remote("git@github.com:cadet/CADET-RDM.git")
     assert "origin" in repo._git_repo.remotes
 
 
