@@ -92,6 +92,8 @@ pytest tests -m "not server_api and not slow"
 ```
 
 Run that selection locally before opening a pull request.
+CI also measures test coverage with pytest-cov and uploads it to [Codecov](https://codecov.io/gh/cadet/CADET-RDM).
+To see the coverage locally, add `--cov=cadetrdm --cov-report=term-missing` to the pytest call.
 The marked subsets require credentials or network access and are expected to be run deliberately, not by default.
 
 The `server_api` tests create and delete repositories through the GitLab and GitHub APIs.
