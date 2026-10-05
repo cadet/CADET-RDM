@@ -18,7 +18,7 @@ from stat import S_IREAD, S_IWRITE
 import tarfile
 import tempfile
 from types import ModuleType
-from typing import List, Optional, Any
+from typing import Any, Iterator, Self
 from urllib.request import urlretrieve
 import uuid
 
@@ -40,28 +40,52 @@ except ImportError:
     raise ImportError("No module named git, please install the gitpython package")
 
 
-def validate_is_output_repo(path_to_repo):
-    with open(os.path.join(path_to_repo, ".cadet-rdm-data.json"), "r", encoding="utf-8") as file_handle:
+def validate_is_output_repo(path_to_repo: str | os.PathLike) -> None:
+    """
+    Raise an error if the repository at the path is a project repository.
+
+    Parameters
+    ----------
+    path_to_repo : str | os.PathLike
+        Path to the repository.
+
+    Raises
+    ------
+    ValueError
+        If the repository is a project repository.
+    """
+    data_json_path = os.path.join(path_to_repo, ".cadet-rdm-data.json")
+    with open(data_json_path, "r", encoding="utf-8") as file_handle:
         rdm_data = json.load(file_handle)
         if rdm_data["is_project_repo"]:
             raise ValueError("Please use the URL to the output repository.")
 
 
 class GitRepo:
-    def __init__(self, path=None, search_parent_directories=True, *args, **kwargs):
-        """
-        Base class handling most git workflows.
+    """Base class handling most git workflows."""
 
-        :param path:
+    def __init__(
+        self,
+        path: str | os.PathLike | None = None,
+        search_parent_directories: bool = True,
+        *args: Any,
+        **kwargs: Any,
+    ) -> None:
+        """
+        Open the git repository at the given path.
+
+        Parameters
+        ----------
+        path : str | os.PathLike | None, optional
             Path to the root directory of the repository.
-        :param search_parent_directories:
+        search_parent_directories : bool, optional
             if True, all parent directories will be searched for a valid repo as well.
 
             Please note that this was the default behaviour in older versions of GitPython,
             which is considered a bug though.
-        :param args:
+        *args : Any
             Args handed to git.Repo()
-        :param kwargs:
+        **kwargs : Any
             Kwargs handed to git.Repo()
         """
         if path is None or path in (".", "./"):
@@ -70,27 +94,36 @@ class GitRepo:
         if isinstance(path, str):
             path = Path(path)
 
-        self._git_repo = git.Repo(path, search_parent_directories=search_parent_directories, *args, **kwargs)
+        self._git_repo = git.Repo(
+            path, search_parent_directories=search_parent_directories, *args, **kwargs
+        )
         self._git = self._git_repo.git
 
         self._most_recent_branch = self.active_branch.name
         self._earliest_commit = None
 
         existing_branches = [branch.name for branch in self._git_repo.branches]
-        if len(existing_branches) != 0 and "main" not in existing_branches and "master" in existing_branches:
+        if (
+            len(existing_branches) != 0
+            and "main" not in existing_branches
+            and "master" in existing_branches
+        ):
             self.main_branch = "master"
         else:
             self.main_branch = "main"
 
         self.add = self._git.add
 
-    def __enter__(self) -> git.Repo:
+    def __enter__(self) -> Self:
+        """Return the repository."""
         return self
 
     def __exit__(self, *args: Any) -> None:
+        """Close the underlying git repository."""
         self._git_repo.close()
 
     def __del__(self) -> None:
+        """Close the underlying git repository."""
         try:
             self._git_repo.close()
         except Exception as e:
@@ -99,7 +132,8 @@ class GitRepo:
             traceback.print_exc()
 
     @property
-    def active_branch(self):
+    def active_branch(self) -> git.Head | Any:
+        """Active branch, or a placeholder named "detached_head" if HEAD is detached."""
         try:
             active_branch = self._git_repo.active_branch
             return active_branch
@@ -108,10 +142,10 @@ class GitRepo:
                 class DetachedHeadBranch:
                     name = "detached_head"
 
-                    def __repr__(self):
+                    def __repr__(self) -> str:
                         return "detached_head"
 
-                    def __str__(self):
+                    def __str__(self) -> str:
                         return "detached_head"
 
                 return DetachedHeadBranch()
@@ -119,65 +153,81 @@ class GitRepo:
                 raise e
 
     @property
-    def untracked_files(self):
+    def untracked_files(self) -> list[str]:
+        """Untracked files in the repository."""
         return self._git_repo.untracked_files
 
     @property
-    def current_commit_hash(self):
+    def current_commit_hash(self) -> str:
+        """Hash of the commit HEAD points to."""
         return str(self.head.commit)
 
     @property
-    def path(self):
+    def path(self) -> Path:
+        """Root directory of the repository."""
         return Path(self._git_repo.working_dir)
 
     @property
-    def bare(self):
+    def bare(self) -> bool:
+        """True if the repository is bare."""
         return self._git_repo.bare
 
     @property
-    def working_dir(self):
+    def working_dir(self) -> Path:
+        """Root directory of the repository. Deprecated, use path."""
         print("Deprecation Warning. .working_dir is getting replaced with .path")
         return Path(self._git_repo.working_dir)
 
     @property
-    def head(self):
+    def head(self) -> git.HEAD:
+        """HEAD reference of the repository."""
         return self._git_repo.head
 
     @property
-    def remotes(self):
+    def remotes(self) -> list[git.Remote]:
+        """Remotes of the repository."""
         return self._git_repo.remotes
 
     @property
-    def remote_urls(self):
+    def remote_urls(self) -> list[str]:
+        """URLs of all remotes."""
         if len(self.remotes) == 0:
-            print(RuntimeWarning(f"No remote for repo at {self.path} set yet. Please add remote ASAP."))
+            print(RuntimeWarning(
+                f"No remote for repo at {self.path} set yet. Please add remote ASAP."
+            ))
         return [str(remote.url) for remote in self.remotes]
 
     @property
-    def url(self):
+    def url(self) -> str:
+        """URL of the first remote."""
         return self.remote_urls[0]
 
     @property
-    def earliest_commit(self):
+    def earliest_commit(self) -> git.Commit:
+        """First commit of the repository."""
         if self._earliest_commit is None:
             *_, earliest_commit = self._git_repo.iter_commits()
             self._earliest_commit = earliest_commit
         return self._earliest_commit
 
     @property
-    def tags(self):
+    def tags(self) -> list:
+        """Tags of the repository. Not implemented, always empty."""
         return list()
 
     @property
-    def data_json_path(self):
+    def data_json_path(self) -> Path:
+        """Path to the CADET-RDM metadata file."""
         return self.path / ".cadet-rdm-data.json"
 
     @property
-    def cache_json_path(self):
+    def cache_json_path(self) -> Path:
+        """Path to the CADET-RDM cache file."""
         return self.path / ".cadet-rdm-cache.json"
 
     @property
-    def has_changes_upstream(self):
+    def has_changes_upstream(self) -> bool:
+        """True if the remote has commits on the active branch that are missing locally."""
         if len(self.remotes) == 0:
             return False
 
@@ -191,7 +241,8 @@ class GitRepo:
 
             if len(correct_remote_branches) > 1:
                 raise RuntimeError(
-                    f"Remote has multiple branches matching local branch {self.active_branch.name}: "
+                    "Remote has multiple branches matching local branch "
+                    f"{self.active_branch.name}: "
                     f"{[branch.name for branch in correct_remote_branches]}"
                 )
 
@@ -204,7 +255,10 @@ class GitRepo:
             if self.current_commit_hash != remote_hash and remote_hash not in self.log:
                 return True
             elif self.current_commit_hash != remote_hash and remote_hash in self.log:
-                print("Local repository is ahead of remote. This could be due to CADET-RDM version updates.")
+                print(
+                    "Local repository is ahead of remote. "
+                    "This could be due to CADET-RDM version updates."
+                )
                 return False
             else:
                 return False
@@ -213,12 +267,14 @@ class GitRepo:
             traceback.print_exc()
             return False
 
-    def fetch(self):
+    def fetch(self) -> None:
+        """Fetch from the default remote if one is configured."""
         if len(self.remotes) == 0:
             return
         self._git.fetch()
 
-    def update(self):
+    def update(self) -> None:
+        """Pull and reset to the upstream state of the active branch if it has new changes."""
         if len(self.remotes) == 0:
             print(f"No remote configured for repo at {self.path}. Skipping update.")
             return
@@ -236,17 +292,36 @@ class GitRepo:
             print(f"Git command error in {self.path}: {e}")
 
     @classmethod
-    def clone(cls, url: str, to_path: str | Path = None, multi_options: Optional[List[str]] = None, **kwargs):
+    def clone(
+        cls,
+        url: str,
+        to_path: str | Path | None = None,
+        multi_options: list[str] | None = None,
+        **kwargs: Any,
+    ) -> Self:
         """
-        Clone a remote repository
+        Clone a remote repository.
 
-        :param url:
-        :param to_path:
-        :param multi_options: A list of Clone options that can be provided multiple times.
+        If cloning fails, the clone is retried with the HTTPS version of the URL.
+
+        Parameters
+        ----------
+        url : str
+            URL of the remote repository.
+        to_path : str | Path | None, optional
+            Target directory. Defaults to the repository name in the current directory.
+        multi_options : list[str] | None, optional
+            A list of Clone options that can be provided multiple times.
             One option per list item which is passed exactly as specified to clone.
             For example: ['--config core.filemode=false', '--config core.ignorecase',
             '--recurse-submodule=repo1_path', '--recurse-submodule=repo2_path']
-        :return:
+        **kwargs : Any
+            Keyword arguments passed to git.Repo.clone_from.
+
+        Returns
+        -------
+        GitRepo
+            The cloned repository.
         """
         # prevent git terminal prompts from interrupting the process.
         previous_environment_variables = cls._git_environ_setup()
@@ -261,7 +336,9 @@ class GitRepo:
             print(f"Clone from {url} failed with {e, e.stderr, e.stdout}.")
             print(f"Retrying with {ssh_url_to_http_url(url)}.")
             try:
-                git.Repo.clone_from(ssh_url_to_http_url(url), to_path, multi_options=multi_options, **kwargs)
+                git.Repo.clone_from(
+                    ssh_url_to_http_url(url), to_path, multi_options=multi_options, **kwargs
+                )
             except Exception as e_inner:
                 print(f"Clone from {ssh_url_to_http_url(url)} failed with: ")
                 traceback.print_exc()
@@ -273,7 +350,7 @@ class GitRepo:
         return instance
 
     @staticmethod
-    def _git_environ_setup():
+    def _git_environ_setup() -> dict[str, str | None]:
         environment_variables = {
             "GIT_TERMINAL_PROMPT": "0",
             "GIT_SSH_COMMAND": "ssh -o StrictHostKeyChecking=yes",
@@ -288,40 +365,56 @@ class GitRepo:
         return previous_environment_variables
 
     @staticmethod
-    def _git_environ_reset(previous_environment_variables):
+    def _git_environ_reset(previous_environment_variables: dict[str, str | None]) -> None:
         for key, previous_value in previous_environment_variables.items():
             if previous_value is None:
                 os.environ.pop(key)
             else:
                 os.environ[key] = previous_value
 
-    def checkout(self, *args, **kwargs):
+    def checkout(self, *args: Any, **kwargs: Any) -> None:
+        """
+        Check out a branch or paths and remember the previously active branch.
+
+        Parameters
+        ----------
+        *args : Any
+            Arguments passed to git checkout.
+        **kwargs : Any
+            Keyword arguments passed to git checkout.
+        """
         self._most_recent_branch = self.active_branch
         self._git.checkout(*args, **kwargs)
 
-    def remote_set_url(self, name: str, url: str):
+    def remote_set_url(self, name: str, url: str) -> None:
         """
         Set the url of a named remote.
 
-        :param name:
-        :param url:
+        Parameters
+        ----------
+        name : str
+            Name of the remote.
+        url : str
+            New URL.
         """
         self._git_repo.remotes[name].set_url(url)
 
     def commit(
         self,
         message: str | None = None,
-        add_all=False,
-        verbosity=1,
+        add_all: bool = False,
+        verbosity: int = 1,
     ) -> None:
         """
         Commit current state of the repository.
 
-        :param message:
-            Commit message
-        :param add_all:
+        Parameters
+        ----------
+        message : str | None, optional
+            Commit message. If None, the user is asked for one.
+        add_all : bool, optional
             Option to add all changed and new files to git automatically.
-        :param verbosity:
+        verbosity : int, optional
             Option to choose degree of printed feedback.
         """
         if not self.has_uncomitted_changes:
@@ -334,7 +427,9 @@ class GitRepo:
             print(" -", file)
 
         if message is None:
-            message = input("Please enter a commit message for these code changes or 'N' to cancel.\n")
+            message = input(
+                "Please enter a commit message for these code changes or 'N' to cancel.\n"
+            )
             if message.upper().replace(" ", "") == "N" or message.upper().replace(" ", "") == "":
                 raise KeyboardInterrupt
 
@@ -346,42 +441,47 @@ class GitRepo:
             commit_return = self._git.commit("-m", message)
             if verbosity >= 1:
                 print("\n" + commit_return + "\n")
-        except:
+        except Exception:
             pass
 
-    def git_ammend(self, ):
-        """
-        Call git commit with options --amend --no-edit
-        """
+    def git_ammend(self) -> None:
+        """Call git commit with options --amend --no-edit."""
         self._git.commit("--amend", "--no-edit")
 
     @property
-    def status(self):
+    def status(self) -> str:
+        """Output of git status."""
         return self._git.status()
 
     @property
-    def log(self):
+    def log(self) -> str:
+        """Output of git log."""
         return self._git.log()
 
-    def log_oneline(self):
+    def log_oneline(self) -> str:
+        """
+        Return the git log with one line per commit.
+
+        Returns
+        -------
+        str
+            Output of git log --oneline.
+        """
         return self._git.log("--oneline")
 
-    def print_status(self):
-        """
-        Prints git status
-        """
+    def print_status(self) -> None:
+        """Print git status."""
         print(self._git.status())
 
-    def print_log(self):
-        """
-        Prints the git log
-        """
+    def print_log(self) -> None:
+        """Print the git log."""
         print(self._git.log())
 
-    def stash_all_changes(self):
+    def stash_all_changes(self) -> None:
         """
-        Adds all untracked files to git and then stashes all changes.
-        Will raise a RuntimeError if no changes are found.
+        Add all untracked files to git and then stash all changes.
+
+        Warns if no changes are found.
         """
         if not self.has_uncomitted_changes:
             warnings.warn("No changes in repo to stash.")
@@ -389,40 +489,55 @@ class GitRepo:
         self.add(".")
         self._git.stash()
 
-    def apply_stashed_changes(self):
+    def apply_stashed_changes(self) -> None:
         """
         Apply the last stashed changes.
+
         If a "CONFLICT (modify/delete)" error is encountered, this is ignored.
         All other errors are raised.
         """
         try:
             self._git.stash('pop')  # equivalent to $ git stash pop
         except git.exc.GitCommandError as e:
-            # Will raise error because the stash cannot be applied without conflicts. This is expected
+            # Will raise error because the stash cannot be applied without conflicts.
+            # This is expected
             if 'CONFLICT (modify/delete)' in e.stdout:
                 pass
             else:
                 raise e
 
-    def test_for_uncommitted_changes(self):
+    def test_for_uncommitted_changes(self) -> None:
         """
         Raise a RuntimeError if uncommitted changes are in the repository.
-        :return:
+
+        Raises
+        ------
+        RuntimeError
+            If the repository has uncommitted changes.
         """
         if self.has_uncomitted_changes:
             raise RuntimeError(f"Found uncommitted changes in the repository {self.path}.")
 
-    def push(self, remote=None, local_branch=None, remote_branch=None, push_all=True):
+    def push(
+        self,
+        remote: str | None = None,
+        local_branch: str | None = None,
+        remote_branch: str | None = None,
+        push_all: bool = True,
+    ) -> None:
         """
         Push local branch to remote.
 
-        :param remote:
-            Name of the remote to push to.
-        :param local_branch:
-            Name of the local branch to push.
-        :param remote_branch:
-            Name of the remote branch to push to.
-        :return:
+        Parameters
+        ----------
+        remote : str | None, optional
+            Name of the remote to push to. If None, push to all remotes.
+        local_branch : str | None, optional
+            Name of the local branch to push. Defaults to the active branch.
+        remote_branch : str | None, optional
+            Name of the remote branch to push to. Defaults to the local branch.
+        push_all : bool, optional
+            If True, push all branches and the output repository.
         """
         if local_branch is None:
             local_branch = self.active_branch
@@ -460,11 +575,8 @@ class GitRepo:
         if hasattr(self, "output_repo") and push_all:
             self.output_repo.push()
 
-    def delete_active_branch_if_branch_is_empty(self):
-        """
-        Delete the currently active branch and checkout the main branch
-        :return:
-        """
+    def delete_active_branch_if_branch_is_empty(self) -> None:
+        """Delete the active branch if it has no commits beyond the main branch."""
         previous_branch = self.active_branch.name
         if previous_branch == self.main_branch:
             return
@@ -476,22 +588,27 @@ class GitRepo:
             self._git.checkout(self.main_branch)
             self._git.branch("-d", previous_branch)
 
-    def add_all_files(self, automatically_add_new_files=True):
+    def add_all_files(self, automatically_add_new_files: bool = True) -> None:
         """
-        Stage all changes to git. This includes new, untracked files as well as modified files.
-        :param automatically_add_new_files:
-            If this is set to false a user input will be prompted if untracked files are about to be added.
-        :return:
-            List of all staged changes.
+        Stage all changes to git.
+
+        This includes new, untracked files as well as modified files.
+
+        Parameters
+        ----------
+        automatically_add_new_files : bool, optional
+            Unused.
         """
         self.add(".")
 
-    def _reset_hard_to_head(self, force_entry=False):
+    def _reset_hard_to_head(self, force_entry: bool = False) -> None:
         if not force_entry:
-            proceed = wait_for_user(f'The output directory contains the following uncommitted changes:\n'
-                                    f'{self.untracked_files + self.changed_files}\n'
-                                    f' These will be lost if you continue\n'
-                                    f'Proceed?')
+            proceed = wait_for_user(
+                'The output directory contains the following uncommitted changes:\n'
+                f'{self.untracked_files + self.changed_files}\n'
+                ' These will be lost if you continue\n'
+                'Proceed?'
+            )
         else:
             proceed = True
         if not proceed:
@@ -506,29 +623,40 @@ class GitRepo:
             self._git.clean("-q", "-f", "-d")
 
     @property
-    def changed_files(self):
+    def changed_files(self) -> list[str]:
+        """Tracked files with unstaged changes."""
         changed_files = self._git.diff(None, name_only=True).split('\n')
         if "" in changed_files:
             changed_files.remove("")
         return changed_files
 
     @property
-    def exist_uncomitted_changes(self):
+    def exist_uncomitted_changes(self) -> bool:
+        """True if the repository has uncommitted changes. Deprecated."""
         warnings.warn(
-            "ProjectRepo.exist_uncomitted_changes will be removed in a future version. Please use .has_uncomitted_changes"
+            "ProjectRepo.exist_uncomitted_changes will be removed in a future version. "
+            "Please use .has_uncomitted_changes"
         )
         return self.has_uncomitted_changes
 
     @property
-    def has_uncomitted_changes(self):
+    def has_uncomitted_changes(self) -> bool:
+        """True if the repository has uncommitted changes."""
         return len(self._git.status("--porcelain")) > 0
 
-    def ensure_relative_path(self, input_path):
+    def ensure_relative_path(self, input_path: str | Path) -> Path:
         """
         Turn the input path into a relative path, relative to the repo working directory.
 
-        :param input_path:
-        :return:
+        Parameters
+        ----------
+        input_path : str | Path
+            Absolute or relative path.
+
+        Returns
+        -------
+        Path
+            Path relative to the repository root.
         """
         if type(input_path) is str:
             input_path = Path(input_path)
@@ -541,20 +669,30 @@ class GitRepo:
 
 
 class BaseRepo(GitRepo):
-    def __init__(self, path=None, search_parent_directories=True, *args, **kwargs):
-        """
-        Base class handling most git workflows.
+    """Git repository with CADET-RDM metadata."""
 
-        :param path:
+    def __init__(
+        self,
+        path: str | os.PathLike | None = None,
+        search_parent_directories: bool = True,
+        *args: Any,
+        **kwargs: Any,
+    ) -> None:
+        """
+        Open the git repository at the given path.
+
+        Parameters
+        ----------
+        path : str | os.PathLike | None, optional
             Path to the root directory of the repository.
-        :param search_parent_directories:
+        search_parent_directories : bool, optional
             if True, all parent directories will be searched for a valid repo as well.
 
             Please note that this was the default behaviour in older versions of GitPython,
             which is considered a bug though.
-        :param args:
+        *args : Any
             Args handed to git.Repo()
-        :param kwargs:
+        **kwargs : Any
             Kwargs handed to git.Repo()
         """
         super().__init__(path, search_parent_directories, *args, **kwargs)
@@ -562,7 +700,7 @@ class BaseRepo(GitRepo):
 
     @property
     def metadata(self) -> dict:
-        """Return metadata information about CADET-RDM repository."""
+        """Metadata information about CADET-RDM repository."""
         return self._metadata
 
     def load_metadata(self) -> dict:
@@ -582,54 +720,69 @@ class BaseRepo(GitRepo):
         with open(self.data_json_path, "w", encoding="utf-8") as f:
             json.dump(self.metadata, f, indent=2)
 
-    def add_remote(self, remote_url, remote_name=None):
+    def add_remote(self, remote_url: str, remote_name: str | None = None) -> None:
         """
-        Add a remote to the repository.
+        Add a remote to the repository and link it in the README of the related repo.
 
-        :param remote_url:
-        :param remote_name:
-        :return:
+        Parameters
+        ----------
+        remote_url : str
+            URL of the remote.
+        remote_name : str | None, optional
+            Name of the remote. Defaults to "origin".
         """
         if remote_name is None:
             remote_name = "origin"
         self._git_repo.create_remote(remote_name, url=remote_url)
         if self.metadata["is_project_repo"]:
-            # This directory is a project repository. Use a project repo class to easily access the output repo.
+            # This directory is a project repository.
+            # Use a project repo class to easily access the output repo.
             output_repo = ProjectRepo(self.path).output_repo
 
             if output_repo.active_branch != output_repo.main_branch:
                 if output_repo.has_uncomitted_changes:
                     output_repo.stash_all_changes()
                 output_repo.checkout(output_repo.main_branch)
-            output_repo.add_list_of_remotes_in_readme_file("Link to Project Repository", self.remote_urls)
+            output_repo.add_list_of_remotes_in_readme_file(
+                "Link to Project Repository", self.remote_urls
+            )
             output_repo.add("README.md")
             output_repo.commit("Add remote for project repo", verbosity=0)
         if self.metadata["is_output_repo"]:
             # This directory is an output repository.
             project_repo = ProjectRepo(self.path.parent)
             project_repo.update_output_remotes_json()
-            project_repo.add_list_of_remotes_in_readme_file("Link to Output Repository", self.remote_urls)
+            project_repo.add_list_of_remotes_in_readme_file(
+                "Link to Output Repository", self.remote_urls
+            )
             project_repo.add(project_repo.data_json_path)
             project_repo.add("README.md")
             project_repo.commit("Add remote for output repo", verbosity=0)
 
-    def import_remote_repo(self, source_repo_location, source_repo_branch, target_repo_location=None):
+    def import_remote_repo(
+        self,
+        source_repo_location: str | Path,
+        source_repo_branch: str,
+        target_repo_location: str | Path | None = None,
+    ) -> Path:
         """
-        Import a remote repo and update the cadet-rdm-cache
+        Import a remote repo and update the cadet-rdm-cache.
 
-        :param source_repo_location:
-        Path or URL to the source repo.
-        Example https://jugit.fz-juelich.de/IBG-1/ModSim/cadet/agile_cadet_rdm_presentation_output.git
-        or git@jugit.fz-juelich.de:IBG-1/ModSim/cadet/agile_cadet_rdm_presentation_output.git
+        Parameters
+        ----------
+        source_repo_location : str | Path
+            Path or URL to the source repo. Example
+            https://jugit.fz-juelich.de/IBG-1/ModSim/cadet/rdm_presentation_output.git
+            or git@jugit.fz-juelich.de:IBG-1/ModSim/cadet/rdm_presentation_output.git
+        source_repo_branch : str
+            Branch of the source repo to check out.
+        target_repo_location : str | Path | None, optional
+            Place to store the repo. If None, the external_cache directory is used.
 
-        :param source_repo_branch:
-        Branch of the source repo to check out.
-
-        :param target_repo_location:
-        Place to store the repo. If None, the external_cache directory is used.
-
-        :return:
-        Path to the cloned repository
+        Returns
+        -------
+        Path
+            Path to the cloned repository
         """
         if "://" in str(source_repo_location):
             source_repo_name = source_repo_location.split("/")[-1]
@@ -654,12 +807,14 @@ class BaseRepo(GitRepo):
                                          source_repo_location=source_repo_location)
         return target_repo_location
 
-    def add_path_to_gitignore(self, path_to_be_ignored):
+    def add_path_to_gitignore(self, path_to_be_ignored: str | Path) -> None:
         """
-        Add the path to the .gitignore file
+        Add the path to the .gitignore file.
 
-        :param path_to_be_ignored:
-        :return:
+        Parameters
+        ----------
+        path_to_be_ignored : str | Path
+            Path to ignore.
         """
         path_to_be_ignored = self.ensure_relative_path(path_to_be_ignored)
         with open(self.path / ".gitignore", "r", encoding="utf-8") as file_handle:
@@ -670,16 +825,23 @@ class BaseRepo(GitRepo):
         with open(self.path / ".gitignore", "w", encoding="utf-8") as file_handle:
             file_handle.writelines(gitignore)
 
-    def update_cadet_rdm_cache_json(self, source_repo_location, source_repo_branch, target_repo_location):
+    def update_cadet_rdm_cache_json(
+        self,
+        source_repo_location: str | Path,
+        source_repo_branch: str,
+        target_repo_location: str | Path,
+    ) -> None:
         """
-        Update the information in the .cadet_rdm_cache.json file
+        Update the information in the .cadet_rdm_cache.json file.
 
-        :param source_repo_location:
-        Path or URL to the source repo.
-        :param source_repo_branch:
-        Name of the branch to check out.
-        :param target_repo_location:
-        Path where to put the repo or data
+        Parameters
+        ----------
+        source_repo_location : str | Path
+            Path or URL to the source repo.
+        source_repo_branch : str
+            Name of the branch to check out.
+        target_repo_location : str | Path
+            Path where to put the repo or data
         """
         if not self.cache_json_path.exists():
             with open(self.cache_json_path, "w", encoding="utf-8") as file_handle:
@@ -707,13 +869,14 @@ class BaseRepo(GitRepo):
         with open(self.cache_json_path, "w", encoding="utf-8") as file_handle:
             json.dump(rdm_cache, file_handle, indent=2)
 
-    def verify_unchanged_cache(self):
+    def verify_unchanged_cache(self) -> None:
         """
-        Verify that all repos referenced in .cadet-rdm-data.json are
-        in an unmodified state. Raises a RuntimeError if the commit hash has changed or if
-        uncommited changes are found.
+        Verify that all repos referenced in .cadet-rdm-data.json are in an unmodified state.
 
-        :return:
+        Raises
+        ------
+        RuntimeError
+            If the commit hash has changed or if uncommited changes are found.
         """
         with open(self.cache_json_path, "r", encoding="utf-8") as file_handle:
             rdm_cache = json.load(file_handle)
@@ -726,29 +889,53 @@ class BaseRepo(GitRepo):
                 repo = GitRepo(repo_location)
                 repo._git.clear_cache()
             except git.exc.NoSuchPathError:
-                raise git.exc.NoSuchPathError(f"The imported repository at {repo_location} was not found.")
+                raise git.exc.NoSuchPathError(
+                    f"The imported repository at {repo_location} was not found."
+                )
 
             self.verify_cache_folder_is_unchanged(repo_location, repo_info["commit_hash"])
 
-    def verify_cache_folder_is_unchanged(self, repo_location, commit_hash):
+    def verify_cache_folder_is_unchanged(
+        self,
+        repo_location: str | os.PathLike,
+        commit_hash: str,
+    ) -> None:
         """
-        Verify that the repo located at repo_location has no uncommited changes and that the current commit_hash
-        is equal to the given commit_hash
+        Verify that the repo at repo_location is unchanged.
 
-        :param repo_location:
-        :param commit_hash:
-        :return:
+        Parameters
+        ----------
+        repo_location : str | os.PathLike
+            Path to the repository.
+        commit_hash : str
+            Expected commit hash.
+
+        Raises
+        ------
+        RuntimeError
+            If the repository has uncommited changes or the current commit hash differs
+            from the given commit hash.
         """
         repo = GitRepo(repo_location)
         commit_changed = repo.current_commit_hash != commit_hash
         uncommited_changes = repo.has_uncomitted_changes
         if commit_changed or uncommited_changes:
-            raise RuntimeError(f"The contents of {repo_location} have been modified. Don't do that.")
+            raise RuntimeError(
+                f"The contents of {repo_location} have been modified. Don't do that."
+            )
         repo._git.clear_cache()
 
-    def dump_package_list(self, target_folder):
+    def dump_package_list(self, target_folder: str | os.PathLike | None) -> None:
         """
-        Use "conda env export" and "pip freeze" to create environment.yml and pip_requirements.txt files.
+        Write the conda environment and pip requirements to files.
+
+        Uses "conda env export" and "pip freeze" to create environment.yml and
+        pip_requirements.txt files.
+
+        Parameters
+        ----------
+        target_folder : str | os.PathLike | None
+            Folder to write to. Defaults to the repository root.
         """
         if target_folder is not None:
             dump_path = target_folder
@@ -758,16 +945,35 @@ class BaseRepo(GitRepo):
         try:
             os.system(f"conda env export > {dump_path}/conda_environment.yml")
             print("Dumping conda independent environment.yml, this might take a moment.")
-            os.system(f"conda env export --from-history > {dump_path}/conda_independent_environment.yml")
+            os.system(
+                f"conda env export --from-history > {dump_path}/conda_independent_environment.yml"
+            )
         except Exception as e:
             print("Could not dump conda environment due to the following error:")
             print(e)
         print("Dumping pip requirements.txt.")
         os.system(f"pip freeze > {dump_path}/pip_requirements.txt")
         print("Dumping pip independent requirements.txt.")
-        os.system(f"pip list --not-required --format freeze > {dump_path}/pip_independent_requirements.txt")
+        os.system(
+            "pip list --not-required --format freeze > "
+            f"{dump_path}/pip_independent_requirements.txt"
+        )
 
-    def add_list_of_remotes_in_readme_file(self, repo_identifier: str, remotes_url_list: list):
+    def add_list_of_remotes_in_readme_file(
+        self,
+        repo_identifier: str,
+        remotes_url_list: list[str],
+    ) -> None:
+        """
+        Write links to the remotes into the README.md and stage it.
+
+        Parameters
+        ----------
+        repo_identifier : str
+            Link text, e.g. "Link to Output Repository".
+        remotes_url_list : list[str]
+            URLs of the remotes.
+        """
         if len(remotes_url_list) > 0:
             remotes_url_list_http = [ssh_url_to_http_url(remote)
                                      for remote in remotes_url_list]
@@ -777,13 +983,17 @@ class BaseRepo(GitRepo):
             readme_filepath = self.path / "README.md"
             with open(readme_filepath, "r", encoding="utf-8") as file_handle:
                 filelines = file_handle.readlines()
-                filelines_giving_output_repo = [i for i in range(len(filelines))
-                                                if filelines[i].strip().startswith(f"[{repo_identifier}](")]
+                filelines_giving_output_repo = [
+                    i for i in range(len(filelines))
+                    if filelines[i].strip().startswith(f"[{repo_identifier}](")
+                ]
                 if len(filelines_giving_output_repo) == 1:
                     line_to_be_modified = filelines_giving_output_repo[0]
                     filelines[line_to_be_modified] = output_link_line
                 elif len(filelines_giving_output_repo) == 0:
-                    filelines.append("The output repository can be found at:\n")  # method can be used for project and output repositories, "the corresponding repository can be found at... would be better"
+                    # method can be used for project and output repositories,
+                    # "the corresponding repository can be found at..." would be better
+                    filelines.append("The output repository can be found at:\n")
                     filelines.append(output_link_line)
                 else:
                     raise RuntimeError(f"Multiple lines in the README.md at {readme_filepath}"
@@ -796,51 +1006,64 @@ class BaseRepo(GitRepo):
 
 
 class ProjectRepo(BaseRepo):
+    """
+    Class for Project-Repositories.
+
+    Handles interaction between the project repo and the output (i.e. results) repo.
+    """
+
     def __init__(
         self,
-        path: os.PathLike = None,
-        output_directory=None,
+        path: os.PathLike | None = None,
+        output_directory: str | None = None,
         search_parent_directories: bool = True,
         suppress_lfs_warning: bool = False,
-        url: str = None,
-        branch: str = None,
+        url: str | None = None,
+        branch: str | None = None,
         package_dir: str | None = None,
-         *args: Any,
-         **kwargs: Any,
-     ) -> None:
+        *args: Any,
+        **kwargs: Any,
+    ) -> None:
         """
-        Class for Project-Repositories. Handles interaction between the project repo and
-        the output (i.e. results) repo.
+        Open the project repository and its output repository.
 
-        :param path:
+        Parameters
+        ----------
+        path : os.PathLike | None, optional
             Path to the root of the git repository.
-        :param output_directory:
+        output_directory : str | None, optional
             Deprecated: Path to the root of the output repository.
-        :param search_parent_directories:
+        search_parent_directories : bool, optional
             if True, all parent directories will be searched for a valid repo as well.
 
             Please note that this was the default behaviour in older versions of GitPython,
             which is considered a bug though.
-        :param suppress_lfs_warning:
+        suppress_lfs_warning : bool, optional
             Option to not test for git-lfs installation. Used if running a study
             on a system without git-lfs
-        :param branch:
+        url : str | None, optional
+            URL to clone the repository from if it does not exist at path.
+        branch : str | None, optional
             Optional branch to check out upon initialization
-        :param package_dir:
+        package_dir : str | None, optional
             Name of the directory containing the main package.
-        :param args:
+        *args : Any
             Additional args to be handed to BaseRepo.
-        :param kwargs:
+        **kwargs : Any
             Additional kwargs to be handed to BaseRepo.
         """
         path = Path(path).expanduser() if path is not None else None
 
         if path is not None and not path.expanduser().exists():
             if url is None:
-                raise ValueError(f"Could not find repository at path {path} and no URL was given.")
+                raise ValueError(
+                    f"Could not find repository at path {path} and no URL was given."
+                )
             ProjectRepo.clone(url=url, to_path=path)
 
-        super().__init__(path, search_parent_directories=search_parent_directories, *args, **kwargs)
+        super().__init__(
+            path, search_parent_directories=search_parent_directories, *args, **kwargs
+        )
 
         if not suppress_lfs_warning:
             test_for_lfs()
@@ -853,7 +1076,9 @@ class ProjectRepo(BaseRepo):
             )
 
         if not self.data_json_path.exists():
-            raise RuntimeError(f"Directory {self.path} does not appear to be a CADET-RDM repository.")
+            raise RuntimeError(
+                f"Directory {self.path} does not appear to be a CADET-RDM repository."
+            )
 
         changes_were_made = self._update_version()
 
@@ -891,31 +1116,34 @@ class ProjectRepo(BaseRepo):
 
     @property
     def project_uuid(self) -> str:
-        """Return Project UUID."""
+        """Project UUID."""
         return self.metadata.project_uuid
 
     @property
     def output_uuid(self) -> str:
-        """Return Project UUID."""
+        """Output UUID."""
         return self.metadata["output_uuid"]
 
     @property
     def output_directory(self) -> str:
-        """Return output directory."""
+        """Name of the output directory."""
         return self.metadata["output_remotes"]["output_directory_name"]
 
     @property
-    def name(self):
+    def name(self) -> str:
+        """Name of the repository root directory."""
         return self.path.parts[-1]
 
     @property
     def package_dir(self) -> str:
+        """Name of the directory containing the main package."""
         if self._package_dir is None:
             return self.name
         return self._package_dir
 
     @property
     def module(self) -> ModuleType:
+        """Main package of the project, imported from the repository root."""
         cur_dir = os.getcwd()
 
         try:
@@ -926,7 +1154,7 @@ class ProjectRepo(BaseRepo):
             sys.path.remove(str(self.path))
             os.chdir(cur_dir)
 
-    def _update_version(self) -> None:
+    def _update_version(self) -> bool | None:
         """Update project repo to latest CADET-RDM specs."""
         cadetrdm_version = Version(cadetrdm.__version__)
         current_version = Version(self.metadata["cadet_rdm_version"])
@@ -956,7 +1184,7 @@ class ProjectRepo(BaseRepo):
 
         return changes_were_made
 
-    def _clone_output_repo(self, multi_options: List[str] = None):
+    def _clone_output_repo(self, multi_options: list[str] | None = None) -> None:
         output_remotes = self.metadata["output_remotes"]
         output_path = self.path / output_remotes["output_directory_name"]
         ssh_remotes = list(output_remotes["output_remotes"].values())
@@ -973,27 +1201,48 @@ class ProjectRepo(BaseRepo):
                 traceback.print_exc()
 
     @staticmethod
-    def _add_jupytext_file(path_root: str | Path = "."):
-        jupytext_lines = ['# Pair ipynb notebooks to py:percent text notebooks', 'formats: "ipynb,py:percent"']
+    def _add_jupytext_file(path_root: str | Path = ".") -> None:
+        jupytext_lines = [
+            '# Pair ipynb notebooks to py:percent text notebooks',
+            'formats: "ipynb,py:percent"',
+        ]
         write_lines_to_file(Path(path_root) / "jupytext.yml", lines=jupytext_lines, open_type="w")
 
-    def create_remotes(self, name, namespace, url=None, username=None, push=True):
+    def create_remotes(
+        self,
+        name: str,
+        namespace: str,
+        url: str | None = None,
+        username: str | None = None,
+        push: bool = True,
+    ) -> None:
         """
-        Create project in gitlab and add the projects as remotes to the project and output repositories
+        Create remote projects and add them as remotes to the project and output repositories.
 
-        :param username:
-        :param url:
-        :param namespace:
-        :param name:
-        :return:
+        Parameters
+        ----------
+        name : str
+            Name of the project. The output project is named name + "_output".
+        namespace : str
+            Group, organization or user namespace.
+        url : str | None, optional
+            URL of the GitLab instance or GitHub API.
+        username : str | None, optional
+            Username the token is stored under in the keyring.
+        push : bool, optional
+            If True, push all branches after adding the remotes.
         """
         if "github" in url:
             remote = GitHubRemote()
         else:
             remote = GitLabRemote()
 
-        response_project = remote.create_remote(url=url, namespace=namespace, name=name, username=username)
-        response_output = remote.create_remote(url=url, namespace=namespace, name=name + "_output", username=username)
+        response_project = remote.create_remote(
+            url=url, namespace=namespace, name=name, username=username
+        )
+        response_output = remote.create_remote(
+            url=url, namespace=namespace, name=name + "_output", username=username
+        )
         errors_encountered = 0
         try:
             self.add_remote(response_project.ssh_url_to_repo)
@@ -1013,8 +1262,16 @@ class ProjectRepo(BaseRepo):
     def get_new_output_branch_name(self, branch_prefix: str | None = None) -> str:
         """
         Construct a name for the new branch in the output repository.
-        :param branch_prefix: Optional branch name prefix.
-        :return: the new branch name
+
+        Parameters
+        ----------
+        branch_prefix : str | None, optional
+            Optional branch name prefix.
+
+        Returns
+        -------
+        str
+            The new branch name.
         """
         project_repo_hash = str(self.head.commit)
         timestamp = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
@@ -1027,30 +1284,27 @@ class ProjectRepo(BaseRepo):
 
         return branch_name
 
-    def check_results_main(self):
-        """
-        Checkout the main branch, which contains all the log files.
-        """
+    def check_results_main(self) -> None:
+        """Checkout the main branch, which contains all the log files."""
         self._most_recent_branch = self.output_repo.active_branch.name
         self.output_repo._git.checkout(self.output_repo.main_branch)
 
-    def reload_recent_results(self):
-        """
-        Checkout the most recent previous branch.
-        """
+    def reload_recent_results(self) -> None:
+        """Checkout the most recent previous branch."""
         self.output_repo._git.checkout(self._most_recent_branch)
 
-    def print_output_log(self):
+    def print_output_log(self) -> None:
+        """Print the log of the output repository."""
         self.output_repo.print_output_log()
 
-    def fill_data_from_cadet_rdm_json(self, re_load=False):
+    def fill_data_from_cadet_rdm_json(self, re_load: bool = False) -> None:
         """
-        Iterate through all references within the .cadet-rdm-data.json and
-        load or re-load the data.
+        Load or re-load the data of all references within the .cadet-rdm-cache.json.
 
-        :param re_load:
-        If true: delete and re-load all data. If false, existing data will be left as-is.
-        :return:
+        Parameters
+        ----------
+        re_load : bool, optional
+            If true: delete and re-load all data. If false, existing data will be left as-is.
         """
         with open(self.cache_json_path, "r", encoding="utf-8") as file_handle:
             rdm_cache = json.load(file_handle)
@@ -1073,29 +1327,38 @@ class ProjectRepo(BaseRepo):
                     source_repo_branch=repo_info["branch_name"])
 
     @property
-    def output_log_file(self):
+    def output_log_file(self) -> Path:
+        """Path to the log.tsv of the output repository."""
         # note: if filename of "log.tsv" is changed,
         #  this also has to be changed in the gitattributes of the init repo func
         return self.output_repo.output_log_file_path
 
     @property
-    def output_log(self):
+    def output_log(self) -> OutputLog:
+        """Log of the output repository."""
         return self.output_repo.output_log
 
     def update_output_main_logs(
         self,
-        output_dict: dict = None,
+        output_dict: dict | None = None,
         options: Options | None = None,
-    ):
+    ) -> None:
         """
+        Write the run metadata into the main branch of the output repository.
+
         Dumps all the metadata information about the project repositories state and
         the commit hash and branch name of the ouput repository into the main branch of
         the output repository.
         This is the write path for the output log: it intentionally checks out the
         output repository's main branch, updates the run history, commits it, and then
         returns to the result branch.
-        :param output_dict:
-        Dictionary containing key-value pairs to be added to the log.
+
+        Parameters
+        ----------
+        output_dict : dict | None, optional
+            Dictionary containing key-value pairs to be added to the log.
+        options : Options | None, optional
+            Options of the run.
         """
         if output_dict is None:
             output_dict = {}
@@ -1150,13 +1413,14 @@ class ProjectRepo(BaseRepo):
         self.output_repo._git.checkout(output_branch_name)
         self._most_recent_branch = output_branch_name
 
-    def _copy_code(self, target_path):
+    def _copy_code(self, target_path: str | Path) -> None:
         """
-        Clone only the current branch of the project repo to the target_path
-        and then compress it into a zip file.
+        Archive the active branch of the project repo as code.tar in the target_path.
 
-        :param target_path:
-        :return:
+        Parameters
+        ----------
+        target_path : str | Path
+            Directory to write the archive to.
         """
         if type(target_path) is str:
             target_path = Path(target_path)
@@ -1170,21 +1434,21 @@ class ProjectRepo(BaseRepo):
     @wraps(BaseRepo.commit)
     def commit(
         self,
-        *args,
-        **kwargs,
-    ):
+        *args: Any,
+        **kwargs: Any,
+    ) -> None:
         """Update output remotes before committing."""
         self.update_output_remotes_json()
         super().commit(*args, **kwargs)
 
-    def check(self, commit=True):
+    def check(self, commit: bool = True) -> None:
         """
         Check the repository for consistency. Update remote links.
 
-        :param commit:
-        Automatically commit changes to the changed files.
-
-        :return:
+        Parameters
+        ----------
+        commit : bool, optional
+            Automatically commit changes to the changed files.
         """
         self.update_output_remotes_json()
         if commit:
@@ -1192,42 +1456,68 @@ class ProjectRepo(BaseRepo):
 
         # update urls in main branch of output_repo
         self.output_repo._git.checkout(self.output_repo.main_branch)
-        self.output_repo.add_list_of_remotes_in_readme_file("Link to Project Repository", self.remote_urls)
+        self.output_repo.add_list_of_remotes_in_readme_file(
+            "Link to Project Repository", self.remote_urls
+        )
         if commit:
             self.output_repo.commit(message="Update remote links", verbosity=1)
 
-    def update_output_remotes_json(self, load_metadata=True):
+    def update_output_remotes_json(self, load_metadata: bool = True) -> None:
+        """
+        Store the output repository remotes in the metadata and README and stage both.
+
+        Parameters
+        ----------
+        load_metadata : bool, optional
+            If True, reload the metadata from file before updating it.
+        """
         output_repo_remotes = self.output_repo.remote_urls
         self.add_list_of_remotes_in_readme_file("Link to Output Repository", output_repo_remotes)
 
         metadata = self.load_metadata() if load_metadata else self.metadata
         remotes_dict = {remote.name: str(remote.url) for remote in self.output_repo.remotes}
-        metadata["output_remotes"] = {"output_directory_name": self.output_directory, "output_remotes": remotes_dict}
+        metadata["output_remotes"] = {
+            "output_directory_name": self.output_directory,
+            "output_remotes": remotes_dict,
+        }
         self._metadata = metadata
         self.save_metadata()
 
         self.add(self.data_json_path)
 
-    def download_file(self, url, file_path):
+    def download_file(self, url: str, file_path: str | Path) -> tuple[str, Any]:
         """
         Download the file from the url and put it in the output+file_path location.
 
-        :param file_path:
-        :param url:
-        :return:
-            Returns a tuple containing the path to the newly created
-            data file as well as the resulting HTTPMessage object.
+        Parameters
+        ----------
+        url : str
+            URL of the file.
+        file_path : str | Path
+            Target path relative to the output directory.
+
+        Returns
+        -------
+        tuple[str, Any]
+            The path to the newly created data file and the resulting HTTPMessage object.
         """
         absolute_file_path = self.output_data(file_path)
         return urlretrieve(url, absolute_file_path)
 
     def input_data(self, branch_name: str) -> Path:
         """
-        Load previously generated results to iterate upon. Copies entire branch of output repo
-        to the output_cached / branch_name directory.
-        :param branch_name:
+        Load previously generated results to iterate upon.
+
+        Copies entire branch of output repo to the output_cached / branch_name directory.
+
+        Parameters
+        ----------
+        branch_name : str
             Name of the branch of the output repository in which the results are stored.
-        :return:
+
+        Returns
+        -------
+        Path
             Absolute path to the newly copied directory.
         """
         cached_branch_path = self.copy_data_to_cache(branch_name)
@@ -1235,35 +1525,49 @@ class ProjectRepo(BaseRepo):
         return cached_branch_path
 
     @property
-    def output_path(self):
+    def output_path(self) -> Path:
+        """Absolute path to the output directory."""
         return self.output_data()
 
-    def output_data(self, sub_path=None):
+    def output_data(self, sub_path: str | Path | None = None) -> Path:
         """
-        Return an absolute path with the repo_dir/output_dir/sub_path
+        Return an absolute path with the repo_dir/output_dir/sub_path.
 
-        :param sub_path:
-        :return:
+        Parameters
+        ----------
+        sub_path : str | Path | None, optional
+            Path relative to the output directory.
+
+        Returns
+        -------
+        Path
+            Absolute path.
         """
         if sub_path is None:
             return self.output_repo.path.absolute()
         else:
             return self.output_repo.path.absolute() / sub_path
 
-    def remove_cached_files(self):
-        """
-        Delete all previously cached results.
-        """
+    def remove_cached_files(self) -> None:
+        """Delete all previously cached results."""
         if (self.path / (self.output_directory + "_cached")).exists():
             delete_path(self.path / (self.output_directory + "_cached"))
 
-    def import_static_data(self, source_path: Path | str, commit_message):
+    def import_static_data(self, source_path: Path | str, commit_message: str) -> str:
         """
         Copy and commit static data from somewhere into the output repository.
 
-        :param source_path:
-        :param commit_message:
-        :return:
+        Parameters
+        ----------
+        source_path : Path | str
+            File or directory to import.
+        commit_message : str
+            Commit message for the output repository.
+
+        Returns
+        -------
+        str
+            Name of the new output branch.
         """
         new_branch_name = self._get_new_output_branch(force=True)
         if Path(source_path).is_dir():
@@ -1275,24 +1579,32 @@ class ProjectRepo(BaseRepo):
 
     def enter_context(
         self,
-        force=False,
-        debug=False,
+        force: bool = False,
+        debug: bool = False,
         branch_prefix: str | None = None,
     ) -> str | None:
         """
-        Enter the tracking context. This includes:
+        Enter the tracking context.
+
+        This includes:
          - Ensure no uncommitted changes in the project repository
          - Remove all uncommitted changes in the output repository
          - Clean up empty branches in the output repository
          - Create a new empty output branch in the output repository
 
-        :param force:
-            If False, wait for user prompts before deleting data during clean up. If True, don't wait, just delete.
-        :param debug:
+        Parameters
+        ----------
+        force : bool, optional
+            If False, wait for user prompts before deleting data during clean up.
+            If True, don't wait, just delete.
+        debug : bool, optional
             If True, just return None.
-        :param branch_prefix:
+        branch_prefix : str | None, optional
             Optional branch name prefix.
-        :return:
+
+        Returns
+        -------
+        str | None
             The name of the newly created output branch.
         """
         if debug:
@@ -1313,18 +1625,28 @@ class ProjectRepo(BaseRepo):
         self,
         force: bool = False,
         branch_prefix: str | None = None
-    ):
+    ) -> str:
         """
-        Prepares a new branch to receive data. This includes:
+        Prepare a new branch to receive data.
+
+        This includes:
          - checking out the output main branch,
          - creating a new branch from there
         This thereby produces a clear, empty directory for data, while still maintaining
         .gitignore and .gitattributes
 
-        :param force:
-            If False, wait for user prompts before deleting data during clean up. If True, don't wait, just delete.
-        :param branch_prefix:
+        Parameters
+        ----------
+        force : bool, optional
+            If False, wait for user prompts before deleting data during clean up.
+            If True, don't wait, just delete.
+        branch_prefix : str | None, optional
             Optional branch name prefix.
+
+        Returns
+        -------
+        str
+            Name of the new branch.
         """
         output_repo = self.output_repo
 
@@ -1340,11 +1662,14 @@ class ProjectRepo(BaseRepo):
         # update urls in main branch of output_repo
         output_repo._git.checkout(output_repo.main_branch)
         project_repo_remotes = self.remote_urls
-        output_repo.add_list_of_remotes_in_readme_file("Link to Project Repository", project_repo_remotes)
+        output_repo.add_list_of_remotes_in_readme_file(
+            "Link to Project Repository", project_repo_remotes
+        )
         output_repo.commit("Update urls", verbosity=0)
 
         # Create the new branch
-        output_repo._git.checkout('-b', new_branch_name)  # equivalent to $ git checkout -b %branch_name
+        # equivalent to $ git checkout -b %branch_name
+        output_repo._git.checkout('-b', new_branch_name)
         code_backup_path = output_repo.path / "run_history"
         logs_path = output_repo.path / "log.tsv"
         if code_backup_path.exists():
@@ -1362,15 +1687,19 @@ class ProjectRepo(BaseRepo):
                 print(e)
         return new_branch_name
 
-    def cache_folder_for_branch(self, branch_name=None):
+    def cache_folder_for_branch(self, branch_name: str) -> Path:
         """
-        Returns the path to the cache directory for the given branch
+        Return the path to the cache directory for the given branch.
 
-        :param branch_name:
-        optional branch name, if None, current branch is used.
+        Parameters
+        ----------
+        branch_name : str
+            Name of the output branch.
 
-        :return Path:
-        Path to directory in cache
+        Returns
+        -------
+        Path
+            Path to directory in cache
         """
         branch_name_path = branch_name.replace("/", "_")
 
@@ -1378,17 +1707,25 @@ class ProjectRepo(BaseRepo):
         cache_folder = self.path / f"{self.output_directory}_cached" / str(branch_name_path)
         return cache_folder
 
-    def copy_data_to_cache(self, branch_name=None, target_folder=None):
+    def copy_data_to_cache(
+        self,
+        branch_name: str | None = None,
+        target_folder: str | Path | None = None,
+    ) -> Path:
         """
         Copy all existing output results into a cached directory and make it read-only.
 
-        :param branch_name:
-        optional branch name, if None, current branch is used.
-        :param target_folder:
-        optional target directory, if None, default cache directory is used.
+        Parameters
+        ----------
+        branch_name : str | None, optional
+            optional branch name, if None, current branch is used.
+        target_folder : str | Path | None, optional
+            optional target directory, if None, default cache directory is used.
 
-        :return Path:
-        Path to directory in cache
+        Returns
+        -------
+        Path
+            Path to directory in cache
         """
         # Determine the branch name if not provided
         if branch_name is None:
@@ -1433,20 +1770,27 @@ class ProjectRepo(BaseRepo):
 
     def exit_context(
         self,
-        message,
-        output_dict: dict = None,
+        message: str,
+        output_dict: dict | None = None,
         options: Options | None = None,
-    ):
+    ) -> None:
         """
-        After running all project code, this prepares the commit of the results to the output repository. This includes
+        Commit the results to the output repository after running all project code.
+
+        This includes
          - Ensure no uncommitted changes in the project repository
          - Stage all changes in the output repository
          - Commit all changes in the output repository with the given commit message.
          - Update the log files in the main branch of the output repository.
-        :param message:
+
+        Parameters
+        ----------
+        message : str
             Commit message for the output repository commit.
-        :param output_dict:
+        output_dict : dict | None, optional
             Dictionary containing optional output tracking parameters
+        options : Options | None, optional
+            Optional case options.
         """
         if self._on_context_enter_commit_hash is None:
             # This means the context was not entered during enter_context
@@ -1462,27 +1806,34 @@ class ProjectRepo(BaseRepo):
         message: str,
         output_dict: dict,
         options: Options | None = None
-    ):
+    ) -> None:
         """
         Commit the data in the output repository.
+
          - Stage all changes in the output repository
          - Commit all changes in the output repository with the given commit message.
          - Update the log files in the main branch of the output repository.
-        :param message:
+
+        Parameters
+        ----------
+        message : str
             Commit message for the output repository commit.
-        :param output_dict:
+        output_dict : dict
             Dictionary containing optional output tracking parameters
-        :param options:
+        options : Options | None, optional
             Optional case options.
         """
         print("Completed computations, commiting results")
         self.output_repo.add(".")
         try:
-            # This has to be using ._git.commit to raise an error if no results have been written.
-            commit_return = self.output_repo._git.commit("-m", message)
+            # This has to be using ._git.commit to raise an error if no results have been
+            # written.
+            self.output_repo._git.commit("-m", message)
             self.copy_data_to_cache()
             self.update_output_main_logs(output_dict, options)
-            main_cach_path = self.path / (self.output_directory + "_cached") / self.output_repo.main_branch
+            main_cach_path = (
+                self.path / (self.output_directory + "_cached") / self.output_repo.main_branch
+            )
             if main_cach_path.exists():
                 delete_path(main_cach_path)
             self.copy_data_to_cache(self.output_repo.main_branch)
@@ -1498,21 +1849,28 @@ class ProjectRepo(BaseRepo):
     def track_results(
         self,
         results_commit_message: str,
-        debug=False,
-        force=False,
+        debug: bool = False,
+        force: bool = False,
         options: Options | None = None,
-    ) -> str | None:
+    ) -> Iterator[str | None]:
         """
-        Context manager to be used when running project code that produces output that should
-        be tracked in the output repository.
-        :param results_commit_message:
+        Track the output of project code in the output repository.
+
+        Parameters
+        ----------
+        results_commit_message : str
             Commit message for the commit of the output repository.
-        :param debug:
+        debug : bool, optional
             Perform calculations without tracking output.
-        :param force:
+        force : bool, optional
             Skip confirmation and force tracking of results.
-        :param options:
+        options : Options | None, optional
             Optional case options.
+
+        Yields
+        ------
+        str | None
+            Name of the new output branch, "debug" or "detached_head".
         """
         if debug:
             yield "debug"
@@ -1536,33 +1894,44 @@ class ProjectRepo(BaseRepo):
         else:
             self.exit_context(message=results_commit_message, options=options)
 
-    def capture_error(self, error):
+    def capture_error(self, error: Exception) -> None:
+        """
+        Print the current traceback and write it to error.stack in the output directory.
+
+        Parameters
+        ----------
+        error : Exception
+            The raised exception.
+        """
         print(traceback.format_exc())
         write_lines_to_file(self.output_path / "error.stack", traceback.format_exc().split("\n"))
 
 
 class OutputRepo(BaseRepo):
+    """Repository storing the results of a project repository."""
+
     def __init__(
         self,
         *args: Any,
         project_repo: ProjectRepo | None = None,
         **kwargs: Any,
-    ):
+    ) -> None:
         self.project_repo = project_repo
         super().__init__(*args, **kwargs)
 
         self._update_version()
 
     @property
-    def output_log_file_path(self):
+    def output_log_file_path(self) -> Path:
+        """Path to log.tsv. Checks out the main branch."""
         if not self.active_branch == self.main_branch:
             self.checkout(self.main_branch)
         return self.path / "log.tsv"
 
     @property
-    def output_log(self):
+    def output_log(self) -> OutputLog:
         """
-        OutputLog: The run history recorded on the main branch.
+        The run history recorded on the main branch.
 
         Read directly from the main branch ref, so that inspecting the log neither
         checks out that branch nor touches the working tree. Reading the log used to
@@ -1577,7 +1946,7 @@ class OutputRepo(BaseRepo):
 
         return OutputLog.from_string(log_content, filepath=self.path / "log.tsv")
 
-    def update_main(self):
+    def update_main(self) -> None:
         """
         Update the local main branch from the remote.
 
@@ -1597,7 +1966,8 @@ class OutputRepo(BaseRepo):
         except git.GitCommandError as e:
             print(f"Could not fast-forward {self.main_branch} in {self.path}: {e}")
 
-    def print_output_log(self):
+    def print_output_log(self) -> None:
+        """Print the output log."""
         self.checkout(self.main_branch)
 
         output_log = self.output_log
@@ -1632,11 +2002,9 @@ class OutputRepo(BaseRepo):
     @property
     def options_to_commit_map(self) -> dict[str, list[str]]:
         """
-        Maps each option hash to the commit hashes where it was run.
+        Map each option hash to the commit hashes where it was run.
 
-        Returns
-        -------
-            dict: Keys are option hashes, values are lists of commit hashes.
+        Keys are option hashes, values are lists of commit hashes.
         """
         mapping = defaultdict(list)
         for entry in self.output_log.entries.values():
@@ -1648,28 +2016,27 @@ class OutputRepo(BaseRepo):
         """
         Map each commit hash to the option hashes run at that commit.
 
-        Returns
-        -------
-            dict: Keys are commit hashes, values are lists of option hashes.
+        Keys are commit hashes, values are lists of option hashes.
         """
         mapping = defaultdict(list)
         for entry in self.output_log.entries.values():
             mapping[entry.project_repo_commit_hash].append(entry.options_hash)
         return dict(mapping)
 
-    def add_filetype_to_lfs(self, file_type):
+    def add_filetype_to_lfs(self, file_type: str) -> None:
         """
-        Add the filetype given in file_type to the GIT-LFS tracking
+        Add the filetype given in file_type to the GIT-LFS tracking.
 
-        :param file_type:
-        Wildcard formatted string. Examples: "*.png" or "*.xlsx"
-        :return:
+        Parameters
+        ----------
+        file_type : str
+            Wildcard formatted string. Examples: "*.png" or "*.xlsx"
         """
         init_lfs(lfs_filetypes=[file_type], path=self.path)
         self.add_all_files()
         self.commit(f"Add {file_type} to lfs")
 
-    def _update_version(self) -> None:
+    def _update_version(self) -> bool | None:
         """Update output repo to latest CADET-RDM specs."""
         metadata = self.metadata
         cadetrdm_version = Version(cadetrdm.__version__)
@@ -1766,7 +2133,7 @@ class OutputRepo(BaseRepo):
         self.add(self.path / "log.tsv")
         self.commit("Convert csv to tsv")
 
-    def _expand_tsv_header(self):
+    def _expand_tsv_header(self) -> None:
         """Update tsv header."""
         if not self.output_log_file_path.exists():
             return
@@ -1792,7 +2159,7 @@ class OutputRepo(BaseRepo):
         self.add(self.output_log_file_path)
         self.commit("Update tsv header")
 
-    def _update_headers(self):
+    def _update_headers(self) -> None:
         """Update tsv header."""
         if not self.output_log_file_path.exists():
             return
@@ -1818,7 +2185,7 @@ class OutputRepo(BaseRepo):
         self.add(self.output_log_file_path)
         self.commit("Update tsv header")
 
-    def _fix_gitattributes_log_tsv(self):
+    def _fix_gitattributes_log_tsv(self) -> None:
         """Update .gitattributes to account for changed logfile name."""
         file = self.path / ".gitattributes"
         with open(file, encoding="utf-8") as handle:
@@ -1830,7 +2197,7 @@ class OutputRepo(BaseRepo):
         self.add(".gitattributes")
         self.commit("Update .gitattributes")
 
-    def _update_log_hashes(self):
+    def _update_log_hashes(self) -> None:
         if self.has_uncomitted_changes:
             self._reset_hard_to_head(force_entry=True)
         if not self.active_branch == self.main_branch:
@@ -1891,7 +2258,9 @@ class OutputRepo(BaseRepo):
 
         self.add("log.tsv")
         self.commit(
-            message="Rename 'project_repo_folder_name' to 'project_repo_directory_name' in log.tsv",
+            message=(
+                "Rename 'project_repo_folder_name' to 'project_repo_directory_name' in log.tsv"
+            ),
             add_all=False,
         )
 
@@ -1942,15 +2311,24 @@ class OutputRepo(BaseRepo):
 
 
 class JupyterInterfaceRepo(ProjectRepo):
-    def commit(self, message: str | None = None, add_all=False, verbosity=1):
-        """
-        Commit current state of the repository.
+    """Project repository driven from a Jupyter notebook."""
 
-        :param message:
+    def commit(
+        self,
+        message: str | None = None,
+        add_all: bool = False,
+        verbosity: int = 1,
+    ) -> None:
+        """
+        Save the notebook and commit current state of the repository.
+
+        Parameters
+        ----------
+        message : str | None, optional
             Commit message
-        :param add_all:
+        add_all : bool, optional
             Option to add all changed and new files to git automatically.
-        :param verbosity:
+        verbosity : int, optional
             Option to choose degree of printed feedback.
         """
         if "nbconvert_call" in sys.argv:
@@ -1961,8 +2339,30 @@ class JupyterInterfaceRepo(ProjectRepo):
 
         super().commit(message, add_all, verbosity)
 
-    def commit_nb_output(self, notebook_path: str, results_commit_message: str,
-                         force_rerun=True, timeout=600, conversion_formats: list = None):
+    def commit_nb_output(
+        self,
+        notebook_path: str | Path,
+        results_commit_message: str,
+        force_rerun: bool = True,
+        timeout: int = 600,
+        conversion_formats: list[str] | None = None,
+    ) -> None:
+        """
+        Rerun the notebook and commit its exports and figures to the output repository.
+
+        Parameters
+        ----------
+        notebook_path : str | Path
+            Path to the notebook, absolute or relative to the repository root.
+        results_commit_message : str
+            Commit message for the output repository.
+        force_rerun : bool, optional
+            If True, rerun the notebook without checking its execution order.
+        timeout : int, optional
+            Timeout per cell in seconds.
+        conversion_formats : list[str] | None, optional
+            nbconvert export formats.
+        """
         if "nbconvert_call" in sys.argv:
             return
             # This is reached in the first call of this function

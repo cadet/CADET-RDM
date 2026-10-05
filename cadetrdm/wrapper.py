@@ -1,19 +1,36 @@
 from functools import wraps
 from pathlib import Path
+from typing import Any, Callable
 
 from cadetrdm.repositories import ProjectRepo
 from cadetrdm import Options
 
 
-def tracks_results(func):
+def tracks_results(
+    func: Callable[[ProjectRepo, Options], Any],
+) -> Callable[..., tuple[str, Any]]:
     """
-    Tracks results using CADET-RDM.
-    Adds the project_repo to the function arguments and adds the output_branch_name to the return information.
+    Track the results of a function using CADET-RDM.
 
+    The wrapped function receives the project repository and the options as arguments.
+    The wrapper returns the output branch name together with the function results.
+
+    Parameters
+    ----------
+    func : Callable[[ProjectRepo, Options], Any]
+        Function that computes and writes results to the output directory.
+
+    Returns
+    -------
+    Callable[..., tuple[str, Any]]
+        Wrapper taking options and a repository path.
     """
 
     @wraps(func)
-    def wrapper(options, repo_path='.'):
+    def wrapper(
+        options: Options | dict | str,
+        repo_path: str | Path = '.',
+    ) -> tuple[str, Any]:
         if type(options) is str and Path(options).exists():
             options = Options.load_json_file(options)
         elif type(options) is str:
@@ -26,7 +43,10 @@ def tracks_results(func):
                 raise ValueError(f"Key {key} not found in options. Please supply options.{key}")
 
         if options.get_hash() != Options.load_json_str(options.dump_json_str()).get_hash():
-            raise ValueError("Options are not serializable. Please only use python natives and numpy ndarrays.")
+            raise ValueError(
+                "Options are not serializable. "
+                "Please only use python natives and numpy ndarrays."
+            )
 
         project_repo = ProjectRepo(repo_path)
 

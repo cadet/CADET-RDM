@@ -18,7 +18,9 @@ with open(filepath, encoding="utf-8") as handle:
 lines = [line.replace("\n", "").split("\t") for line in lines]
 
 # branches = repo.git.branch("-r").split("\n")
-# branches = [branch.replace("  origin/", "") for branch in branches if "origin/main" not in branch]
+# branches = [
+#     branch.replace("  origin/", "") for branch in branches if "origin/main" not in branch
+# ]
 # remote = repo.remotes[0]
 
 all_options = {}
@@ -29,7 +31,7 @@ for line in lines[1:]:
         options = Options.load_json_file("options.json")
         try:
             options.pop("study_options")
-        except:
+        except KeyError:
             pass
         all_options[branch] = options
         print(line[-1], options.get_hash())

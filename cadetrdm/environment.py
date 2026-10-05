@@ -1,16 +1,23 @@
 import io
+import os
 import re
-from typing import Self, List
-from typing import Dict as DictType
+from typing import IO, Self
 
 import yaml
 from semantic_version import Version, SimpleSpec
 
 
 class Environment:
+    """Conda and pip package requirements of a project."""
 
-    def __init__(self, *args, conda_packages: DictType[str, str] = None, pip_packages: DictType[str, str] = None,
-                 name: str = None, channels: List[str] = None):
+    def __init__(
+        self,
+        *args: object,
+        conda_packages: dict[str, str] | None = None,
+        pip_packages: dict[str, str] | None = None,
+        name: str | None = None,
+        channels: list[str] | None = None,
+    ) -> None:
         if args:
             raise TypeError(
                 "Environment.__init__() does not take positional arguments. "
@@ -28,12 +35,19 @@ class Environment:
         self.channels = channels
 
     @classmethod
-    def from_yml(cls, yml_path):
+    def from_yml(cls, yml_path: str | os.PathLike) -> Self:
         """
         Create an Environment object from a YAML file.
 
-        :param yml_path:
-        :return:
+        Parameters
+        ----------
+        yml_path : str | os.PathLike
+            Path to a conda environment.yml file.
+
+        Returns
+        -------
+        Environment
+            Environment described by the file.
         """
         with open(yml_path, encoding="utf-8") as handle:
             yml_string = "".join(handle.readlines())
@@ -42,12 +56,19 @@ class Environment:
         return instance
 
     @classmethod
-    def from_yml_string(cls, yml_string):
+    def from_yml_string(cls, yml_string: str) -> Self:
         """
-        Creates an Environment object from a YAML string.
+        Create an Environment object from a YAML string.
 
-        :param yml_string:
-        :return:
+        Parameters
+        ----------
+        yml_string : str
+            Content of a conda environment.yml file.
+
+        Returns
+        -------
+        Environment
+            Environment described by the string.
         """
         # Remove special formatting characters from the string
         ansi_escape_pattern = re.compile(r'\x1b\[[0-9;]*[a-zA-Z]')
@@ -73,7 +94,10 @@ class Environment:
         if not dependencies:
             return instance
 
-        conda_packages = {line.split("=")[0]: line.split("=")[1] for line in dependencies if isinstance(line, str)}
+        conda_packages = {
+            line.split("=")[0]: line.split("=")[1]
+            for line in dependencies if isinstance(line, str)
+        }
         instance.packages.update(conda_packages)
         instance.conda_packages = conda_packages
 
@@ -85,22 +109,27 @@ class Environment:
 
         return instance
 
-    def to_yml(self, handle):
+    def to_yml(self, handle: IO[str]) -> None:
         """
-        Create an environment.yml file from an Environment instance.
+        Write the environment as an environment.yml file.
 
-        :param handle:
-        :return:
+        Parameters
+        ----------
+        handle : IO[str]
+            Writable text handle.
         """
         yml_dict = self._to_yml_dict()
 
         yaml.safe_dump(yml_dict, handle)
 
-    def _to_yml_dict(self):
+    def _to_yml_dict(self) -> dict:
         """
         Create an environment.yml type yml dict from an Environment instance.
 
-        :return: yml dict
+        Returns
+        -------
+        dict
+            Dictionary with name, channels and dependencies.
         """
         dependency_list = []
         if self.conda_packages is not None:
@@ -131,7 +160,15 @@ class Environment:
         }
         return yml_dict
 
-    def update(self, environment: Self):
+    def update(self, environment: Self) -> None:
+        """
+        Update name, channels and packages with those of another environment.
+
+        Parameters
+        ----------
+        environment : Environment
+            Environment whose entries take precedence.
+        """
         if environment.name is not None:
             self.name = environment.name
         if environment.channels is not None:
@@ -139,31 +176,49 @@ class Environment:
         self.conda_packages.update(environment.conda_packages)
         self.pip_packages.update(environment.pip_packages)
 
-    def package_version(self, package):
+    def package_version(self, package: str) -> str | None:
+        """
+        Return the version specification of a package.
+
+        Parameters
+        ----------
+        package : str
+            Package name.
+
+        Returns
+        -------
+        str | None
+            Version specification, or None if the package is not part of the environment.
+        """
         if package not in self.packages:
             return None
 
         return self.packages[package]
 
-    def fulfils(self, package, version):
+    def fulfils(self, package: str, version: str) -> bool:
         """
-        Checks if the installed version of a package matches the specified version.
+        Check if the installed version of a package matches the specified version.
 
-        Args:
-            package (str): The name of the package to check.
-            version (str): The version or specification string to match against.
+        Uses semantic versioning to compare the versions.
+
+        Parameters
+        ----------
+        package : str
+            The name of the package to check.
+        version : str
+            The version or specification string to match against.
 
         Returns
         -------
-            bool: True if the installed package version matches the specified version, False otherwise.
+        bool
+            True if the installed package version matches the specified version,
+            False otherwise.
 
         Examples
         --------
-            check_package_version("conda", ">=0.1.1") -> true if larger or equal
-            check_package_version("conda", "~0.1.1") -> true if approximately equal (tolerant of pre-release suffixes)
-            check_package_version("conda", "0.1.1") -> true if exactly equal (must match pre-release suffixes)
-
-        Uses semantic versioning to compare the versions.
+        >>> env.fulfils("conda", ">=0.1.1")  # larger or equal
+        >>> env.fulfils("conda", "~0.1.1")  # tolerant of pre-release suffixes
+        >>> env.fulfils("conda", "0.1.1")  # exactly equal, including pre-release suffixes
         """
         installed_version = self.package_version(package)
         if installed_version is None:
@@ -185,19 +240,29 @@ class Environment:
             spec = SimpleSpec(version)
         except ValueError as e:
             spec = SimpleSpec(str(Version.coerce(version)))
-            print(f"Warning: {e} when processing {package}={version}. Using {str(Version.coerce(version))} instead.")
+            print(
+                f"Warning: {e} when processing {package}={version}. "
+                f"Using {str(Version.coerce(version))} instead."
+            )
 
         match = spec.match(installed_version)
 
         return match
 
-    def fulfils_environment(self, environment: Self):
+    def fulfils_environment(self, environment: Self | None) -> bool:
         """
-        Checks if this environment fulfils the requirements in a given environment.
+        Check if this environment fulfils the requirements in a given environment.
 
-        :param environment:
-            Instance of Environment class, with requirements as key: value pairs.
-        :return:
+        Parameters
+        ----------
+        environment : Environment | None
+            Environment with requirements as key: value pairs.
+            If None, the requirements are always fulfilled.
+
+        Returns
+        -------
+        bool
+            True if all requirements are fulfilled.
         """
         if environment is None:
             return True
@@ -213,18 +278,23 @@ class Environment:
 
         if mismatches:
             for package, version, existing_version in mismatches:
-                print(f"Package {package}: {existing_version} does not fulfil requirements: {version}")
+                print(
+                    f"Package {package}: {existing_version} "
+                    f"does not fulfil requirements: {version}"
+                )
             return False
 
         return True
 
-    def __repr__(self):
+    def __repr__(self) -> str:
+        """Return the conda and pip packages as constructor arguments."""
         return (f"Environment("
                 f"conda_packages = {repr(self.conda_packages)},  "
                 f"pip_packages = {repr(self.pip_packages)}"
                 f")")
 
-    def __str__(self):
+    def __str__(self) -> str:
+        """Return the environment in environment.yml format."""
         handle = io.StringIO()
         yaml.safe_dump(self._to_yml_dict(), handle)
         return "Environment:\n" + handle.getvalue()

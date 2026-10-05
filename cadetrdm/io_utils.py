@@ -2,17 +2,24 @@ import os
 import shutil
 from _stat import S_IWRITE
 from pathlib import Path
+from typing import Any, Callable
 
 
-def add_linebreaks(input_list, initial_linebreak=True):
+def add_linebreaks(input_list: list[str], initial_linebreak: bool = True) -> list[str]:
     """
-    Add linebreaks between each entry in the input_list
+    Add linebreaks between each entry in the input_list.
 
-    :param input_list:
-    List of strings to add linebreaks to.
+    Parameters
+    ----------
+    input_list : list[str]
+        List of strings to add linebreaks to.
+    initial_linebreak : bool, optional
+        If True, add a newline before the first line.
 
-    :param initial_linebreak:
-    Bool, if true: add a newline before the first line.
+    Returns
+    -------
+    list[str]
+        Lines with trailing newlines.
     """
     lines = [line + "\n" for line in input_list]
     if initial_linebreak:
@@ -20,14 +27,21 @@ def add_linebreaks(input_list, initial_linebreak=True):
     return lines
 
 
-def write_lines_to_file(path, lines, open_type="a"):
+def write_lines_to_file(
+    path: str | Path,
+    lines: list[str],
+    open_type: str = "a",
+) -> None:
     """
-    Convenience function. Write lines to a file at path with added newlines between each line.
-    :param path:
+    Write lines to a file at path with added newlines between each line.
+
+    Parameters
+    ----------
+    path : str | Path
         Path to file.
-    :param lines:
+    lines : list[str]
         List of lines to be written to file.
-    :param open_type:
+    open_type : str, optional
         The way the file should be opened. I.e. "a" for append and "w" for fresh write.
     """
     add_initial_linebreak = False
@@ -42,21 +56,40 @@ def write_lines_to_file(path, lines, open_type="a"):
         f.writelines(add_linebreaks(lines, initial_linebreak=add_initial_linebreak))
 
 
-def is_tool(name):
+def is_tool(name: str) -> bool:
     """Check whether `name` is on PATH and marked as executable."""
     from shutil import which
     return which(name) is not None
 
 
-def recursive_chmod(path, setting):
+def recursive_chmod(path: str | Path, setting: int) -> None:
+    """
+    Change the mode of a directory and all files and directories within it.
+
+    Parameters
+    ----------
+    path : str | Path
+        Root directory.
+    setting : int
+        Mode passed to os.chmod.
+    """
     for dirpath, dirnames, filenames in os.walk(path):
         os.chmod(dirpath, setting)
         for filename in filenames:
             os.chmod(os.path.join(dirpath, filename), setting)
 
 
-def delete_path(filename):
-    def remove_readonly(func, path, exc_info):
+def delete_path(filename: str | Path) -> None:
+    """
+    Delete a file or directory, including read-only files on Windows.
+
+    Parameters
+    ----------
+    filename : str | Path
+        Path to the file or directory.
+    """
+
+    def remove_readonly(func: Callable[[str], Any], path: str, exc_info: tuple) -> None:
         # Clear the readonly bit and reattempt the removal
         # ERROR_ACCESS_DENIED = 5
         if func not in (os.unlink, os.rmdir) or exc_info[1].winerror != 5:
@@ -71,7 +104,20 @@ def delete_path(filename):
         os.remove(absolute_path)
 
 
-def wait_for_user(message):
+def wait_for_user(message: str) -> bool:
+    """
+    Ask the user a yes/no question on the command line.
+
+    Parameters
+    ----------
+    message : str
+        Question to show.
+
+    Returns
+    -------
+    bool
+        True if the user answered "y" or nothing, False otherwise.
+    """
     proceed = input(message + " Y/n \n")
     if proceed.lower() == "y" or proceed == "":
         return True
@@ -79,13 +125,17 @@ def wait_for_user(message):
         return False
 
 
-def init_lfs(lfs_filetypes: list, path: str | Path = None):
+def init_lfs(lfs_filetypes: list[str], path: str | Path | None = None) -> None:
     """
     Initialize lfs in the git repository at the path.
-    If path is None, the current working directory is used.
-    :param lfs_filetypes:
+
+    Parameters
+    ----------
+    lfs_filetypes : list[str]
         List of file types to be handled by lfs.
         Format should be e.g. ["*.jpg", "*.png"] for jpg and png files.
+    path : str | Path | None, optional
+        Path to the repository. If None, the current working directory is used.
     """
     if path is not None:
         previous_path = os.getcwd()
@@ -101,9 +151,19 @@ def init_lfs(lfs_filetypes: list, path: str | Path = None):
         os.chdir(previous_path)
 
 
-def test_for_lfs():
+def test_for_lfs() -> None:
+    """
+    Raise an error if Git LFS is not installed.
+
+    Raises
+    ------
+    RuntimeError
+        If git-lfs is not on PATH.
+    """
     if not is_tool("git-lfs"):
-        raise RuntimeError("Git LFS is not installed. Please install it via e.g. apt-get install git-lfs or the "
-                           "instructions found below \n"
-                           "https://docs.github.com/en/repositories/working-with-files"
-                           "/managing-large-files/installing-git-large-file-storage")
+        raise RuntimeError(
+            "Git LFS is not installed. Please install it via e.g. apt-get install git-lfs or the "
+            "instructions found below \n"
+            "https://docs.github.com/en/repositories/working-with-files"
+            "/managing-large-files/installing-git-large-file-storage"
+        )
