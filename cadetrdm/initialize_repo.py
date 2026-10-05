@@ -16,7 +16,6 @@ except ImportError:
 import cadetrdm
 from cadetrdm.repositories import ProjectRepo, OutputRepo
 from cadetrdm.io_utils import write_lines_to_file, wait_for_user, init_lfs, test_for_lfs
-import cadetrdm.templates.dockerfile_template as dockerfile_template
 
 def initialize_repo(path_to_repo: str | Path, output_directory_name: (str | bool) = "output", gitignore: list = None,
                     gitattributes: list = None, output_repo_kwargs: dict = None, cookiecutter_template: str = None):
@@ -68,7 +67,6 @@ def initialize_repo(path_to_repo: str | Path, output_directory_name: (str | bool
 
     create_readme()
     create_environment_yml()
-    create_dockerfile()
 
     ProjectRepo._add_jupytext_file()
 
@@ -101,7 +99,6 @@ def initialize_repo(path_to_repo: str | Path, output_directory_name: (str | bool
              ".cadet-rdm-data.json",
              "environment.yml",
              "jupytext.yml",
-             "Dockerfile",
              ]
     if gitattributes is not None:
         files.append(".gitattributes")
@@ -273,6 +270,3 @@ def create_output_readme():
     ]
     write_lines_to_file("README.md", readme_lines, open_type="a")
 
-
-def create_dockerfile():
-    write_lines_to_file("Dockerfile", dockerfile_template, open_type="w")

@@ -825,8 +825,8 @@ class ProjectRepo(BaseRepo):
             Please note that this was the default behaviour in older versions of GitPython,
             which is considered a bug though.
         :param suppress_lfs_warning:
-            Option to not test for git-lfs installation. Used if running a study in a Docker container
-            from a system without git-lfs
+            Option to not test for git-lfs installation. Used if running a study
+            on a system without git-lfs
         :param branch:
             Optional branch to check out upon initialization
         :param package_dir:

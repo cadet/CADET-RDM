@@ -131,14 +131,6 @@ def run_command(command, results_commit_message):
     del repo
 
 
-@run.command(name="dockered")
-@click.argument('yaml_path')
-def run_dockered(yaml_path):
-    from cadetrdm.container import DockerAdapter
-    docker_adapter = DockerAdapter()
-    docker_adapter.run(yaml_path)
-
-
 @cli.group(help="Create, add, and manage remotes.")
 def remote():
     pass
