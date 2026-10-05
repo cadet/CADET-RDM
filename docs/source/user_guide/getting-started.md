@@ -125,6 +125,9 @@ CLI (check consistency and stage changes):
 rdm check
 ```
 
+Commits made through CADET-RDM keep the links between the project and output repositories up to date.
+For commits made with plain git, the optional `rdm-check` pre-commit hook does the same, see [Command line interface](command-line-interface.md).
+
 CLI (commit staged changes):
 
 ```bash
@@ -137,6 +140,8 @@ CLI (push project and output repositories):
 rdm push
 ```
 
+To push only the output repository, e.g. to publish results without unfinished project changes, use `rdm push --output-only`.
+
 Python (push both repositories):
 
 ```python
@@ -148,8 +153,11 @@ repo.push()
 Results are referenced by a unique output branch name:
 
 ```
-<timestamp>_<active_project_branch>_<project_repo_hash[:7]>
+[<branch_prefix>_]<timestamp>_<active_project_branch>_<project_repo_hash[:7]>_<suffix>
 ```
+
+The random six-character suffix keeps runs that start at the same time apart.
+The prefix is optional and set with `options.branch_prefix`.
 
 CLI:
 
