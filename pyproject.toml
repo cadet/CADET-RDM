@@ -74,7 +74,7 @@ dev = [
     {include-group = "docs"},
     {include-group = "testing"},
     "pre-commit",
-    "ruff==0.16.10",
+    "ruff==0.17.2",
 ]
 
 [project.optional-dependencies]
